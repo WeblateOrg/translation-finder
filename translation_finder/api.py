@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+"""Highlevel API for translation-finder."""
 from __future__ import unicode_literals, absolute_import
 
 from .finder import Finder

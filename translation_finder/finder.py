@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+"""Filesystem finder for translations."""
 from __future__ import unicode_literals, absolute_import
 
 from fnmatch import fnmatch
@@ -31,6 +32,7 @@ EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
 
 
 class Finder(object):
+    """Finder for files which might be considered translations."""
     def __init__(self, root, files=None):
         if not isinstance(root, PurePath):
             root = Path(root)
@@ -41,6 +43,9 @@ class Finder(object):
         self.files = {path.as_posix().lower(): path for path in relatives}
 
     def list_files(self, root):
+        """Recursively list files in a path.
+
+        It skips excluded files."""
         for path in root.iterdir():
             if any((path.match(exclude) for exclude in EXCLUDES)):
                 continue
@@ -51,6 +56,7 @@ class Finder(object):
                 yield path
 
     def filter_files(self, glob):
+        """Filter lowercase file names against glob."""
         for name, path in self.files.items():
             if fnmatch(name, glob):
                 yield path

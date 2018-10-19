@@ -18,10 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+"""Individual discovery rules for translation formats."""
 from __future__ import unicode_literals, absolute_import
 
 
 class BaseDiscovery(object):
+    """Abstract base class for discovery."""
     def __init__(self, finder):
         self.finder = finder
 
@@ -36,6 +38,7 @@ class BaseDiscovery(object):
 
 
 class GettextDiscovery(BaseDiscovery):
+    """Gettext PO files discovery."""
     def discover(self):
         masks = set()
         for path in self.finder.filter_files("*.po"):
