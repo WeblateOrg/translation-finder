@@ -21,6 +21,8 @@
 """Individual discovery rules for translation formats."""
 from __future__ import unicode_literals, absolute_import
 
+from itertools import chain
+
 BLACKLIST = frozenset(("po", "ts"))
 
 
@@ -171,7 +173,9 @@ class RESXDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in self.finder.filter_files("*.*.resx"):
+        for path in chain(
+            self.finder.filter_files("*.*.resx"), self.finder.filter_files("*.*.resw")
+        ):
             mask = list(path.parts)
             template = mask[:]
             base, code, ext = mask[-1].rsplit(".", 2)
