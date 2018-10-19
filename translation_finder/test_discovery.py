@@ -161,14 +161,14 @@ class RESXTest(DiscoveryTestCase):
         discovery = RESXDiscovery(
             self.get_finder(
                 [
-                    "App/Localization/AboutStrings.nb.resx",
+                    "App/Localization/AboutStrings.ar.resx",
                     "App/Localization/AboutStrings.resx",
-                    "App/Localization/MainStrings.nb.resw",
+                    "App/Localization/MainStrings.ar.resw",
                     "App/Localization/MainStrings.resw",
                     "App/Localization/OtherStrings.resx",
                     "App/Localization/Other.Strings.resx",
                     "App/Localization/SettingsStrings.fr.resx",
-                    "App/Localization/nb/Resources.resw",
+                    "App/Localization/ar/Resources.resw",
                     "App/Localization/en/Resources.resw",
                 ]
             )

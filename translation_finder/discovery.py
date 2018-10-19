@@ -23,6 +23,8 @@ from __future__ import unicode_literals, absolute_import
 
 from itertools import chain
 
+from .languages import LANGUAGES
+
 BLACKLIST = frozenset(("po", "ts"))
 
 
@@ -38,11 +40,10 @@ class BaseDiscovery(object):
     @staticmethod
     def is_language_code(code):
         """Analysis whether passed parameter looks like language code."""
-        if len(code) <= 2:
-            if code in BLACKLIST:
-                return False
-            return True
-        return False
+        if code in BLACKLIST:
+            return False
+
+        return code.lower().replace("-", "_") in LANGUAGES
 
     def get_wildcard(self, part):
         """Generate language wilcard for a path part.

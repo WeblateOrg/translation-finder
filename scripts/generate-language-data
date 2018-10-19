@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright © 2018 Michal Čihař <michal@cihar.com>
+#
+# This file is part of Weblate translation-finder
+# <https://github.com/WeblateOrg/translation-finder>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Helper script to generate Python code from language-data repository
+# see https://github.com/WeblateOrg/language-data
+
+import csv
+import json
+import re
+from textwrap import TextWrapper
+
+SPLIT_RE = re.compile(
+    r"(?:\&(?:nbsp|rsaquo|lt|gt|amp|ldquo|rdquo|times|quot);|"
+    + r'[() ,.^`"\'\\/_<>!?;:|{}*^@%#&~=+\r\n✓—‑…\[\]0-9-])+'
+)
+
+HEADER = '''# -*- coding: utf-8 -*-
+#
+# Copyright © 2018 Michal Čihař <michal@cihar.com>
+#
+# This file is part of Weblate translation-finder
+# <https://github.com/WeblateOrg/translation-finder>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+"""
+Language data definitions.
+
+This is an automatically generated file, see scripts/generate-language-data
+
+Do not edit, please adjust language definitions in following repository:
+https://github.com/WeblateOrg/language-data
+"""
+
+from __future__ import unicode_literals
+'''
+
+WRAPPER = TextWrapper(width=79, initial_indent=" " * 4, subsequent_indent=" " * 4)
+
+# Read languages
+with open("scripts/language-data/languages.csv", "r") as csvfile:
+    reader = csv.reader(csvfile, delimiter=";")
+    LANGUAGES = list(reader)
+
+
+# Write same check blacklist
+with open("translation_finder/languages.py", "w") as output:
+    output.write(HEADER)
+    output.write("\n\n")
+    output.write("# Known language codes\n")
+    output.write("LANGUAGES = frozenset(\n    (\n")
+    for word in sorted(LANGUAGES):
+        output.write('        "{}",\n'.format(word[0].replace('"', '\\"').lower()))
+    output.write("    )\n)\n")
