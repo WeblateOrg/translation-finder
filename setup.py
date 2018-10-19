@@ -42,10 +42,7 @@ setup(
     version=VERSION,
     author="Michal Čihař",
     author_email="michal@cihar.com",
-    description=(
-        "A command line utility for Weblate, "
-        "translation tool with tight version control integration"
-    ),
+    description="A translation finder for Weblate, translation tool with tight version control integration",
     license="GPLv3+",
     keywords="i18n l10n gettext git mercurial translate",
     url="https://weblate.org/",
@@ -70,6 +67,7 @@ setup(
         "Operating System :: OS Independent",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
