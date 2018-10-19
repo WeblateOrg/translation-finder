@@ -20,20 +20,33 @@
 #
 from __future__ import unicode_literals, absolute_import
 
-from unittest import TestCase
+import os.path
 
 from .finder import PurePath
+from .test_discovery import DiscoveryTestCase
 from .api import discover
 
 
-class APITest(TestCase):
+class APITest(DiscoveryTestCase):
     def test_discover(self):
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
-        self.assertEqual(
+        self.assert_discovery(
             discover(PurePath("."), [PurePath(path) for path in paths]),
             [
                 {
                     "filemask": "locales/*/messages.po",
+                    "file_format": "po",
+                    "template": None,
+                }
+            ],
+        )
+
+    def test_discover_files(self):
+        self.assert_discovery(
+            discover(os.path.join(os.path.dirname(__file__), 'test_data')),
+            [
+                {
+                    "filemask": "locales/*.po",
                     "file_format": "po",
                     "template": None,
                 }
