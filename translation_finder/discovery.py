@@ -43,7 +43,7 @@ class BaseDiscovery(object):
     @staticmethod
     def is_language_code(code):
         """Analysis whether passed parameter looks like language code."""
-        if code in BLACKLIST:
+        if code.lower() in BLACKLIST:
             return False
 
         return code.lower().replace("-", "_") in LANGUAGES
@@ -76,6 +76,10 @@ class BaseDiscovery(object):
                 continue
             if "template" in result and not self.finder.has_file(result["template"]):
                 continue
+            if "template" not in result:
+                template = result["filemask"].replace("*", "en")
+                if self.finder.has_file(template):
+                    result["template"] = template
             discovered.add(result["filemask"])
             result["file_format"] = self.file_format
             yield result
@@ -102,10 +106,7 @@ class GettextDiscovery(BaseDiscovery):
 
 
 class QtDiscovery(BaseDiscovery):
-    """Qt Linguist files discovery.
-
-    TODO: Detect monolingual/bilingual
-    """
+    """Qt Linguist files discovery."""
 
     file_format = "ts"
     mask = "*.ts"

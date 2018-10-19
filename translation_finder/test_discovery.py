@@ -78,6 +78,22 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
+    def test_mono(self):
+        self.maxDiff = None
+        discovery = GettextDiscovery(
+            self.get_finder(["locale/en/strings.po", "locale/de/strings.po"])
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locale/*/strings.po",
+                    "file_format": "po",
+                    "template": "locale/en/strings.po",
+                }
+            ],
+        )
+
     def test_filename(self):
         discovery = GettextDiscovery(
             self.get_finder(["locales/cs.po", "locales/de.po"])
