@@ -37,8 +37,9 @@ class BaseDiscovery(object):
     file_format = "auto"
     mask = "*.*"
 
-    def __init__(self, finder):
+    def __init__(self, finder, source_language="en"):
         self.finder = finder
+        self.source_language = source_language
 
     @staticmethod
     def is_language_code(code):
@@ -77,7 +78,7 @@ class BaseDiscovery(object):
             if "template" in result and not self.finder.has_file(result["template"]):
                 continue
             if "template" not in result:
-                template = result["filemask"].replace("*", "en")
+                template = result["filemask"].replace("*", self.source_language)
                 if self.finder.has_file(template):
                     result["template"] = template
             discovered.add(result["filemask"])
@@ -196,5 +197,5 @@ class RESXDiscovery(BaseDiscovery):
 
             yield {"filemask": "/".join(mask), "template": "/".join(template)}
         for match in super(RESXDiscovery, self).get_masks():
-            match["template"] = match["filemask"].replace("*", "en")
+            match["template"] = match["filemask"].replace("*", self.source_language)
             yield match

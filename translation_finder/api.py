@@ -44,12 +44,12 @@ BACKENDS = [
 ]
 
 
-def discover(root, files=None):
+def discover(root, files=None, source_language="en"):
     """High level discovery interface."""
     finder = Finder(root, files)
     results = []
     for backend in BACKENDS:
-        instance = backend(finder)
+        instance = backend(finder, source_language)
         results.extend(instance.discover())
     return results
 
