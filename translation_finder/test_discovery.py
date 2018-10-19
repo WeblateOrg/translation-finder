@@ -198,6 +198,7 @@ class JavaTest(DiscoveryTestCase):
                     "bundle/UIMessages_ru.properties",
                     "bundle/UIMessages_zh.properties",
                     "bundle/FixedMessages.properties",
+                    "bundle/Other_Messages.properties",
                 ]
             )
         )
