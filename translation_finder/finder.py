@@ -31,17 +31,16 @@ EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
 
 
 class Finder(object):
-    def __init__(self, path, files=None):
-        if not isinstance(path, PurePath):
-            root = Path(path)
+    def __init__(self, root, files=None):
+        if not isinstance(root, PurePath):
+            root = Path(root)
+        self.root = root
         if files is None:
             files = self.list_files(root)
         relatives = (path.relative_to(root) for path in files)
         self.files = {path.as_posix().lower(): path for path in relatives}
 
     def list_files(self, root):
-        if root is None:
-            root = self.path
         for path in root.iterdir():
             if any((path.match(exclude) for exclude in EXCLUDES)):
                 continue
