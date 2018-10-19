@@ -162,6 +162,8 @@ class RESXTest(DiscoveryTestCase):
                     "App/Localization/OtherStrings.resx",
                     "App/Localization/Other.Strings.resx",
                     "App/Localization/SettingsStrings.fr.resx",
+                    "App/Localization/nb/Resources.resw",
+                    "App/Localization/en/Resources.resw",
                 ]
             )
         )
@@ -177,6 +179,11 @@ class RESXTest(DiscoveryTestCase):
                     "filemask": "App/Localization/MainStrings.*.resw",
                     "file_format": "resx",
                     "template": "App/Localization/MainStrings.resw",
+                },
+                {
+                    "filemask": "App/Localization/*/Resources.resw",
+                    "file_format": "resx",
+                    "template": "App/Localization/en/Resources.resw",
                 },
             ],
         )

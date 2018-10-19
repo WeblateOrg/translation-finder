@@ -166,14 +166,13 @@ class RESXDiscovery(BaseDiscovery):
     """
 
     file_format = "resx"
+    mask = "resources.res[xw]"
 
     def get_masks(self):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in chain(
-            self.finder.filter_files("*.*.resx"), self.finder.filter_files("*.*.resw")
-        ):
+        for path in self.finder.filter_files("*.*.res[xw]"):
             mask = list(path.parts)
             template = mask[:]
             base, code, ext = mask[-1].rsplit(".", 2)
@@ -183,3 +182,6 @@ class RESXDiscovery(BaseDiscovery):
             template[-1] = "{0}.{1}".format(base, ext)
 
             yield {"filemask": "/".join(mask), "template": "/".join(template)}
+        for match in super(RESXDiscovery, self).get_masks():
+            match["template"] = match["filemask"].replace("*", "en")
+            yield match
