@@ -25,10 +25,10 @@ repository.
 Usage
 -----
 
-```python
->>> from translation_finder import discover
->>> discover('.')
-[{"filemask": "locales/*/messages.po", "format": "po"}],
-```
+.. code-block:: python
+
+   >>> from translation_finder import discover
+   >>> discover('.')
+   [{"filemask": "locales/*/messages.po", "format": "po"}]
 
 .. _Weblate: https://weblate.org/
