@@ -24,7 +24,7 @@ from unittest import TestCase
 import os.path
 
 from .finder import Finder, PurePath
-from .discovery import GettextDiscovery, QtDiscovery
+from .discovery import GettextDiscovery, QtDiscovery, AndroidDiscovery
 
 
 class DiscoveryTestCase(TestCase):
@@ -39,7 +39,13 @@ class GetttetTest(DiscoveryTestCase):
         )
         self.assertEqual(
             discovery.discover(),
-            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
+            [
+                {
+                    "filemask": "locales/*/messages.po",
+                    "file_format": "po",
+                    "template": None,
+                }
+            ],
         )
 
     def test_filename(self):
@@ -47,16 +53,38 @@ class GetttetTest(DiscoveryTestCase):
             self.get_finder(["locales/cs.po", "locales/de.po"])
         )
         self.assertEqual(
-            discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
+            discovery.discover(),
+            [{"filemask": "locales/*.po", "file_format": "po", "template": None}],
         )
 
 
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
-        discovery = QtDiscovery(
-            self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"])
+        discovery = QtDiscovery(self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"]))
+        self.assertEqual(
+            discovery.discover(),
+            [{"filemask": "ts/*.ts", "file_format": "ts", "template": None}],
+        )
+
+
+class AndroidTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = AndroidDiscovery(
+            self.get_finder(
+                [
+                    "app/src/res/main/values/strings.xml",
+                    "app/src/res/main/values-it/strings.xml",
+                    "app/src/res/main/values-it/strings-other.xml",
+                ]
+            )
         )
         self.assertEqual(
             discovery.discover(),
-            [{"filemask": "ts/*.ts", "file_format": "ts"}],
+            [
+                {
+                    "filemask": "app/src/res/main/values-*/strings.xml",
+                    "file_format": "aresource",
+                    "template": "app/src/res/main/values/strings.xml",
+                }
+            ],
         )

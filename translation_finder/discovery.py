@@ -21,7 +21,7 @@
 """Individual discovery rules for translation formats."""
 from __future__ import unicode_literals, absolute_import
 
-BLACKLIST = frozenset(('po', 'ts'))
+BLACKLIST = frozenset(("po", "ts"))
 
 
 class BaseDiscovery(object):
@@ -57,7 +57,8 @@ class BaseDiscovery(object):
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
         return [
-            {"filemask": mask, "file_format": self.file_format} for mask in set(self.get_masks())
+            {"filemask": mask, "file_format": self.file_format, "template": template}
+            for mask, template in set(self.get_masks())
         ]
 
     def get_masks(self):
@@ -71,7 +72,7 @@ class BaseDiscovery(object):
                 if wildcard:
                     mask = parts[:]
                     mask[pos] = wildcard
-                    yield "/".join(mask)
+                    yield "/".join(mask), None
 
 
 class GettextDiscovery(BaseDiscovery):
@@ -86,3 +87,22 @@ class QtDiscovery(BaseDiscovery):
 
     file_format = "ts"
     mask = "*.ts"
+
+
+class AndroidDiscovery(BaseDiscovery):
+    """Android string files discovery."""
+
+    file_format = "aresource"
+
+    def get_masks(self):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in self.finder.filter_files("strings*.xml"):
+            parts = list(path.parts)
+            if parts[-2] != "values":
+                continue
+            mask = parts[:]
+            mask[-2] = "values-*"
+
+            yield "/".join(mask), path.as_posix()

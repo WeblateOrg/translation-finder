@@ -59,5 +59,5 @@ class Finder(object):
     def filter_files(self, glob):
         """Filter lowercase file names against glob."""
         for name, path in self.files.items():
-            if fnmatch(name, glob):
+            if fnmatch(name.rsplit("/", 1)[-1], glob):
                 yield path

@@ -22,9 +22,9 @@
 from __future__ import unicode_literals, absolute_import
 
 from .finder import Finder
-from .discovery import GettextDiscovery, QtDiscovery
+from .discovery import GettextDiscovery, QtDiscovery, AndroidDiscovery
 
-BACKENDS = [GettextDiscovery, QtDiscovery]
+BACKENDS = [GettextDiscovery, QtDiscovery, AndroidDiscovery]
 
 
 def discover(root, files=None):
