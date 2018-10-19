@@ -56,6 +56,8 @@ def discover(root, files=None):
 
 def cli(stdout=None, args=None):
     """Execution entry point."""
+    stdout = stdout if stdout is not None else sys.stdout
+
     parser = ArgumentParser(
         description="Weblate translation discovery utility.",
         epilog="This utility is developed at <{0}>.".format(
@@ -63,14 +65,10 @@ def cli(stdout=None, args=None):
         ),
     )
     parser.add_argument("directory", help="Directory where to perform discovery")
-    if args is None:
-        args = sys.argv[1:]
-    if stdout is None:
-        stdout = sys.stdout
 
-    args = parser.parse_args(args)
+    params = parser.parse_args(args)
 
-    for pos, match in enumerate(discover(args.directory)):
+    for pos, match in enumerate(discover(params.directory)):
         print("== Match {} ==".format(pos + 1), file=stdout)
         for key, value in sorted(match.items()):
             print("{:15}: {}".format(key, value), file=stdout)
