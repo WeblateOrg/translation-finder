@@ -158,6 +158,7 @@ class RESXTest(DiscoveryTestCase):
                     "App/Localization/AboutStrings.nb.resx",
                     "App/Localization/AboutStrings.resx",
                     "App/Localization/OtherStrings.resx",
+                    "App/Localization/Other.Strings.resx",
                     "App/Localization/SettingsStrings.fr.resx",
                 ]
             )
