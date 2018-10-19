@@ -30,13 +30,19 @@ class DiscoveryTestCase(TestCase):
     def get_finder(self, paths):
         return Finder(PurePath("."), [PurePath(path) for path in paths])
 
+    def assert_discovery(self, first, second):
+        def sort_key(item):
+            return item["filemask"]
+
+        self.assertEqual(sorted(first, key=sort_key), sorted(second, key=sort_key))
+
 
 class GetttetTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = GettextDiscovery(
             self.get_finder(["locales/cs/messages.po", "locales/de/messages.po"])
         )
-        self.assertEqual(
+        self.assert_discovery(
             discovery.discover(),
             [
                 {
@@ -51,7 +57,7 @@ class GetttetTest(DiscoveryTestCase):
         discovery = GettextDiscovery(
             self.get_finder(["locales/cs.po", "locales/de.po"])
         )
-        self.assertEqual(
+        self.assert_discovery(
             discovery.discover(),
             [{"filemask": "locales/*.po", "file_format": "po", "template": None}],
         )
@@ -60,7 +66,7 @@ class GetttetTest(DiscoveryTestCase):
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = QtDiscovery(self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"]))
-        self.assertEqual(
+        self.assert_discovery(
             discovery.discover(),
             [{"filemask": "ts/*.ts", "file_format": "ts", "template": None}],
         )
@@ -77,7 +83,7 @@ class AndroidTest(DiscoveryTestCase):
                 ]
             )
         )
-        self.assertEqual(
+        self.assert_discovery(
             discovery.discover(),
             [
                 {
@@ -100,7 +106,7 @@ class OSXTest(DiscoveryTestCase):
                 ]
             )
         )
-        self.assertEqual(
+        self.assert_discovery(
             discovery.discover(),
             [
                 {
