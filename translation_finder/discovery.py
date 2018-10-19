@@ -125,3 +125,28 @@ class OSXDiscovery(BaseDiscovery):
             mask[-2] = "*.lproj"
 
             yield "/".join(mask), path.as_posix()
+
+
+class JavaDiscovery(BaseDiscovery):
+    """Java string properties files discovery.
+
+    TODO: Detect encoding
+    TODO: Check template file exists
+    """
+
+    file_format = "properties"
+
+    def get_masks(self):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in self.finder.filter_files("*_*.properties"):
+            mask = list(path.parts)
+            template = mask[:]
+            base, code = mask[-1].rsplit(".")[0].split("_", 1)
+            if not self.is_language_code(code):
+                continue
+            mask[-1] = "{0}_*.properties".format(base)
+            template[-1] = "{0}.properties".format(base)
+
+            yield "/".join(mask), "/".join(template)

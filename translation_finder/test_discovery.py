@@ -23,7 +23,13 @@ from __future__ import unicode_literals, absolute_import
 from unittest import TestCase
 
 from .finder import Finder, PurePath
-from .discovery import GettextDiscovery, QtDiscovery, AndroidDiscovery, OSXDiscovery
+from .discovery import (
+    GettextDiscovery,
+    QtDiscovery,
+    AndroidDiscovery,
+    OSXDiscovery,
+    JavaDiscovery,
+)
 
 
 class DiscoveryTestCase(TestCase):
@@ -119,5 +125,33 @@ class OSXTest(DiscoveryTestCase):
                     "file_format": "strings",
                     "template": "App/Resources/en.lproj/Other.strings",
                 },
+            ],
+        )
+
+
+class JavaTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = JavaDiscovery(
+            self.get_finder(
+                [
+                    "bundle/UIMessages_de.properties",
+                    "bundle/UIMessages_fr.properties",
+                    "bundle/UIMessages_ja.properties",
+                    "bundle/UIMessages_nb_NO.properties",
+                    "bundle/UIMessages.properties",
+                    "bundle/UIMessages_ru.properties",
+                    "bundle/UIMessages_zh.properties",
+                    "bundle/FixedMessages.properties",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "bundle/UIMessages_*.properties",
+                    "file_format": "properties",
+                    "template": "bundle/UIMessages.properties",
+                }
             ],
         )
