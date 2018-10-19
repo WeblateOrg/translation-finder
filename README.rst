@@ -29,6 +29,17 @@ Usage
 
    >>> from translation_finder import discover
    >>> discover('.')
-   [{"filemask": "locales/*/messages.po", "file_format": "po"}]
+   [
+       {
+           "filemask": "locales/*/messages.po",
+           "file_format": "po",
+           "template": None,
+       },
+       {
+           "filemask": "app/src/res/main/values-*/strings.xml",
+           "file_format": "aresource",
+           "template": "app/src/res/main/values/strings.xml",
+       }
+   ]
 
 .. _Weblate: https://weblate.org/
