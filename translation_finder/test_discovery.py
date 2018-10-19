@@ -24,7 +24,7 @@ from unittest import TestCase
 import os.path
 
 from .finder import Finder, PurePath
-from .discovery import GettextDiscovery
+from .discovery import GettextDiscovery, QtDiscovery
 
 
 class DiscoveryTestCase(TestCase):
@@ -48,4 +48,15 @@ class GetttetTest(DiscoveryTestCase):
         )
         self.assertEqual(
             discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
+        )
+
+
+class QtTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = QtDiscovery(
+            self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"])
+        )
+        self.assertEqual(
+            discovery.discover(),
+            [{"filemask": "ts/*.ts", "file_format": "ts"}],
         )

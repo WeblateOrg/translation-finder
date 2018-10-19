@@ -21,6 +21,8 @@
 """Individual discovery rules for translation formats."""
 from __future__ import unicode_literals, absolute_import
 
+BLACKLIST = frozenset(('po', 'ts'))
+
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
@@ -35,7 +37,10 @@ class BaseDiscovery(object):
     def is_language_code(code):
         """Analysis whether passed parameter looks like language code."""
         if len(code) <= 2:
+            if code in BLACKLIST:
+                return False
             return True
+        return False
 
     def get_wildcard(self, part):
         """Generate language wilcard for a path part.
@@ -52,7 +57,7 @@ class BaseDiscovery(object):
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
         return [
-            {"filemask": mask, "file_format": "po"} for mask in set(self.get_masks())
+            {"filemask": mask, "file_format": self.file_format} for mask in set(self.get_masks())
         ]
 
     def get_masks(self):
@@ -74,3 +79,10 @@ class GettextDiscovery(BaseDiscovery):
 
     file_format = "po"
     mask = "*.po"
+
+
+class QtDiscovery(BaseDiscovery):
+    """Qt Linguist files discovery."""
+
+    file_format = "ts"
+    mask = "*.ts"
