@@ -7,10 +7,6 @@ translation-finder
     :target: https://travis-ci.com/WeblateOrg/translation-finder
     :alt: Build Status
 
-.. image:: https://ci.appveyor.com/api/projects/status/gcbs2h5afpneii7h/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/nijel/translation-finder/branch/master
-    :alt: Build status
-
 .. image:: https://codecov.io/github/WeblateOrg/translation-finder/coverage.svg?branch=master
     :target: https://codecov.io/github/WeblateOrg/translation-finder?branch=master
     :alt: Code coverage
