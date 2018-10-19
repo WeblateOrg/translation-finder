@@ -35,7 +35,6 @@ REQUIRES = [
     for line in open("requirements.txt").read().splitlines()
     if "python_version" not in line or sys.version_info < (3, 4)
 ]
-print(REQUIRES)
 REQUIRES_TEST = open("requirements-test.txt").read().splitlines()[1:]
 
 setup(
