@@ -56,10 +56,14 @@ class BaseDiscovery(object):
 
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
-        return [
-            {"filemask": mask, "file_format": self.file_format, "template": template}
-            for mask, template in set(self.get_masks())
-        ]
+        for mask, template in set(self.get_masks()):
+            if template and not self.finder.has_file(template):
+                continue
+            yield {
+                "filemask": mask,
+                "file_format": self.file_format,
+                "template": template,
+            }
 
     def get_masks(self):
         """Return all file masks found in the directory.
@@ -131,7 +135,6 @@ class JavaDiscovery(BaseDiscovery):
     """Java string properties files discovery.
 
     TODO: Detect encoding
-    TODO: Check template file exists
     """
 
     file_format = "properties"
@@ -154,8 +157,6 @@ class JavaDiscovery(BaseDiscovery):
 
 class RESXDiscovery(BaseDiscovery):
     """RESX files discovery.
-
-    TODO: Check template file exists
     """
 
     file_format = "resx"

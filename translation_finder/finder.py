@@ -41,7 +41,8 @@ class Finder(object):
         if files is None:
             files = self.list_files(root)
         relatives = (path.relative_to(root) for path in files)
-        self.files = {path.as_posix().lower(): path for path in relatives}
+        self.files = {path.as_posix(): path for path in relatives}
+        self.lc_files = {path.lower(): obj for path, obj in self.files.items()}
 
     def list_files(self, root):
         """Recursively list files in a path.
@@ -56,9 +57,13 @@ class Finder(object):
             else:
                 yield path
 
+    def has_file(self, name):
+        """Check whether file exists."""
+        return name in self.files
+
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
-        for name, path in self.files.items():
+        for name, path in self.lc_files.items():
             try:
                 directory, filename = name.rsplit("/", 1)
             except ValueError:
