@@ -43,12 +43,13 @@ class APITest(DiscoveryTestCase):
 
     def test_discover_files(self):
         self.assert_discovery(
-            discover(os.path.join(os.path.dirname(__file__), 'test_data')),
+            discover(os.path.join(os.path.dirname(__file__), "test_data")),
             [
+                {"filemask": "locales/*.po", "file_format": "po", "template": None},
                 {
-                    "filemask": "locales/*.po",
-                    "file_format": "po",
-                    "template": None,
-                }
+                    "filemask": "app/src/res/main/values-*/strings.xml",
+                    "file_format": "aresource",
+                    "template": "app/src/res/main/values/strings.xml",
+                },
             ],
         )
