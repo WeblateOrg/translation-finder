@@ -22,10 +22,13 @@
 from __future__ import unicode_literals, absolute_import
 
 from itertools import chain
+import re
 
 from .languages import LANGUAGES
 
 BLACKLIST = frozenset(("po", "ts"))
+
+TOKEN_SPLIT = re.compile(r"([_-])")
 
 
 class BaseDiscovery(object):
@@ -53,12 +56,16 @@ class BaseDiscovery(object):
             return "*"
         if "." in part:
             base, ext = part.rsplit(".", 1)
+            # Handle <language>.extension
             if self.is_language_code(base):
                 return "*.{}".format(ext)
-            if "_" in base:
-                prefix, code = base.split("_", 1)
-                if self.is_language_code(code) and not self.is_language_code(prefix):
-                    return "{}_*.{}".format(prefix, ext)
+            # Handle prefix-<language>.extension or prefix_<language>.extension
+            tokens = TOKEN_SPLIT.split(base)
+            for pos, token in enumerate(tokens):
+                if token in ("-", "_"):
+                    continue
+                if self.is_language_code(token):
+                    return "{}*.{}".format("".join(tokens[:pos]), ext)
         return None
 
     def discover(self):

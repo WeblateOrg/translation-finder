@@ -56,6 +56,28 @@ class GetttetTest(DiscoveryTestCase):
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
+    def test_double(self):
+        self.maxDiff = None
+        discovery = GettextDiscovery(
+            self.get_finder(
+                [
+                    "locale/bag_de-DE.po",
+                    "locale/baz-de-DE.po",
+                    "locale/foo-de_DE.po",
+                    "locale/foa_de_DE.po",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {"filemask": "locale/foa_*.po", "file_format": "po"},
+                {"filemask": "locale/foo-*.po", "file_format": "po"},
+                {"filemask": "locale/bag_*.po", "file_format": "po"},
+                {"filemask": "locale/baz-*.po", "file_format": "po"},
+            ],
+        )
+
     def test_filename(self):
         discovery = GettextDiscovery(
             self.get_finder(["locales/cs.po", "locales/de.po"])
