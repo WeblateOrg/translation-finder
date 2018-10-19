@@ -56,8 +56,17 @@ class Finder(object):
             else:
                 yield path
 
-    def filter_files(self, glob):
+    def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
         for name, path in self.files.items():
-            if fnmatch(name.rsplit("/", 1)[-1], glob):
+            try:
+                directory, filename = name.rsplit("/", 1)
+            except ValueError:
+                filename = name
+                directory = None
+
+            if dirglob and (directory is None or not fnmatch(directory, dirglob)):
+                continue
+
+            if fnmatch(filename, glob):
                 yield path

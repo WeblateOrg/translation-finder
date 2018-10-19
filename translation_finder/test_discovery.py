@@ -24,7 +24,7 @@ from unittest import TestCase
 import os.path
 
 from .finder import Finder, PurePath
-from .discovery import GettextDiscovery, QtDiscovery, AndroidDiscovery
+from .discovery import GettextDiscovery, QtDiscovery, AndroidDiscovery, OSXDiscovery
 
 
 class DiscoveryTestCase(TestCase):
@@ -85,6 +85,34 @@ class AndroidTest(DiscoveryTestCase):
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "file_format": "aresource",
                     "template": "app/src/res/main/values/strings.xml",
+                }
+            ],
+        )
+
+
+class OSXTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = OSXDiscovery(
+            self.get_finder(
+                [
+                    "App/Resources/en.lproj/Localizable.strings",
+                    "App/Resources/en.lproj/Other.strings",
+                    "App/Resources/ru.lproj/Third.strings",
+                ]
+            )
+        )
+        self.assertEqual(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "App/Resources/*.lproj/Localizable.strings",
+                    "file_format": "strings",
+                    "template": "App/Resources/en.lproj/Localizable.strings",
+                },
+                {
+                    "filemask": "App/Resources/*.lproj/Other.strings",
+                    "file_format": "strings",
+                    "template": "App/Resources/en.lproj/Other.strings",
                 }
             ],
         )

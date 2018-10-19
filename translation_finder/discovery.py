@@ -98,11 +98,24 @@ class AndroidDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in self.finder.filter_files("strings*.xml"):
-            parts = list(path.parts)
-            if parts[-2] != "values":
-                continue
-            mask = parts[:]
+        for path in self.finder.filter_files("strings*.xml", "*/values"):
+            mask = list(path.parts)
             mask[-2] = "values-*"
+
+            yield "/".join(mask), path.as_posix()
+
+
+class OSXDiscovery(BaseDiscovery):
+    """OSX string properties files discovery."""
+
+    file_format = "strings"
+
+    def get_masks(self):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in self.finder.filter_files("*.strings", "*/en.lproj"):
+            mask = list(path.parts)
+            mask[-2] = "*.lproj"
 
             yield "/".join(mask), path.as_posix()
