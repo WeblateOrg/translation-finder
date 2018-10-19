@@ -17,7 +17,7 @@ matrix:
         - virtualenv venv -p python3
         - source venv/bin/activate
     - os: windows
-      language: generic
+      language: sh
       before_install:
         - python -m pip install virtualenv
         - virtualenv venv -p python
