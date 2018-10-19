@@ -24,3 +24,4 @@ from .finder import Finder
 
 
 __all__ = ("Finder",)
+__version__ = "0.1"
