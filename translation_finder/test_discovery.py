@@ -113,6 +113,6 @@ class OSXTest(DiscoveryTestCase):
                     "filemask": "App/Resources/*.lproj/Other.strings",
                     "file_format": "strings",
                     "template": "App/Resources/en.lproj/Other.strings",
-                }
+                },
             ],
         )

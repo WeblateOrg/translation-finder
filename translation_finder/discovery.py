@@ -83,7 +83,10 @@ class GettextDiscovery(BaseDiscovery):
 
 
 class QtDiscovery(BaseDiscovery):
-    """Qt Linguist files discovery."""
+    """Qt Linguist files discovery.
+
+    TODO: Detect monolingual/bilingual
+    """
 
     file_format = "ts"
     mask = "*.ts"
@@ -106,7 +109,10 @@ class AndroidDiscovery(BaseDiscovery):
 
 
 class OSXDiscovery(BaseDiscovery):
-    """OSX string properties files discovery."""
+    """OSX string properties files discovery.
+
+    TODO: Detect encoding
+    """
 
     file_format = "strings"
 
