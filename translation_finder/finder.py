@@ -64,6 +64,12 @@ class Finder(object):
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
         for name, path in self.lc_files.items():
+            if (
+                "test" in path.parts
+                or "tests" in path.parts
+                or "test_data" in path.parts
+            ):
+                continue
             try:
                 directory, filename = name.rsplit("/", 1)
             except ValueError:

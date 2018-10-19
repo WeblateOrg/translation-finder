@@ -47,7 +47,9 @@ class DiscoveryTestCase(TestCase):
 class GetttetTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = GettextDiscovery(
-            self.get_finder(["locales/cs/messages.po", "locales/de/messages.po"])
+            self.get_finder(
+                ["locales/cs/messages.po", "locales/de/messages.po", "test/cs.po"]
+            )
         )
         self.assert_discovery(
             discovery.discover(),
