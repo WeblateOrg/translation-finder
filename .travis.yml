@@ -9,6 +9,7 @@ matrix:
   include:
     - os: osx
       language: generic
+      python: "3.7"
       # Perform the manual steps on osx to install python3 and activate venv
       before_install:
         - brew update
@@ -17,12 +18,14 @@ matrix:
         - virtualenv venv -p python3
         - source venv/bin/activate
     - os: windows
-      language: sh
+      language: python
+      python: "3.7"
       before_install:
         - choco install python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
     - os: windows
-      language: sh
+      language: python
+      python: "2.7"
       before_install:
         - choco install python2
         - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
