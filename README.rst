@@ -22,4 +22,13 @@ translation-finder
 This library is used by `Weblate`_ to discover translation files in a cloned
 repository.
 
+Usage
+-----
+
+```python
+>>> from translation_finder import discover
+>>> discover('.')
+[{"filemask": "locales/*/messages.po", "format": "po"}],
+```
+
 .. _Weblate: https://weblate.org/

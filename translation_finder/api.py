@@ -21,7 +21,18 @@
 from __future__ import unicode_literals, absolute_import
 
 from .finder import Finder
-from .api import discover
+from .discovery import GettextDiscovery
 
-__all__ = ("Finder", "discover")
-__version__ = "0.1"
+BACKENDS = [
+    GettextDiscovery,
+]
+
+def discover(root, files=None):
+    """High level discovery interface."""
+    finder = Finder(root, files)
+    results = []
+    for backend in BACKENDS:
+        instance = backend(finder)
+        results.extend(instance.discover())
+    return results
+

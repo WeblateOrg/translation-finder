@@ -20,8 +20,17 @@
 #
 from __future__ import unicode_literals, absolute_import
 
-from .finder import Finder
+from unittest import TestCase
+import os.path
+
+from .finder import PurePath
 from .api import discover
 
-__all__ = ("Finder", "discover")
-__version__ = "0.1"
+
+class APITest(TestCase):
+    def test_discover(self):
+        paths = ["locales/cs/messages.po", "locales/de/messages.po"]
+        self.assertEqual(
+            discover(PurePath("."), [PurePath(path) for path in paths]),
+            [{"filemask": "locales/*/messages.po", "format": "po"}],
+        )
