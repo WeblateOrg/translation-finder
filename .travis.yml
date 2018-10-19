@@ -39,3 +39,6 @@ after_script:
   - codecov
   - python-codacy-coverage
 cache: pip
+git:
+  depth: 10
+  submodules: false
