@@ -25,7 +25,7 @@ matrix:
       language: sh
       before_install:
         - choco install python2
-        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
 sudo: false
 install: 
   # Get newer pip and whell for binary caching support
