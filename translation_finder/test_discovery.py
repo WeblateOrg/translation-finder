@@ -65,9 +65,15 @@ class GetttetTest(DiscoveryTestCase):
 
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
-        discovery = QtDiscovery(self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"]))
+        discovery = QtDiscovery(
+            self.get_finder(["ts/cs.ts", "ts/zh_CN.ts", "lrc/translations/lrc_id.ts"])
+        )
         self.assert_discovery(
-            discovery.discover(), [{"filemask": "ts/*.ts", "file_format": "ts"}]
+            discovery.discover(),
+            [
+                {"filemask": "ts/*.ts", "file_format": "ts"},
+                {"filemask": "lrc/translations/lrc_*.ts", "file_format": "ts"},
+            ],
         )
 
 

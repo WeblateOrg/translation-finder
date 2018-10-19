@@ -54,6 +54,10 @@ class BaseDiscovery(object):
             base, ext = part.rsplit(".", 1)
             if self.is_language_code(base):
                 return "*.{}".format(ext)
+            if "_" in base:
+                prefix, code = base.split("_", 1)
+                if self.is_language_code(code) and not self.is_language_code(prefix):
+                    return "{}_*.{}".format(prefix, ext)
         return None
 
     def discover(self):
