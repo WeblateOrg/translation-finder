@@ -32,5 +32,5 @@ class APITest(TestCase):
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assertEqual(
             discover(PurePath("."), [PurePath(path) for path in paths]),
-            [{"filemask": "locales/*/messages.po", "format": "po"}],
+            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )

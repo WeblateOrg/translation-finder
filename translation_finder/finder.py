@@ -33,6 +33,7 @@ EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
 
 class Finder(object):
     """Finder for files which might be considered translations."""
+
     def __init__(self, root, files=None):
         if not isinstance(root, PurePath):
             root = Path(root)

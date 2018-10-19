@@ -24,6 +24,10 @@ from __future__ import unicode_literals, absolute_import
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
+
+    file_format = "auto"
+    mask = "*.*"
+
     def __init__(self, finder):
         self.finder = finder
 
@@ -33,20 +37,40 @@ class BaseDiscovery(object):
         if len(code) <= 2:
             return True
 
+    def get_wildcard(self, part):
+        """Generate language wilcard for a path part.
+
+        Retruns None if not possible."""
+        if self.is_language_code(part):
+            return "*"
+        if "." in part:
+            base, ext = part.rsplit(".", 1)
+            if self.is_language_code(base):
+                return "*.{}".format(ext)
+        return None
+
     def discover(self):
-        raise NotImplementedError()
+        """Retun list of translation configurations matching this discovery."""
+        return [
+            {"filemask": mask, "file_format": "po"} for mask in set(self.get_masks())
+        ]
+
+    def get_masks(self):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in self.finder.filter_files(self.mask):
+            parts = list(path.parts)
+            for pos, part in enumerate(parts):
+                wildcard = self.get_wildcard(part)
+                if wildcard:
+                    mask = parts[:]
+                    mask[pos] = wildcard
+                    yield "/".join(mask)
 
 
 class GettextDiscovery(BaseDiscovery):
     """Gettext PO files discovery."""
-    def discover(self):
-        masks = set()
-        for path in self.finder.filter_files("*.po"):
-            parts = list(path.parts)
-            for pos, part in enumerate(parts):
-                if self.is_language_code(part):
-                    mask = parts[:]
-                    mask[pos] = "*"
-                    masks.add("/".join(mask))
 
-        return [{"filemask": mask, "format": "po"} for mask in masks]
+    file_format = "po"
+    mask = "*.po"

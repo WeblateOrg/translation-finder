@@ -29,6 +29,6 @@ Usage
 
    >>> from translation_finder import discover
    >>> discover('.')
-   [{"filemask": "locales/*/messages.po", "format": "po"}]
+   [{"filemask": "locales/*/messages.po", "file_format": "po"}]
 
 .. _Weblate: https://weblate.org/

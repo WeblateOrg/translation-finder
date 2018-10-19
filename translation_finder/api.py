@@ -24,9 +24,8 @@ from __future__ import unicode_literals, absolute_import
 from .finder import Finder
 from .discovery import GettextDiscovery
 
-BACKENDS = [
-    GettextDiscovery,
-]
+BACKENDS = [GettextDiscovery]
+
 
 def discover(root, files=None):
     """High level discovery interface."""
@@ -36,4 +35,3 @@ def discover(root, files=None):
         instance = backend(finder)
         results.extend(instance.discover())
     return results
-

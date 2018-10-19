@@ -28,18 +28,24 @@ from .discovery import GettextDiscovery
 
 
 class DiscoveryTestCase(TestCase):
-    paths = ["locales/cs/messages.po", "locales/de/messages.po"]
-
-    def get_finder(self, paths=None):
-        if paths is None:
-            paths = self.paths
+    def get_finder(self, paths):
         return Finder(PurePath("."), [PurePath(path) for path in paths])
 
 
 class GetttetTest(DiscoveryTestCase):
     def test_basic(self):
-        discovery = GettextDiscovery(self.get_finder())
+        discovery = GettextDiscovery(
+            self.get_finder(["locales/cs/messages.po", "locales/de/messages.po"])
+        )
         self.assertEqual(
             discovery.discover(),
-            [{"filemask": "locales/*/messages.po", "format": "po"}],
+            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
+        )
+
+    def test_filename(self):
+        discovery = GettextDiscovery(
+            self.get_finder(["locales/cs.po", "locales/de.po"])
+        )
+        self.assertEqual(
+            discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
         )
