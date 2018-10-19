@@ -100,7 +100,7 @@ class OSXTest(DiscoveryTestCase):
             self.get_finder(
                 [
                     "App/Resources/en.lproj/Localizable.strings",
-                    "App/Resources/en.lproj/Other.strings",
+                    "App/Resources/Base.lproj/Other.strings",
                     "App/Resources/ru.lproj/Third.strings",
                 ]
             )
@@ -116,7 +116,7 @@ class OSXTest(DiscoveryTestCase):
                 {
                     "filemask": "App/Resources/*.lproj/Other.strings",
                     "file_format": "strings",
-                    "template": "App/Resources/en.lproj/Other.strings",
+                    "template": "App/Resources/Base.lproj/Other.strings",
                 },
             ],
         )

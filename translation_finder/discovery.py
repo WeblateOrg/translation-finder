@@ -125,6 +125,11 @@ class OSXDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
+        for path in self.finder.filter_files("*.strings", "*/base.lproj"):
+            mask = list(path.parts)
+            mask[-2] = "*.lproj"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
         for path in self.finder.filter_files("*.strings", "*/en.lproj"):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
