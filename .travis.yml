@@ -19,7 +19,7 @@ matrix:
     - os: windows
       language: sh
       before_install:
-        - choco install python
+        - export PATH="/c/Python37:$PATH"
         - python -m pip install virtualenv
         - virtualenv venv -p python
         - source venv/bin/activate
