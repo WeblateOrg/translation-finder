@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright © 2018 Michal Čihař <michal@cihar.com>
@@ -23,14 +23,20 @@
 from __future__ import unicode_literals
 from setuptools import setup
 import os
+import sys
 
 VERSION = __import__("translation_finder").__version__
 
 with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
     LONG_DESCRIPTION = readme.read()
 
-REQUIRES = open("requirements.txt").read().split()
-REQUIRES_TEST = open("requirements-test.txt").read().split()[2:]
+REQUIRES = [
+    line.split(";")[0]
+    for line in open("requirements.txt").read().splitlines()
+    if "python_version" not in line or sys.version_info < (3, 4)
+]
+print(REQUIRES)
+REQUIRES_TEST = open("requirements-test.txt").read().splitlines()[1:]
 
 setup(
     name="translation-finder",
