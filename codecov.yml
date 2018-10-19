@@ -1,0 +1,7 @@
+comment:
+  layout: reach, changes, diff, files
+coverage:
+  status:
+    project:
+      default:
+        target: '99'

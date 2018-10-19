@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright © 2018 Michal Čihař <michal@cihar.com>
+#
+# This file is part of Weblate translation-finder
+# <https://github.com/WeblateOrg/translation-finder>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+"""Setup file for easy installation."""
+from __future__ import unicode_literals
+from setuptools import setup
+import os
+
+VERSION = __import__("translation_finder").__version__
+
+with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
+    LONG_DESCRIPTION = readme.read()
+
+REQUIRES = open("requirements.txt").read().split()
+REQUIRES_TEST = open("requirements-test.txt").read().split()[2:]
+
+setup(
+    name="translation-finder",
+    version=VERSION,
+    author="Michal Čihař",
+    author_email="michal@cihar.com",
+    description=(
+        "A command line utility for Weblate, "
+        "translation tool with tight version control integration"
+    ),
+    license="GPLv3+",
+    keywords="i18n l10n gettext git mercurial translate",
+    url="https://weblate.org/",
+    download_url="https://github.com/WeblateOrg/translation-finder",
+    project_urls={
+        "Issue Tracker": "https://github.com/WeblateOrg/translation-finder/issues",
+        "Documentation": "https://docs.weblate.org/",
+        "Source Code": "https://github.com/WeblateOrg/translation-finder",
+        "Twitter": "https://twitter.com/WeblateOrg",
+    },
+    platforms=["any"],
+    packages=["translation_finder"],
+    package_dir={"translation_finder": "translation_finder"},
+    long_description=LONG_DESCRIPTION,
+    install_requires=REQUIRES,
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Topic :: Software Development :: Internationalization",
+        "Topic :: Software Development :: Localization",
+        "Topic :: Utilities",
+        "License :: OSI Approved :: " "GNU General Public License v3 or later (GPLv3+)",
+        "Operating System :: OS Independent",
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+    ],
+    setup_requires=["pytest-runner"],
+    tests_require=REQUIRES_TEST,
+)

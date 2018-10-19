@@ -1,0 +1,6 @@
+-r requirements.txt
+codecov
+codacy-coverage
+pytest
+pytest-cov
+twine

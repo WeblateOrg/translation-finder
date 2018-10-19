@@ -1,0 +1,32 @@
+language: python
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "pypy3"
+matrix:
+  include:
+    - os: osx
+      language: generic
+      # Perform the manual steps on osx to install python3 and activate venv
+      before_install:
+        - brew update
+        - brew upgrade python3
+        - python3 -m pip install virtualenv
+        - virtualenv venv -p python3
+        - source venv/bin/activate
+sudo: false
+install: 
+  # Get newer pip and whell for binary caching support
+  - pip install --upgrade pip wheel
+  - pip install -r requirements-test.txt
+script: 
+  - py.test --cov=translation_finder translation_finder
+  - ./setup.py sdist
+  - twine check dist/*
+after_script:
+  - coverage xml
+  - codecov
+  - python-codacy-coverage
+cache: pip
