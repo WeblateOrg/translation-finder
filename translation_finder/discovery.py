@@ -150,3 +150,27 @@ class JavaDiscovery(BaseDiscovery):
             template[-1] = "{0}.properties".format(base)
 
             yield "/".join(mask), "/".join(template)
+
+
+class RESXDiscovery(BaseDiscovery):
+    """RESX files discovery.
+
+    TODO: Check template file exists
+    """
+
+    file_format = "resx"
+
+    def get_masks(self):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in self.finder.filter_files("*.*.resx"):
+            mask = list(path.parts)
+            template = mask[:]
+            base, code, ext = mask[-1].rsplit(".", 2)
+            if not self.is_language_code(code):
+                continue
+            mask[-1] = "{0}.*.{1}".format(base, ext)
+            template[-1] = "{0}.{1}".format(base, ext)
+
+            yield "/".join(mask), "/".join(template)

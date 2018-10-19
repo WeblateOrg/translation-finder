@@ -28,6 +28,7 @@ from .discovery import (
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
+    RESXDiscovery,
 )
 
 BACKENDS = [
@@ -36,6 +37,7 @@ BACKENDS = [
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
+    RESXDiscovery,
 ]
 
 

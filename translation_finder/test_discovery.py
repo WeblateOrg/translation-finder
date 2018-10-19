@@ -29,6 +29,7 @@ from .discovery import (
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
+    RESXDiscovery,
 )
 
 
@@ -152,6 +153,29 @@ class JavaTest(DiscoveryTestCase):
                     "filemask": "bundle/UIMessages_*.properties",
                     "file_format": "properties",
                     "template": "bundle/UIMessages.properties",
+                }
+            ],
+        )
+
+
+class RESXTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = RESXDiscovery(
+            self.get_finder(
+                [
+                    "App/Localization/AboutStrings.nb.resx",
+                    "App/Localization/AboutStrings.resx",
+                    "App/Localization/OtherStrings.resx",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "App/Localization/AboutStrings.*.resx",
+                    "file_format": "resx",
+                    "template": "App/Localization/AboutStrings.resx",
                 }
             ],
         )
