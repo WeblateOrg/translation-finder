@@ -56,14 +56,15 @@ class BaseDiscovery(object):
 
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
-        for mask, template in set(self.get_masks()):
-            if template and not self.finder.has_file(template):
+        discovered = set()
+        for result in self.get_masks():
+            if result["filemask"] in discovered:
                 continue
-            yield {
-                "filemask": mask,
-                "file_format": self.file_format,
-                "template": template,
-            }
+            if "template" in result and not self.finder.has_file(result["template"]):
+                continue
+            discovered.add(result["filemask"])
+            result["file_format"] = self.file_format
+            yield result
 
     def get_masks(self):
         """Return all file masks found in the directory.
@@ -76,7 +77,7 @@ class BaseDiscovery(object):
                 if wildcard:
                     mask = parts[:]
                     mask[pos] = wildcard
-                    yield "/".join(mask), None
+                    yield {"filemask": "/".join(mask)}
 
 
 class GettextDiscovery(BaseDiscovery):
@@ -109,7 +110,7 @@ class AndroidDiscovery(BaseDiscovery):
             mask = list(path.parts)
             mask[-2] = "values-*"
 
-            yield "/".join(mask), path.as_posix()
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
 class OSXDiscovery(BaseDiscovery):
@@ -128,7 +129,7 @@ class OSXDiscovery(BaseDiscovery):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
 
-            yield "/".join(mask), path.as_posix()
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
 class JavaDiscovery(BaseDiscovery):
@@ -152,7 +153,7 @@ class JavaDiscovery(BaseDiscovery):
             mask[-1] = "{0}_*.properties".format(base)
             template[-1] = "{0}.properties".format(base)
 
-            yield "/".join(mask), "/".join(template)
+            yield {"filemask": "/".join(mask), "template": "/".join(template)}
 
 
 class RESXDiscovery(BaseDiscovery):
@@ -174,4 +175,4 @@ class RESXDiscovery(BaseDiscovery):
             mask[-1] = "{0}.*.{1}".format(base, ext)
             template[-1] = "{0}.{1}".format(base, ext)
 
-            yield "/".join(mask), "/".join(template)
+            yield {"filemask": "/".join(mask), "template": "/".join(template)}

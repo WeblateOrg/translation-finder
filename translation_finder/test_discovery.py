@@ -51,13 +51,7 @@ class GetttetTest(DiscoveryTestCase):
         )
         self.assert_discovery(
             discovery.discover(),
-            [
-                {
-                    "filemask": "locales/*/messages.po",
-                    "file_format": "po",
-                    "template": None,
-                }
-            ],
+            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
     def test_filename(self):
@@ -65,8 +59,7 @@ class GetttetTest(DiscoveryTestCase):
             self.get_finder(["locales/cs.po", "locales/de.po"])
         )
         self.assert_discovery(
-            discovery.discover(),
-            [{"filemask": "locales/*.po", "file_format": "po", "template": None}],
+            discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
         )
 
 
@@ -74,8 +67,7 @@ class QtTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = QtDiscovery(self.get_finder(["ts/cs.ts", "ts/zh_CN.ts"]))
         self.assert_discovery(
-            discovery.discover(),
-            [{"filemask": "ts/*.ts", "file_format": "ts", "template": None}],
+            discovery.discover(), [{"filemask": "ts/*.ts", "file_format": "ts"}]
         )
 
 

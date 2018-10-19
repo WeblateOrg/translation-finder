@@ -32,20 +32,14 @@ class APITest(DiscoveryTestCase):
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assert_discovery(
             discover(PurePath("."), [PurePath(path) for path in paths]),
-            [
-                {
-                    "filemask": "locales/*/messages.po",
-                    "file_format": "po",
-                    "template": None,
-                }
-            ],
+            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
     def test_discover_files(self):
         self.assert_discovery(
             discover(os.path.join(os.path.dirname(__file__), "test_data")),
             [
-                {"filemask": "locales/*.po", "file_format": "po", "template": None},
+                {"filemask": "locales/*.po", "file_format": "po"},
                 {
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "file_format": "aresource",
