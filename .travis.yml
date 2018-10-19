@@ -21,7 +21,7 @@ matrix:
       before_install:
         - choco install python
         - ls /c/
-        - export PATH="/c/Python37:$PATH"
+        - export PATH="/c/Python37:/c/Python37/Stripts:$PATH"
         - python -m pip install virtualenv
         - virtualenv venv -p python
         - source venv/bin/activate
