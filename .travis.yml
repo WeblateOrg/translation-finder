@@ -19,12 +19,13 @@ matrix:
     - os: windows
       language: sh
       before_install:
-        - choco install python
-        - ls /c/
+        - choco install python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
-        - python -m pip install virtualenv
-        - virtualenv venv -p python
-        - source venv/bin/activate
+    - os: windows
+      language: sh
+      before_install:
+        - choco install python2
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
 sudo: false
 install: 
   # Get newer pip and whell for binary caching support
