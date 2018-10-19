@@ -24,6 +24,7 @@
 # see https://github.com/WeblateOrg/language-data
 
 import csv
+from itertools import chain
 import json
 import re
 from textwrap import TextWrapper
@@ -73,6 +74,14 @@ with open("scripts/language-data/languages.csv", "r") as csvfile:
     reader = csv.reader(csvfile, delimiter=";")
     LANGUAGES = list(reader)
 
+# Read aliases
+with open("scripts/language-data/aliases.csv", "r") as csvfile:
+    reader = csv.reader(csvfile, delimiter=";")
+    ALIASES = [alias for alias in reader if alias[0] != "#"]
+
+
+CODES = set([item[0].lower() for item in chain(ALIASES, LANGUAGES)])
+
 
 # Write same check blacklist
 with open("translation_finder/languages.py", "w") as output:
@@ -80,6 +89,6 @@ with open("translation_finder/languages.py", "w") as output:
     output.write("\n\n")
     output.write("# Known language codes\n")
     output.write("LANGUAGES = frozenset(\n    (\n")
-    for word in sorted(LANGUAGES):
-        output.write('        "{}",\n'.format(word[0].replace('"', '\\"').lower()))
+    for word in sorted(CODES):
+        output.write('        "{}",\n'.format(word.replace('"', '\\"')))
     output.write("    )\n)\n")
