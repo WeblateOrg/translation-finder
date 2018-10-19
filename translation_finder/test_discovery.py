@@ -23,15 +23,23 @@ from __future__ import unicode_literals, absolute_import
 from unittest import TestCase
 import os.path
 
-from .finder import Finder
+from .finder import Finder, PurePath
+from .discovery import GettextDiscovery
 
 
-class FinderTest(TestCase):
-    def test_init(self):
-        finder = Finder(os.path.dirname(__file__))
-        self.assertNotEqual(finder.files, {})
+class DiscoveryTestCase(TestCase):
+    paths = ["locales/cs/messages.po", "locales/de/messages.po"]
 
-    def test_find(self):
-        finder = Finder(os.path.dirname(__file__))
-        result = list(finder.filter_files("test_finder.py"))
-        self.assertEqual(len(result), 1)
+    def get_finder(self, paths=None):
+        if paths is None:
+            paths = self.paths
+        return Finder(PurePath("."), [PurePath(path) for path in paths])
+
+
+class GetttetTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = GettextDiscovery(self.get_finder())
+        self.assertEqual(
+            discovery.discover(),
+            [{"filemask": "locales/*/messages.po", "format": "po"}],
+        )

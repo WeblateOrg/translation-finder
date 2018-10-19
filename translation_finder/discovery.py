@@ -20,18 +20,30 @@
 #
 from __future__ import unicode_literals, absolute_import
 
-from unittest import TestCase
-import os.path
 
-from .finder import Finder
+class BaseDiscovery(object):
+    def __init__(self, finder):
+        self.finder = finder
+
+    @staticmethod
+    def is_language_code(code):
+        """Analysis whether passed parameter looks like language code."""
+        if len(code) <= 2:
+            return True
+
+    def discover(self):
+        raise NotImplementedError()
 
 
-class FinderTest(TestCase):
-    def test_init(self):
-        finder = Finder(os.path.dirname(__file__))
-        self.assertNotEqual(finder.files, {})
+class GettextDiscovery(BaseDiscovery):
+    def discover(self):
+        masks = set()
+        for path in self.finder.filter_files("*.po"):
+            parts = list(path.parts)
+            for pos, part in enumerate(parts):
+                if self.is_language_code(part):
+                    mask = parts[:]
+                    mask[pos] = "*"
+                    masks.add("/".join(mask))
 
-    def test_find(self):
-        finder = Finder(os.path.dirname(__file__))
-        result = list(finder.filter_files("test_finder.py"))
-        self.assertEqual(len(result), 1)
+        return [{"filemask": mask, "format": "po"} for mask in masks]
