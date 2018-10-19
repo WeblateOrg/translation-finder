@@ -20,11 +20,14 @@
 #
 from __future__ import unicode_literals, absolute_import
 
+from io import StringIO
 import os.path
 
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
-from .api import discover
+from .api import discover, cli
+
+TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class APITest(DiscoveryTestCase):
@@ -37,7 +40,7 @@ class APITest(DiscoveryTestCase):
 
     def test_discover_files(self):
         self.assert_discovery(
-            discover(os.path.join(os.path.dirname(__file__), "test_data")),
+            discover(TEST_DATA),
             [
                 {"filemask": "locales/*.po", "file_format": "po"},
                 {
@@ -47,3 +50,8 @@ class APITest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_cli(self):
+        output = StringIO()
+        cli(args=[TEST_DATA], stdout=output)
+        self.assertIn("Match 2", output.getvalue())

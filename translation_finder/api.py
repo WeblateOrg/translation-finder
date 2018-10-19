@@ -19,7 +19,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """Highlevel API for translation-finder."""
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
+
+from argparse import ArgumentParser
+import sys
 
 from .finder import Finder
 from .discovery import (
@@ -49,3 +52,26 @@ def discover(root, files=None):
         instance = backend(finder)
         results.extend(instance.discover())
     return results
+
+
+def cli(stdout=None, args=None):
+    """Execution entry point."""
+    parser = ArgumentParser(
+        description="Weblate translation discovery utility.",
+        epilog="This utility is developed at <{0}>.".format(
+            "https://github.com/WeblateOrg/translation-finder"
+        ),
+    )
+    parser.add_argument("directory", help="Directory where to perform discovery")
+    if args is None:
+        args = sys.argv[1:]
+    if stdout is None:
+        stdout = sys.stdout
+
+    args = parser.parse_args(args)
+
+    for pos, match in enumerate(discover(args.directory)):
+        print("== Match {} ==".format(pos + 1), file=stdout)
+        for key, value in sorted(match.items()):
+            print("{:15}: {}".format(key, value), file=stdout)
+        print("", file=stdout)

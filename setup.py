@@ -76,4 +76,5 @@ setup(
     ],
     setup_requires=["pytest-runner"],
     tests_require=REQUIRES_TEST,
+    entry_points={"console_scripts": ["weblate-discover = translation_finder.api:cli"]},
 )

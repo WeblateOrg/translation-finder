@@ -25,6 +25,8 @@ repository.
 Usage
 -----
 
+In can be used from Python:
+
 .. code-block:: python
 
    >>> from translation_finder import discover
@@ -41,5 +43,19 @@ Usage
            "template": "app/src/res/main/values/strings.xml",
        }
    ]
+
+Or command line:
+
+.. code-block:: console
+
+   $ weblate-discovery translation_finder/test_data/
+   == Match 1 ==
+   file_format    : po
+   filemask       : locales/*.po
+
+   == Match 2 ==
+   file_format    : aresource
+   filemask       : app/src/res/main/values-*/strings.xml
+   template       : app/src/res/main/values/strings.xml
 
 .. _Weblate: https://weblate.org/
