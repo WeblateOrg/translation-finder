@@ -1,0 +1,8 @@
+include README.rst
+include LICENSE
+include CHANGES.rst
+include MANIFEST.in
+include requirements.txt
+include requirements-test.txt
+include translation_finder/*.py
+recursive-include translation_finder/test_data *
