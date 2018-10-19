@@ -4,5 +4,5 @@ Changelog
 0.1
 ---
 
-* Not yet released.
+* Released on 19th October 2018.
 * Initial release.
