@@ -1,0 +1,30 @@
+checks:
+    python:
+        code_rating: true
+        duplicate_code: true
+        classes_valid_slots: true
+build:
+    environment:
+        python: 3.6
+    dependencies:
+        override:
+            - pip install -r requirements-test.txt
+    nodes:
+        analysis:
+            project_setup:
+                override:
+                    - 'true'
+            tests:
+                override:
+                    - py-scrutinizer-run
+                    -
+                        command: pylint-run
+                        use_website_config: true
+        tests: 
+            tests:
+                override:
+                    -
+                        command:  py.test --cov=translation_finder translation_finder
+                        coverage:
+                            file: '.coverage'
+                            format: 'py-cc'
