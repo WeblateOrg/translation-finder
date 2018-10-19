@@ -25,7 +25,23 @@ try:
 except ImportError:
     from pathlib2 import Path
 
+EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
+
 
 class Finder(object):
     def __init__(self, path):
         self.path = Path(path)
+        self.files = list(self.list_files())
+        self.lowercase_files = [path.as_posix().lower() for path in self.files]
+
+    def list_files(self, root=None):
+        if root is None:
+            root = self.path
+        for path in root.iterdir():
+            if any((path.match(exclude) for exclude in EXCLUDES)):
+                continue
+            if path.is_dir():
+                for ret in self.list_files(path):
+                    yield ret
+            else:
+                yield path

@@ -21,10 +21,13 @@
 from __future__ import unicode_literals, absolute_import
 
 from unittest import TestCase
+import os.path
 
 from .finder import Finder
 
 
 class FinderTest(TestCase):
     def test_init(self):
-        Finder(".")
+        finder = Finder(os.path.dirname(__file__))
+        self.assertNotEqual(finder.files, [])
+        self.assertIn(__file__, finder.lowercase_files)
