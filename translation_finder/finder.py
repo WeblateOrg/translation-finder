@@ -20,21 +20,26 @@
 #
 from __future__ import unicode_literals, absolute_import
 
+from fnmatch import fnmatch
+
 try:
-    from pathlib import Path
+    from pathlib import Path, PurePath
 except ImportError:
-    from pathlib2 import Path
+    from pathlib2 import Path, PurePath
 
 EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
 
 
 class Finder(object):
-    def __init__(self, path):
-        self.path = Path(path)
-        self.files = list(self.list_files())
-        self.lowercase_files = [path.as_posix().lower() for path in self.files]
+    def __init__(self, path, files=None):
+        if not isinstance(path, PurePath):
+            root = Path(path)
+        if files is None:
+            files = self.list_files(root)
+        relatives = (path.relative_to(root) for path in files)
+        self.files = {path.as_posix().lower(): path for path in relatives}
 
-    def list_files(self, root=None):
+    def list_files(self, root):
         if root is None:
             root = self.path
         for path in root.iterdir():
@@ -44,4 +49,9 @@ class Finder(object):
                 for ret in self.list_files(path):
                     yield ret
             else:
+                yield path
+
+    def filter_files(self, glob):
+        for name, path in self.files.items():
+            if fnmatch(name, glob):
                 yield path

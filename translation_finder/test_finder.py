@@ -29,5 +29,9 @@ from .finder import Finder
 class FinderTest(TestCase):
     def test_init(self):
         finder = Finder(os.path.dirname(__file__))
-        self.assertNotEqual(finder.files, [])
-        self.assertIn(__file__, finder.lowercase_files)
+        self.assertNotEqual(finder.files, {})
+
+    def test_find(self):
+        finder = Finder(os.path.dirname(__file__))
+        result = list(finder.filter_files('test_finder.py'))
+        self.assertEqual(len(result), 1)
