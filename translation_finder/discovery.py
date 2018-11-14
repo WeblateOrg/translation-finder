@@ -37,6 +37,7 @@ class BaseDiscovery(object):
     file_format = "auto"
     file_format_mono = None
     mask = "*.*"
+    new_base_mask = None
 
     def __init__(self, finder, source_language="en"):
         self.finder = finder
@@ -70,6 +71,22 @@ class BaseDiscovery(object):
                     return "{}*.{}".format("".join(tokens[:pos]), ext)
         return None
 
+    def fill_in_new_base(self, result):
+        if not self.new_base_mask:
+            return
+        path = result["filemask"]
+        basename = path.rsplit("/", 1)[1].rsplit(".", 1)[0]
+        new_name = self.new_base_mask.replace("*", basename)
+
+        while "/" in path:
+            path = path.rsplit("/", 1)[0]
+            for match in chain(
+                self.finder.filter_files(new_name, path),
+                self.finder.filter_files(self.new_base_mask, path),
+            ):
+                result["new_base"] = "/".join(match.parts)
+                return
+
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
@@ -82,6 +99,7 @@ class BaseDiscovery(object):
                 template = result["filemask"].replace("*", self.source_language)
                 if self.finder.has_file(template):
                     result["template"] = template
+            self.fill_in_new_base(result)
             discovered.add(result["filemask"])
             if "template" in result and self.file_format_mono:
                 result["file_format"] = self.file_format_mono
@@ -109,6 +127,7 @@ class GettextDiscovery(BaseDiscovery):
     file_format = "po"
     file_format_mono = "po-mono"
     mask = "*.po"
+    new_base_mask = "*.pot"
 
 
 class QtDiscovery(BaseDiscovery):

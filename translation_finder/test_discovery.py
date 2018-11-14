@@ -51,12 +51,32 @@ class GetttetTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = GettextDiscovery(
             self.get_finder(
-                ["locales/cs/messages.po", "locales/de/messages.po", "test/cs.po"]
+                [
+                    "locales/cs/messages.po",
+                    "locales/de/messages.po",
+                    "locales/messages.pot",
+                    "test/cs.po",
+                    "locales/cs/other.po",
+                    "locales/de/other.po",
+                    "locales/other.pot",
+                    "test/messages.pot",
+                ]
             )
         )
         self.assert_discovery(
             discovery.discover(),
-            [{"filemask": "locales/*/messages.po", "file_format": "po"}],
+            [
+                {
+                    "filemask": "locales/*/messages.po",
+                    "file_format": "po",
+                    "new_base": "locales/messages.pot",
+                },
+                {
+                    "filemask": "locales/*/other.po",
+                    "file_format": "po",
+                    "new_base": "locales/other.pot",
+                },
+            ],
         )
 
     def test_double(self):
