@@ -34,6 +34,7 @@ from .discovery import (
     RESXDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
+    WebExtensionDiscovery,
 )
 
 BACKENDS = [
@@ -45,6 +46,7 @@ BACKENDS = [
     RESXDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
+    WebExtensionDiscovery,
 ]
 
 

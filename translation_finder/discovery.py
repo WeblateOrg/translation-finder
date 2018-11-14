@@ -132,6 +132,14 @@ class XliffDiscovery2(BaseDiscovery):
     mask = "*.xlf"
 
 
+class WebExtensionDiscovery(BaseDiscovery):
+    """web extension files discovery."""
+
+    file_format = "webextension"
+    mask = "messages.json"
+
+
+
 class AndroidDiscovery(BaseDiscovery):
     """Android string files discovery."""
 
