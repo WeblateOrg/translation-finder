@@ -30,6 +30,9 @@ from .discovery import (
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
+    XliffDiscovery,
+    XliffDiscovery2,
+    WebExtensionDiscovery,
 )
 
 
@@ -88,7 +91,7 @@ class GetttetTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "locale/*/strings.po",
-                    "file_format": "po",
+                    "file_format": "po-mono",
                     "template": "locale/en/strings.po",
                 }
             ],
@@ -105,7 +108,7 @@ class GetttetTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "locale/*/strings.po",
-                    "file_format": "po",
+                    "file_format": "po-mono",
                     "template": "locale/cs_CZ/strings.po",
                 }
             ],
@@ -249,5 +252,63 @@ class RESXTest(DiscoveryTestCase):
                     "file_format": "resx",
                     "template": "App/Localization/en/Resources.resw",
                 },
+            ],
+        )
+
+
+class XliffTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = XliffDiscovery(
+            self.get_finder(["locales/cs.xliff", "locales/en.xliff"])
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.xliff",
+                    "file_format": "xliff",
+                    "template": "locales/en.xliff",
+                }
+            ],
+        )
+
+    def test_short(self):
+        discovery = XliffDiscovery2(
+            self.get_finder(
+                [
+                    "locales/cs.xlf",
+                    "locales/en.xlf",
+                    "otherlocales/cs/main.xlf",
+                    "otherlocales/cs/help.xlf",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.xlf",
+                    "file_format": "xliff",
+                    "template": "locales/en.xlf",
+                },
+                {"filemask": "otherlocales/*/main.xlf", "file_format": "xliff"},
+                {"filemask": "otherlocales/*/help.xlf", "file_format": "xliff"},
+            ],
+        )
+
+
+class WebExtensionTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = WebExtensionDiscovery(
+            self.get_finder(["_locales/cs/messages.json", "_locales/en/messages.json"])
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "_locales/*/messages.json",
+                    "file_format": "webextension",
+                    "template": "_locales/en/messages.json",
+                }
             ],
         )
