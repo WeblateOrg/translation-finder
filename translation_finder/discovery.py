@@ -35,6 +35,7 @@ class BaseDiscovery(object):
     """Abstract base class for discovery."""
 
     file_format = "auto"
+    file_format_mono = None
     mask = "*.*"
 
     def __init__(self, finder, source_language="en"):
@@ -82,7 +83,10 @@ class BaseDiscovery(object):
                 if self.finder.has_file(template):
                     result["template"] = template
             discovered.add(result["filemask"])
-            result["file_format"] = self.file_format
+            if "template" in result and self.file_format_mono:
+                result["file_format"] = self.file_format_mono
+            else:
+                result["file_format"] = self.file_format
             yield result
 
     def get_masks(self):
@@ -103,6 +107,7 @@ class GettextDiscovery(BaseDiscovery):
     """Gettext PO files discovery."""
 
     file_format = "po"
+    file_format_mono = "po-mono"
     mask = "*.po"
 
 
