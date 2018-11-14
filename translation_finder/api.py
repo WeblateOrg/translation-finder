@@ -32,6 +32,8 @@ from .discovery import (
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
+    XliffDiscovery,
+    XliffDiscovery2,
 )
 
 BACKENDS = [
@@ -41,6 +43,8 @@ BACKENDS = [
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
+    XliffDiscovery,
+    XliffDiscovery2,
 ]
 
 

@@ -118,6 +118,20 @@ class QtDiscovery(BaseDiscovery):
     mask = "*.ts"
 
 
+class XliffDiscovery(BaseDiscovery):
+    """XLIFF files discovery."""
+
+    file_format = "xliff"
+    mask = "*.xliff"
+
+
+class XliffDiscovery2(BaseDiscovery):
+    """XLIFF files discovery."""
+
+    file_format = "xliff"
+    mask = "*.xlf"
+
+
 class AndroidDiscovery(BaseDiscovery):
     """Android string files discovery."""
 
