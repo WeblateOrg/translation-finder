@@ -5,7 +5,7 @@ Changelog
 ---
  
 * Not yet released.
-
+* Added detection for monolingual Gettext, XLIFF and web extension. 
 
 0.1
 ---

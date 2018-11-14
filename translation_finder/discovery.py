@@ -139,7 +139,6 @@ class WebExtensionDiscovery(BaseDiscovery):
     mask = "messages.json"
 
 
-
 class AndroidDiscovery(BaseDiscovery):
     """Android string files discovery."""
 
