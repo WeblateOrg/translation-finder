@@ -141,6 +141,7 @@ class QtDiscovery(BaseDiscovery):
 
     file_format = "ts"
     mask = "*.ts"
+    new_base_mask = "*.ts"
 
 
 class XliffDiscovery(BaseDiscovery):

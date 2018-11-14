@@ -151,8 +151,12 @@ class QtTest(DiscoveryTestCase):
         self.assert_discovery(
             discovery.discover(),
             [
-                {"filemask": "ts/*.ts", "file_format": "ts"},
-                {"filemask": "lrc/translations/lrc_*.ts", "file_format": "ts"},
+                {"filemask": "ts/*.ts", "file_format": "ts", "new_base": "ts/zh_CN.ts"},
+                {
+                    "filemask": "lrc/translations/lrc_*.ts",
+                    "file_format": "ts",
+                    "new_base": "lrc/translations/lrc_id.ts",
+                },
             ],
         )
 

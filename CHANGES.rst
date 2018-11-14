@@ -6,7 +6,7 @@ Changelog
  
 * Not yet released.
 * Added detection for monolingual Gettext, XLIFF and web extension. 
-* Detect new base for Gettext.
+* Detect new base for Gettext and Qt TS.
 
 0.1
 ---
