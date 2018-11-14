@@ -87,6 +87,18 @@ class BaseDiscovery(object):
                 result["new_base"] = "/".join(match.parts)
                 return
 
+    def fill_in_template(self, result):
+        if "template" not in result:
+            template = result["filemask"].replace("*", self.source_language)
+            if self.finder.has_file(template):
+                result["template"] = template
+
+    def fill_in_file_format(self, result):
+        if "template" in result and self.file_format_mono:
+            result["file_format"] = self.file_format_mono
+        else:
+            result["file_format"] = self.file_format
+
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
@@ -95,16 +107,10 @@ class BaseDiscovery(object):
                 continue
             if "template" in result and not self.finder.has_file(result["template"]):
                 continue
-            if "template" not in result:
-                template = result["filemask"].replace("*", self.source_language)
-                if self.finder.has_file(template):
-                    result["template"] = template
+            self.fill_in_template(result)
             self.fill_in_new_base(result)
+            self.fill_in_file_format(result)
             discovered.add(result["filemask"])
-            if "template" in result and self.file_format_mono:
-                result["file_format"] = self.file_format_mono
-            else:
-                result["file_format"] = self.file_format
             yield result
 
     def get_masks(self):
