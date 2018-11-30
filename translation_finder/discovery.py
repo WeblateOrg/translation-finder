@@ -224,7 +224,9 @@ class JavaDiscovery(BaseDiscovery):
             template = mask[:]
             base, code = mask[-1].rsplit(".")[0].split("_", 1)
             if not self.is_language_code(code):
-                continue
+                base, code = mask[-1].rsplit(".")[0].rsplit("_", 1)
+                if not self.is_language_code(code):
+                    continue
             mask[-1] = "{0}_*.properties".format(base)
             template[-1] = "{0}.properties".format(base)
 
