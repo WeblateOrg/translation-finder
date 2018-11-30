@@ -62,6 +62,12 @@ class Finder(object):
         """Check whether file exists."""
         return name in self.files
 
+    def mask_matches(self, mask):
+        """Return all mask matches."""
+        for name, path in sorted(self.files.items()):
+            if fnmatch(name, mask):
+                yield path
+
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
         for name, path in sorted(self.lc_files.items()):

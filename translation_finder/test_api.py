@@ -58,6 +58,21 @@ class APITest(DiscoveryTestCase):
                     "file_format": "aresource",
                     "template": "app/src/res/main/values/strings.xml",
                 },
+                {
+                    "filemask": "java/utf-8_*.properties",
+                    "template": "java/utf-8.properties",
+                    "file_format": "properties-utf8",
+                },
+                {
+                    "filemask": "java/utf-16_*.properties",
+                    "template": "java/utf-16.properties",
+                    "file_format": "properties-utf16",
+                },
+                {
+                    "filemask": "java/iso_*.properties",
+                    "template": "java/iso.properties",
+                    "file_format": "properties",
+                },
             ],
         )
 

@@ -24,6 +24,8 @@ from __future__ import unicode_literals, absolute_import
 from itertools import chain
 import re
 
+from chardet.universaldetector import UniversalDetector
+
 from six.moves.configparser import RawConfigParser, NoOptionError
 
 from .languages import LANGUAGES
@@ -103,6 +105,9 @@ class BaseDiscovery(object):
         else:
             result["file_format"] = self.file_format
 
+    def adjust_encoding(self, result):
+        return
+
     def discover(self):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
@@ -111,6 +116,7 @@ class BaseDiscovery(object):
                 continue
             if "template" in result and not self.finder.has_file(result["template"]):
                 continue
+            self.adjust_encoding(result)
             self.fill_in_template(result)
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
@@ -185,13 +191,35 @@ class AndroidDiscovery(BaseDiscovery):
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
-class OSXDiscovery(BaseDiscovery):
-    """OSX string properties files discovery.
+class EncodingDiscovery(BaseDiscovery):
+    encoding_map = {}
 
-    TODO: Detect encoding
-    """
+    def adjust_encoding(self, result):
+        detector = UniversalDetector()
+
+        for path in chain(
+            self.finder.mask_matches(result["filemask"]),
+            self.finder.mask_matches(result["template"]),
+        ):
+            if not hasattr(path, "open"):
+                continue
+            with self.finder.open(path, "rb") as handle:
+                detector.feed(handle.read())
+                if detector.done:
+                    break
+        detector.close()
+
+        if detector.result["encoding"]:
+            encoding = detector.result["encoding"].lower()
+            if encoding in self.encoding_map:
+                result["file_format"] = self.encoding_map[encoding]
+
+
+class OSXDiscovery(EncodingDiscovery):
+    """OSX string properties files discovery."""
 
     file_format = "strings"
+    encoding_map = {"utf-8": "strings-utf8"}
 
     def get_masks(self):
         """Return all file masks found in the directory.
@@ -207,13 +235,11 @@ class OSXDiscovery(BaseDiscovery):
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
-class JavaDiscovery(BaseDiscovery):
-    """Java string properties files discovery.
-
-    TODO: Detect encoding
-    """
+class JavaDiscovery(EncodingDiscovery):
+    """Java string properties files discovery."""
 
     file_format = "properties"
+    encoding_map = {"utf-8": "properties-utf8", "utf-16": "properties-utf16"}
 
     def get_masks(self):
         """Return all file masks found in the directory.
