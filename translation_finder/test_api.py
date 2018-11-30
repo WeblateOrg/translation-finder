@@ -39,6 +39,7 @@ class APITest(DiscoveryTestCase):
         )
 
     def test_discover_files(self):
+        self.maxDiff = None
         self.assert_discovery(
             discover(TEST_DATA),
             [
