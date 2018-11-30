@@ -3,11 +3,12 @@ Changelog
 
 0.2
 ---
- 
+
 * Not yet released.
-* Added detection for monolingual Gettext, XLIFF and web extension. 
+* Added detection for monolingual Gettext, XLIFF and web extension.
 * Detect new base for Gettext and Qt TS.
 * Detect encoding of properties files.
+* Automatically import Transifex configuration.
 
 0.1
 ---
