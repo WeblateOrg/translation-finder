@@ -50,6 +50,12 @@ class APITest(DiscoveryTestCase):
                     "name": "translation",
                 },
                 {
+                    "file_format": "aresource",
+                    "filemask": "app/src/res/main/values-*/strings.xml",
+                    "name": "android",
+                    "template": "app/src/res/main/values/strings.xml",
+                },
+                {
                     "filemask": "locales/*.po",
                     "new_base": "locales/messages.pot",
                     "file_format": "po",

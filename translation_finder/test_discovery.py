@@ -356,6 +356,12 @@ class TransifexTest(DiscoveryTestCase):
                     "file_format": "po",
                     "new_base": "locales/messages.pot",
                     "name": "translation",
-                }
+                },
+                {
+                    "file_format": "aresource",
+                    "filemask": "app/src/res/main/values-*/strings.xml",
+                    "name": "android",
+                    "template": "app/src/res/main/values/strings.xml",
+                },
             ],
         )

@@ -6,3 +6,15 @@ file_filter = locales/<lang>.po
 source_file = locales/messages.pot
 source_lang = en
 type = PO
+
+[auto]
+file_filter = locales/<lang>.po
+source_file = locales/messages.pot
+source_lang = en
+type = AUTO
+
+[android]
+file_filter = app/src/res/main/values-<lang>/strings.xml
+source_file = app/src/res/main/values/strings.xml
+source_lang = en
+type = ANDROID
