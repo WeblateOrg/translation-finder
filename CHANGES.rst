@@ -4,7 +4,7 @@ Changelog
 0.2
 ---
 
-* Not yet released.
+* Released on 30th November 2018.
 * Added detection for monolingual Gettext, XLIFF and web extension.
 * Detect new base for Gettext and Qt TS.
 * Detect encoding of properties files.
