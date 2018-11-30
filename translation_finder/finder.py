@@ -40,9 +40,10 @@ class Finder(object):
         self.root = root
         if files is None:
             files = self.list_files(root)
-        relatives = (path.relative_to(root) for path in files)
-        self.files = {path.as_posix(): path for path in relatives}
+        relatives = [(path, path.relative_to(root)) for path in files]
+        self.files = {path.as_posix(): path for absolute, path in relatives}
         self.lc_files = {path.lower(): obj for path, obj in self.files.items()}
+        self.absolutes = {path.as_posix(): absolute for absolute, path in relatives}
 
     def list_files(self, root):
         """Recursively list files in a path.
@@ -81,3 +82,6 @@ class Finder(object):
 
             if fnmatch(filename, glob):
                 yield path
+
+    def open(self, path, *args, **kwargs):
+        return self.absolutes[path.as_posix()].open(*args, **kwargs)

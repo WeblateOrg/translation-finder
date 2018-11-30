@@ -32,12 +32,14 @@ from .discovery import (
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
+    TransifexDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
 )
 
 BACKENDS = [
+    TransifexDiscovery,
     GettextDiscovery,
     QtDiscovery,
     AndroidDiscovery,

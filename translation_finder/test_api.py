@@ -42,7 +42,17 @@ class APITest(DiscoveryTestCase):
         self.assert_discovery(
             discover(TEST_DATA),
             [
-                {"filemask": "locales/*.po", "file_format": "po"},
+                {
+                    "file_format": "po",
+                    "filemask": "locales/*.po",
+                    "new_base": "locales/messages.pot",
+                    "name": "translation",
+                },
+                {
+                    "filemask": "locales/*.po",
+                    "new_base": "locales/messages.pot",
+                    "file_format": "po",
+                },
                 {
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "file_format": "aresource",

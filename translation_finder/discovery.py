@@ -24,6 +24,8 @@ from __future__ import unicode_literals, absolute_import
 from itertools import chain
 import re
 
+from six.moves.configparser import RawConfigParser, NoOptionError
+
 from .languages import LANGUAGES
 
 BLACKLIST = frozenset(("po", "ts"))
@@ -94,6 +96,8 @@ class BaseDiscovery(object):
                 result["template"] = template
 
     def fill_in_file_format(self, result):
+        if "file_format" in result:
+            return
         if "template" in result and self.file_format_mono:
             result["file_format"] = self.file_format_mono
         else:
@@ -251,3 +255,65 @@ class RESXDiscovery(BaseDiscovery):
         for match in super(RESXDiscovery, self).get_masks():
             match["template"] = match["filemask"].replace("*", self.source_language)
             yield match
+
+
+class TransifexDiscovery(BaseDiscovery):
+    """Transifex configuration discovery."""
+
+    typemap = {
+        "ANDROID": "aresource",
+        "STRINGS": "strings",
+        "CHROME": "webextension",
+        "PO": "po",
+        "PROPERTIES": "properties",
+        "UNICODEPROPERTIES": "properties-utf8",
+        "INI": "joomla",
+        "KEYVALUEJSON": "json-nested",
+        "MAGENTO": "csv",
+        "DTD": "dtd",
+        "PHP_ARRAY": "php",
+        "QT": "ts",
+        "RESX": "resx",
+        "XLIFF": "xliff",
+        "XLSX": "xlsx",
+        "YAML_GENERIC": "yaml",
+        "YML": "ruby-yaml",
+    }
+
+    def extract_format(self, transifex):
+        transifex = transifex.upper()
+        try:
+            return self.typemap[transifex]
+        except KeyError:
+            return "auto"
+
+    def extract_section(self, config, section):
+        if not config.has_option(section, "file_filter"):
+            return None
+        result = {
+            "name": section,
+            "filemask": config.get(section, "file_filter").replace("<lang>", "*"),
+        }
+
+        if config.has_option(section, "type"):
+            result["file_format"] = self.extract_format(config.get(section, "type"))
+
+        if config.has_option(section, "source_file"):
+            template = config.get(section, "source_file")
+            if template.lower().endswith(".pot"):
+                result["new_base"] = template
+            else:
+                result["template"] = template
+
+        return result
+
+    def get_masks(self):
+        """Retuns matches from transifex files."""
+        for path in self.finder.filter_files("config", ".tx"):
+            config = RawConfigParser()
+            with self.finder.open(path) as handle:
+                config.readfp(handle)
+            for section in config.sections():
+                result = self.extract_section(config, section)
+                if result:
+                    yield result

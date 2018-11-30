@@ -21,6 +21,7 @@
 from __future__ import unicode_literals, absolute_import
 
 from unittest import TestCase
+import os.path
 
 from .finder import Finder, PurePath
 from .discovery import (
@@ -30,15 +31,21 @@ from .discovery import (
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
+    TransifexDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
 )
 
+TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
+
 
 class DiscoveryTestCase(TestCase):
     def get_finder(self, paths):
         return Finder(PurePath("."), [PurePath(path) for path in paths])
+
+    def get_real_finder(self):
+        return Finder(TEST_DATA)
 
     def assert_discovery(self, first, second):
         def sort_key(item):
@@ -333,6 +340,22 @@ class WebExtensionTest(DiscoveryTestCase):
                     "filemask": "_locales/*/messages.json",
                     "file_format": "webextension",
                     "template": "_locales/en/messages.json",
+                }
+            ],
+        )
+
+
+class TransifexTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = TransifexDiscovery(self.get_real_finder())
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.po",
+                    "file_format": "po",
+                    "new_base": "locales/messages.pot",
+                    "name": "translation",
                 }
             ],
         )
