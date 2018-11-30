@@ -5,4 +5,5 @@ include MANIFEST.in
 include requirements.txt
 include requirements-test.txt
 include translation_finder/*.py
+include translation_finder/discovery/*.py
 recursive-include translation_finder/test_data *

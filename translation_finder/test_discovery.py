@@ -24,18 +24,18 @@ from unittest import TestCase
 import os.path
 
 from .finder import Finder, PurePath
-from .discovery import (
+from .discovery.files import (
     GettextDiscovery,
     QtDiscovery,
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
-    TransifexDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
 )
+from .discovery.transifex import TransifexDiscovery
 
 TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 

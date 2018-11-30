@@ -23,7 +23,7 @@
 from __future__ import unicode_literals
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 VERSION = __import__("translation_finder").__version__
 
@@ -54,8 +54,7 @@ setup(
         "Twitter": "https://twitter.com/WeblateOrg",
     },
     platforms=["any"],
-    packages=["translation_finder"],
-    package_dir={"translation_finder": "translation_finder"},
+    packages=find_packages(),
     long_description=LONG_DESCRIPTION,
     install_requires=REQUIRES,
     classifiers=[

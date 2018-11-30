@@ -25,18 +25,18 @@ from argparse import ArgumentParser
 import sys
 
 from .finder import Finder
-from .discovery import (
+from .discovery.files import (
     GettextDiscovery,
     QtDiscovery,
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
     RESXDiscovery,
-    TransifexDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
 )
+from .discovery.transifex import TransifexDiscovery
 
 BACKENDS = [
     TransifexDiscovery,
