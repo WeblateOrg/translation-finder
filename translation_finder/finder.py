@@ -63,7 +63,7 @@ class Finder(object):
 
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
-        for name, path in self.lc_files.items():
+        for name, path in sorted(self.lc_files.items()):
             if (
                 "test" in path.parts
                 or "tests" in path.parts
