@@ -1,6 +1,10 @@
 translation-finder
 ==================
 
+.. image:: https://api.codacy.com/project/badge/Grade/9dba6b312da04123b3797cf6015ee012
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/app/Weblate/translation-finder?utm_source=github.com&utm_medium=referral&utm_content=WeblateOrg/translation-finder&utm_campaign=Badge_Grade_Dashboard
+
 A translation file finder for `Weblate`_, translation tool with tight version
 control integration.
 
