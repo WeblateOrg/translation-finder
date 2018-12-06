@@ -1,7 +1,8 @@
 translation-finder
 ==================
 
-`Weblate`_ translation finder in a directory.
+A translation file finder for `Weblate`_, translation tool with tight version
+control integration.
 
 .. image:: https://travis-ci.com/WeblateOrg/translation-finder.svg?branch=master
     :target: https://travis-ci.com/WeblateOrg/translation-finder
