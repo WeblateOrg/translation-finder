@@ -4,7 +4,10 @@ Changelog
 0.3
 ---
 
-* Not yet released.
+* Released on 6th December 2018.
+* Code restructuring.
+* Better handling of multiple language codes in path.
+* Extended test cases.
 
 0.2
 ---
