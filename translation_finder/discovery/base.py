@@ -127,10 +127,17 @@ class BaseDiscovery(object):
         It is expected to contain duplicates."""
         for path in self.finder.filter_files(self.mask):
             parts = list(path.parts)
+            skip = set()
             for pos, part in enumerate(parts):
+                if pos in skip:
+                    continue
                 wildcard = self.get_wildcard(part)
                 if wildcard:
                     mask = parts[:]
+                    while part in mask:
+                        index = mask.index(part)
+                        skip.add(index)
+                        mask[index] = wildcard
                     mask[pos] = wildcard
                     yield {"filemask": "/".join(mask)}
 
