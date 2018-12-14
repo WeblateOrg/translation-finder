@@ -30,6 +30,7 @@ from .discovery.files import (
     AndroidDiscovery,
     OSXDiscovery,
     JavaDiscovery,
+    JoomlaDiscovery,
     RESXDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
@@ -250,6 +251,32 @@ class JavaTest(DiscoveryTestCase):
                     "filemask": "bundle/UIMessages_*.properties",
                     "file_format": "properties",
                     "template": "bundle/UIMessages.properties",
+                }
+            ],
+        )
+
+
+class JoomlaTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = JoomlaDiscovery(
+            self.get_finder(
+                [
+                    "public/lang/cs.ini",
+                    "public/lang/ru.ini",
+                    "public/lang/nl.ini",
+                    "public/lang/rm.ini",
+                    "public/lang/ca.ini",
+                    "public/lang/en.ini",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "public/lang/*.ini",
+                    "file_format": "joomla",
+                    "template": "public/lang/en.ini",
                 }
             ],
         )

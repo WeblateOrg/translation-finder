@@ -57,6 +57,13 @@ class XliffDiscovery2(BaseDiscovery):
     mask = "*.xlf"
 
 
+class JoomlaDiscovery(BaseDiscovery):
+    """Joomla files discovery."""
+
+    file_format = "joomla"
+    mask = "*.ini"
+
+
 class WebExtensionDiscovery(BaseDiscovery):
     """web extension files discovery."""
 

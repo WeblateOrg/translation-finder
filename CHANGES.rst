@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Discover Joomla INI files.
 
 0.3
 ---
