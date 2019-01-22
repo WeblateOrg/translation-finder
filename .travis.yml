@@ -34,6 +34,7 @@ matrix:
 install: 
   # Get newer pip and whell for binary caching support
   - pip install --upgrade pip wheel
+  - pip install --upgrade pytest
   - pip install -r requirements-test.txt
 script: 
   - py.test --cov=translation_finder translation_finder
