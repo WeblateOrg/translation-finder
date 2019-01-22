@@ -83,3 +83,4 @@ def cli(stdout=None, args=None):
         for key, value in sorted(match.items()):
             print("{:15}: {}".format(key, value), file=stdout)
         print("", file=stdout)
+    return 0
