@@ -31,11 +31,13 @@ matrix:
         - choco install python2
         - export PATH="/c/Python27:/c/Python27/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
+    # Obtain Python 3.7 from xenial as per https://github.com/travis-ci/travis-ci/issues/9815
+    - python: 3.7
+      dist: xenial
 install: 
   # Get newer pip and whell for binary caching support
   - pip install --upgrade pip wheel
-  - pip install --upgrade pytest
-  - pip install -r requirements-test.txt
+  - pip install -U -r requirements-test.txt
 script: 
   - py.test --cov=translation_finder translation_finder
   - ./setup.py sdist
