@@ -4,7 +4,7 @@ Changelog
 1.0
 ---
 
-* Released on 22th January 2019.
+* Released on 22nd January 2019.
 * Discover Joomla INI files.
 
 0.3
