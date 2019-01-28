@@ -48,10 +48,20 @@ class BaseDiscovery(object):
     @staticmethod
     def is_language_code(code):
         """Analysis whether passed parameter looks like language code."""
-        if code.lower() in BLACKLIST:
+        code = code.lower()
+        if code in BLACKLIST:
             return False
 
-        return code.lower().replace("-", "_") in LANGUAGES
+        code = code.replace("-", "_")
+        if code in LANGUAGES:
+            return True
+
+        if "_" in code:
+            lang, country = code.split("_", 1)
+            if lang in LANGUAGES and len(country) == 2 and country.isalpha():
+                return True
+
+        return
 
     def get_wildcard(self, part):
         """Generate language wilcard for a path part.

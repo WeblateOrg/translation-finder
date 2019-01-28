@@ -71,6 +71,9 @@ class GetttetTest(DiscoveryTestCase):
                     "locales/cs/other/cs/messages.po",
                     "locales/de/other/de/messages.po",
                     "help/ar/ar.po",
+                    "locale/pl_PL/LC_MESSAGES/emote_collector.po",
+                    "locale/es_ES/LC_MESSAGES/emote_collector.po",
+                    "locale/hu_HU/LC_MESSAGES/emote_collector.po",
                 ]
             )
         )
@@ -91,6 +94,10 @@ class GetttetTest(DiscoveryTestCase):
                     "filemask": "locales/*/other/*/messages.po",
                     "file_format": "po",
                     "new_base": "locales/messages.pot",
+                },
+                {
+                    "filemask": "locale/*/LC_MESSAGES/emote_collector.po",
+                    "file_format": "po",
                 },
                 {"filemask": "help/*/*.po", "file_format": "po"},
             ],
