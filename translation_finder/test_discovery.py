@@ -70,6 +70,7 @@ class GetttetTest(DiscoveryTestCase):
                     "test/messages.pot",
                     "locales/cs/other/cs/messages.po",
                     "locales/de/other/de/messages.po",
+                    "help/ar/ar.po",
                 ]
             )
         )
@@ -91,6 +92,7 @@ class GetttetTest(DiscoveryTestCase):
                     "file_format": "po",
                     "new_base": "locales/messages.pot",
                 },
+                {"filemask": "help/*/*.po", "file_format": "po"},
             ],
         )
 

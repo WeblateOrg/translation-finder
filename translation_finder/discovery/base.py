@@ -134,10 +134,10 @@ class BaseDiscovery(object):
                 wildcard = self.get_wildcard(part)
                 if wildcard:
                     mask = parts[:]
-                    while part in mask:
-                        index = mask.index(part)
-                        skip.add(index)
-                        mask[index] = wildcard
+                    for i, current in enumerate(mask):
+                        if part in current:
+                            skip.add(i)
+                            mask[i] = current.replace(part, wildcard)
                     mask[pos] = wildcard
                     yield {"filemask": "/".join(mask)}
 
