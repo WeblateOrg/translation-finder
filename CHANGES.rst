@@ -1,6 +1,13 @@
 Changelog
 =========
 
+1.1
+---
+
+* Not yet released.
+* Improved detection of translation with full language code.
+* Improved detection of language code in directory and file name.
+
 1.0
 ---
 
