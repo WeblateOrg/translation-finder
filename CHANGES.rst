@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Improved detection of translation with full language code.
 * Improved detection of language code in directory and file name.
+* Improved detection of language code separated by full stop.
 
 1.0
 ---

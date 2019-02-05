@@ -170,7 +170,15 @@ class GetttetTest(DiscoveryTestCase):
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = QtDiscovery(
-            self.get_finder(["ts/cs.ts", "ts/zh_CN.ts", "lrc/translations/lrc_id.ts"])
+            self.get_finder(
+                [
+                    "ts/cs.ts",
+                    "ts/zh_CN.ts",
+                    "lrc/translations/lrc_id.ts",
+                    "quickevent/app/quickevent/quickevent.cs_CZ.ts",
+                    "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
+                ]
+            )
         )
         self.assert_discovery(
             discovery.discover(),
@@ -180,6 +188,16 @@ class QtTest(DiscoveryTestCase):
                     "filemask": "lrc/translations/lrc_*.ts",
                     "file_format": "ts",
                     "new_base": "lrc/translations/lrc_id.ts",
+                },
+                {
+                    "filemask": "quickevent/app/quickevent/quickevent.*.ts",
+                    "file_format": "ts",
+                    "new_base": "quickevent/app/quickevent/quickevent.cs_CZ.ts",
+                },
+                {
+                    "filemask": "libqf/libqfqmlwidgets/libqfqmlwidgets.*.ts",
+                    "file_format": "ts",
+                    "new_base": "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
                 },
             ],
         )

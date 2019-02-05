@@ -74,6 +74,11 @@ class BaseDiscovery(object):
             # Handle <language>.extension
             if self.is_language_code(base):
                 return "*.{}".format(ext)
+            # Handle prefix.<language>.extension
+            if "." in base:
+                prefix, token = base.split(".", 1)
+                if self.is_language_code(token):
+                    return "{}.*.{}".format(prefix, ext)
             # Handle prefix-<language>.extension or prefix_<language>.extension
             tokens = TOKEN_SPLIT.split(base)
             for pos, token in enumerate(tokens):
