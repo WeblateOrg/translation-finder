@@ -52,6 +52,8 @@ class Finder(object):
         for path in root.iterdir():
             if any((path.match(exclude) for exclude in EXCLUDES)):
                 continue
+            if path.is_symlink():
+                continue
             if path.is_dir():
                 for ret in self.list_files(path):
                     yield ret

@@ -9,6 +9,7 @@ Changelog
 * Improved detection of language code in directory and file name.
 * Improved detection of language code separated by full stop.
 * Added detection for app store metadata files.
+* Ignore symlinks during discovery.
 
 1.0
 ---
