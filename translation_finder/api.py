@@ -36,6 +36,7 @@ from .discovery.files import (
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
+    AppStoreDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
 
@@ -51,6 +52,7 @@ BACKENDS = [
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
+    AppStoreDiscovery,
 ]
 
 

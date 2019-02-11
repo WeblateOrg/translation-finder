@@ -35,6 +35,7 @@ from .discovery.files import (
     XliffDiscovery,
     XliffDiscovery2,
     WebExtensionDiscovery,
+    AppStoreDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
 
@@ -424,5 +425,29 @@ class TransifexTest(DiscoveryTestCase):
                     "name": "android",
                     "template": "app/src/res/main/values/strings.xml",
                 },
+            ],
+        )
+
+
+class AppStoreDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = AppStoreDiscovery(
+            self.get_finder(
+                [
+                    "metadata/en-AU/short_description.txt",
+                    "metadata/en-US/short_description.txt",
+                    "short_description.txt",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "metadata/*/short_description.txt",
+                    "file_format": "appstore",
+                    "new_base": "metadata/en-US/short_description.txt",
+                    "template": "metadata/en-US/short_description.txt",
+                }
             ],
         )

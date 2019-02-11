@@ -104,9 +104,11 @@ class BaseDiscovery(object):
                 result["new_base"] = "/".join(match.parts)
                 return
 
-    def fill_in_template(self, result):
+    def fill_in_template(self, result, source_language=None):
         if "template" not in result:
-            template = result["filemask"].replace("*", self.source_language)
+            if source_language is None:
+                source_language = self.source_language
+            template = result["filemask"].replace("*", source_language)
             if self.finder.has_file(template):
                 result["template"] = template
 

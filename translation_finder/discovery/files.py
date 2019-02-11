@@ -155,3 +155,23 @@ class RESXDiscovery(BaseDiscovery):
         for match in super(RESXDiscovery, self).get_masks():
             match["template"] = match["filemask"].replace("*", self.source_language)
             yield match
+
+
+class AppStoreDiscovery(BaseDiscovery):
+    """App store metadata.
+    """
+
+    file_format = "appstore"
+    mask = "short_description.txt"
+
+    def fill_in_new_base(self, result):
+        if "template" in result:
+            result["new_base"] = result["template"]
+
+    def fill_in_template(self, result, source_language=None):
+        super(AppStoreDiscovery, self).fill_in_template(result, source_language)
+        if "template" not in result and source_language is None:
+            for lang in ("en-US", "en-GB", "en-AU"):
+                super(AppStoreDiscovery, self).fill_in_template(result, lang)
+                if "template" in result:
+                    break
