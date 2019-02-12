@@ -28,7 +28,7 @@ from chardet.universaldetector import UniversalDetector
 
 from ..languages import LANGUAGES
 
-BLACKLIST = frozenset(("po", "ts"))
+BLACKLIST = frozenset(("po", "ts", "tr"))
 
 TOKEN_SPLIT = re.compile(r"([_-])")
 
