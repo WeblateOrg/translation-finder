@@ -175,3 +175,10 @@ class AppStoreDiscovery(BaseDiscovery):
                 super(AppStoreDiscovery, self).fill_in_template(result, lang)
                 if "template" in result:
                     break
+
+
+class JSONDiscovery(BaseDiscovery):
+    """JSON files discovery."""
+
+    file_format = "json"
+    mask = "*.json"

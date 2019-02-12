@@ -36,6 +36,7 @@ from .discovery.files import (
     XliffDiscovery2,
     WebExtensionDiscovery,
     AppStoreDiscovery,
+    JSONDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
 
@@ -403,6 +404,42 @@ class WebExtensionTest(DiscoveryTestCase):
                     "file_format": "webextension",
                     "template": "_locales/en/messages.json",
                 }
+            ],
+        )
+
+
+class JSONDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = JSONDiscovery(
+            self.get_finder(
+                [
+                    "tr/wizard-nl_BE.json",
+                    "tr/wizard-fr.json",
+                    "tr/wizard-en.json",
+                    "tr/register-en.json",
+                    "tr/register-sk.json",
+                    "tr/recordings-en.json",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "tr/wizard-*.json",
+                    "file_format": "json",
+                    "template": "tr/wizard-en.json",
+                },
+                {
+                    "filemask": "tr/register-*.json",
+                    "file_format": "json",
+                    "template": "tr/register-en.json",
+                },
+                {
+                    "filemask": "tr/recordings-*.json",
+                    "file_format": "json",
+                    "template": "tr/recordings-en.json",
+                },
             ],
         )
 
