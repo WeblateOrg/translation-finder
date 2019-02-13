@@ -34,14 +34,18 @@ EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
 class Finder(object):
     """Finder for files which might be considered translations."""
 
-    def __init__(self, root, files=None):
+    def __init__(self, root, files=None, dirs=None):
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
         if files is None:
             files = self.list_files(root)
+        if dirs is None:
+            dirs = self.list_dirs(root)
         relatives = [(path, path.relative_to(root)) for path in files]
+        relative_dirs = [(path, path.relative_to(root)) for path in dirs]
         self.files = {path.as_posix(): path for absolute, path in relatives}
+        self.dirs = {path.as_posix(): path for absolute, path in relative_dirs}
         self.lc_files = {path.lower(): obj for path, obj in self.files.items()}
         self.absolutes = {path.as_posix(): absolute for absolute, path in relatives}
 
@@ -60,9 +64,25 @@ class Finder(object):
             else:
                 yield path
 
+    def list_dirs(self, root):
+        """Recursively list dirs in a path.
+
+        It skips excluded dirs."""
+        for path in root.iterdir():
+            if any((path.match(exclude) for exclude in EXCLUDES)):
+                continue
+            if path.is_dir():
+                yield path
+                for ret in self.list_dirs(path):
+                    yield ret
+
     def has_file(self, name):
         """Check whether file exists."""
         return name in self.files
+
+    def has_dir(self, name):
+        """Check whether dir exists."""
+        return name in self.dirs
 
     def mask_matches(self, mask):
         """Return all mask matches."""

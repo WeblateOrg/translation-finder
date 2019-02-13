@@ -44,8 +44,14 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class DiscoveryTestCase(TestCase):
-    def get_finder(self, paths):
-        return Finder(PurePath("."), [PurePath(path) for path in paths])
+    def get_finder(self, paths, dirs=None):
+        if dirs is None:
+            dirs = []
+        return Finder(
+            PurePath("."),
+            [PurePath(path) for path in paths],
+            [PurePath(path) for path in dirs],
+        )
 
     def get_real_finder(self):
         return Finder(TEST_DATA)
@@ -473,18 +479,24 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
                 [
                     "metadata/en-AU/short_description.txt",
                     "metadata/en-US/short_description.txt",
+                    "private/metadata/en-AU/changelogs/10000.txt",
                     "short_description.txt",
-                ]
+                ],
+                ["metadata/en-AU", "metadata/en-US", "private/metadata/en-AU"],
             )
         )
         self.assert_discovery(
             discovery.discover(),
             [
                 {
-                    "filemask": "metadata/*/short_description.txt",
+                    "filemask": "metadata/*",
                     "file_format": "appstore",
-                    "new_base": "metadata/en-US/short_description.txt",
-                    "template": "metadata/en-US/short_description.txt",
-                }
+                    "template": "metadata/en-US",
+                },
+                {
+                    "filemask": "private/metadata/*",
+                    "file_format": "appstore",
+                    "template": "private/metadata/en-AU",
+                },
             ],
         )

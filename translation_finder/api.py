@@ -58,9 +58,9 @@ BACKENDS = [
 ]
 
 
-def discover(root, files=None, source_language="en"):
+def discover(root, files=None, dirs=None, source_language="en"):
     """High level discovery interface."""
-    finder = Finder(root, files)
+    finder = Finder(root, files, dirs)
     results = []
     for backend in BACKENDS:
         instance = backend(finder, source_language)

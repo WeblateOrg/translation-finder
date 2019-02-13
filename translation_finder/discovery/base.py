@@ -104,12 +104,16 @@ class BaseDiscovery(object):
                 result["new_base"] = "/".join(match.parts)
                 return
 
+    def has_storage(self, name):
+        """Check whether finder has a storage."""
+        return self.finder.has_file(name)
+
     def fill_in_template(self, result, source_language=None):
         if "template" not in result:
             if source_language is None:
                 source_language = self.source_language
             template = result["filemask"].replace("*", source_language)
-            if self.finder.has_file(template):
+            if self.has_storage(template):
                 result["template"] = template
 
     def fill_in_file_format(self, result):
@@ -129,7 +133,7 @@ class BaseDiscovery(object):
         for result in self.get_masks():
             if result["filemask"] in discovered:
                 continue
-            if "template" in result and not self.finder.has_file(result["template"]):
+            if "template" in result and not self.has_storage(result["template"]):
                 continue
             self.adjust_encoding(result)
             self.fill_in_template(result)
@@ -138,11 +142,15 @@ class BaseDiscovery(object):
             discovered.add(result["filemask"])
             yield result
 
+    def filter_files(self):
+        """Filters possible file matches."""
+        return self.finder.filter_files(self.mask)
+
     def get_masks(self):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in self.finder.filter_files(self.mask):
+        for path in self.filter_files():
             parts = list(path.parts)
             skip = set()
             for pos, part in enumerate(parts):

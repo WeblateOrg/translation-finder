@@ -162,11 +162,21 @@ class AppStoreDiscovery(BaseDiscovery):
     """
 
     file_format = "appstore"
-    mask = "short_description.txt"
 
-    def fill_in_new_base(self, result):
-        if "template" in result:
-            result["new_base"] = result["template"]
+    def filter_files(self):
+        """Filters possible file matches."""
+        for path in chain(
+            self.finder.filter_files("short_description.txt"),
+            self.finder.filter_files("full_description.txt"),
+            self.finder.filter_files("title.txt"),
+        ):
+            yield path.parent
+        for path in self.finder.filter_files("*.txt", "*/changelogs"):
+            yield path.parent.parent
+
+    def has_storage(self, name):
+        """Check whether finder has a storage."""
+        return self.finder.has_dir(name)
 
     def fill_in_template(self, result, source_language=None):
         super(AppStoreDiscovery, self).fill_in_template(result, source_language)

@@ -34,7 +34,7 @@ class APITest(DiscoveryTestCase):
     def test_discover(self):
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assert_discovery(
-            discover(PurePath("."), [PurePath(path) for path in paths]),
+            discover(PurePath("."), [PurePath(path) for path in paths], []),
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
