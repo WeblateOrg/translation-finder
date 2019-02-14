@@ -76,9 +76,6 @@ class GetttetTest(DiscoveryTestCase):
                     "locales/de/other.po",
                     "locales/other.pot",
                     "test/messages.pot",
-                    "locales/cs/other/cs/messages.po",
-                    "locales/de/other/de/messages.po",
-                    "help/ar/ar.po",
                     "locale/pl_PL/LC_MESSAGES/emote_collector.po",
                     "locale/es_ES/LC_MESSAGES/emote_collector.po",
                     "locale/hu_HU/LC_MESSAGES/emote_collector.po",
@@ -99,13 +96,32 @@ class GetttetTest(DiscoveryTestCase):
                     "new_base": "locales/other.pot",
                 },
                 {
+                    "filemask": "locale/*/LC_MESSAGES/emote_collector.po",
+                    "file_format": "po",
+                },
+            ],
+        )
+
+    def test_duplicate_code(self):
+        discovery = GettextDiscovery(
+            self.get_finder(
+                [
+                    "locales/messages.pot",
+                    "locales/cs/other/cs/messages.po",
+                    "locales/de/other/de/messages.po",
+                    "help/ar/ar.po",
+                    "po/cs/docs.po",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {"filemask": "po/*/docs.po", "file_format": "po"},
+                {
                     "filemask": "locales/*/other/*/messages.po",
                     "file_format": "po",
                     "new_base": "locales/messages.pot",
-                },
-                {
-                    "filemask": "locale/*/LC_MESSAGES/emote_collector.po",
-                    "file_format": "po",
                 },
                 {"filemask": "help/*/*.po", "file_format": "po"},
             ],

@@ -32,6 +32,8 @@ BLACKLIST = frozenset(("po", "ts", "tr"))
 
 TOKEN_SPLIT = re.compile(r"([_-])")
 
+PARTS_SPLIT = re.compile(r"([._-])")
+
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
@@ -160,9 +162,12 @@ class BaseDiscovery(object):
                 if wildcard:
                     mask = parts[:]
                     for i, current in enumerate(mask):
-                        if part in current:
+                        subparts = PARTS_SPLIT.split(current)
+                        if part in subparts:
                             skip.add(i)
-                            mask[i] = current.replace(part, wildcard)
+                            mask[i] = "".join(
+                                x if x != part else wildcard for x in subparts
+                            )
                     mask[pos] = wildcard
                     yield {"filemask": "/".join(mask)}
 
