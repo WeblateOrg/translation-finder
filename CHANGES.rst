@@ -11,6 +11,7 @@ Changelog
 * Added detection for app store metadata files.
 * Added detection for JSON files.
 * Ignore symlinks during discovery.
+* Improved detection of matching pot files in several corner cases.
 
 1.0
 ---

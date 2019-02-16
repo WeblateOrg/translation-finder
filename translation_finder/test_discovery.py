@@ -149,6 +149,51 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
+    def test_uppercase(self):
+        discovery = GettextDiscovery(
+            self.get_finder(
+                [
+                    "sources/localization/Xenko.Core.Presentation.pot",
+                    "sources/localization/ja/Xenko.Core.Assets.Editor.ja.po",
+                    "sources/localization/ja/Xenko.GameStudio.ja.po",
+                    "sources/localization/ja/Xenko.Assets.Presentation.ja.po",
+                    "sources/localization/ja/Xenko.Core.Presentation.ja.po",
+                    "sources/localization/Xenko.Core.Assets.Editor.pot",
+                    "sources/localization/fr/Xenko.Core.Presentation.fr.po",
+                    "sources/localization/fr/Xenko.Assets.Presentation.fr.po",
+                    "sources/localization/fr/Xenko.GameStudio.fr.po",
+                    "sources/localization/fr/Xenko.Core.Assets.Editor.fr.po",
+                    "sources/localization/Xenko.GameStudio.pot",
+                    "sources/localization/Xenko.Assets.Presentation.pot",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "sources/localization/*/Xenko.Core.Assets.Editor.*.po",
+                    "file_format": "po",
+                    "new_base": "sources/localization/Xenko.Core.Assets.Editor.pot",
+                },
+                {
+                    "filemask": "sources/localization/*/Xenko.Assets.Presentation.*.po",
+                    "file_format": "po",
+                    "new_base": "sources/localization/Xenko.Assets.Presentation.pot",
+                },
+                {
+                    "filemask": "sources/localization/*/Xenko.Core.Presentation.*.po",
+                    "file_format": "po",
+                    "new_base": "sources/localization/Xenko.Core.Presentation.pot",
+                },
+                {
+                    "filemask": "sources/localization/*/Xenko.GameStudio.*.po",
+                    "file_format": "po",
+                    "new_base": "sources/localization/Xenko.GameStudio.pot",
+                },
+            ],
+        )
+
     def test_mono(self):
         self.maxDiff = None
         discovery = GettextDiscovery(

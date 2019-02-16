@@ -95,7 +95,9 @@ class BaseDiscovery(object):
             return
         path = result["filemask"]
         basename = path.rsplit("/", 1)[1].rsplit(".", 1)[0]
-        new_name = self.new_base_mask.replace("*", basename)
+        if "*" in basename:
+            basename = basename.replace(".*", "").replace("-*", "").replace("*", "")
+        new_name = self.new_base_mask.replace("*", basename).lower()
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
