@@ -4,7 +4,7 @@ Changelog
 1.1
 ---
 
-* Not yet released.
+* Released on 20th March 2019.
 * Improved detection of translation with full language code.
 * Improved detection of language code in directory and file name.
 * Improved detection of language code separated by full stop.
