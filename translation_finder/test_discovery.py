@@ -65,6 +65,7 @@ class DiscoveryTestCase(TestCase):
 
 class GetttetTest(DiscoveryTestCase):
     def test_basic(self):
+        self.maxDiff = None
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -74,6 +75,7 @@ class GetttetTest(DiscoveryTestCase):
                     "test/cs.po",
                     "locales/cs/other.po",
                     "locales/de/other.po",
+                    "locales/en/other.po",
                     "locales/other.pot",
                     "test/messages.pot",
                     "locale/pl_PL/LC_MESSAGES/emote_collector.po",
@@ -94,6 +96,12 @@ class GetttetTest(DiscoveryTestCase):
                     "filemask": "locales/*/other.po",
                     "file_format": "po",
                     "new_base": "locales/other.pot",
+                },
+                {
+                    "filemask": "locales/*/other.po",
+                    "file_format": "po-mono",
+                    "new_base": "locales/other.pot",
+                    "template": "locales/en/other.po",
                 },
                 {
                     "filemask": "locale/*/LC_MESSAGES/emote_collector.po",
@@ -202,11 +210,12 @@ class GetttetTest(DiscoveryTestCase):
         self.assert_discovery(
             discovery.discover(),
             [
+                {"filemask": "locale/*/strings.po", "file_format": "po"},
                 {
                     "filemask": "locale/*/strings.po",
                     "file_format": "po-mono",
                     "template": "locale/en/strings.po",
-                }
+                },
             ],
         )
 
@@ -219,11 +228,12 @@ class GetttetTest(DiscoveryTestCase):
         self.assert_discovery(
             discovery.discover(),
             [
+                {"filemask": "locale/*/strings.po", "file_format": "po"},
                 {
                     "filemask": "locale/*/strings.po",
                     "file_format": "po-mono",
                     "template": "locale/cs_CZ/strings.po",
-                }
+                },
             ],
         )
 

@@ -30,9 +30,20 @@ class GettextDiscovery(BaseDiscovery):
     """Gettext PO files discovery."""
 
     file_format = "po"
-    file_format_mono = "po-mono"
     mask = "*.po"
     new_base_mask = "*.pot"
+
+    def discover(self):
+        for result in super(GettextDiscovery, self).discover():
+            if "template" not in result:
+                yield result
+                continue
+            bi = result.copy()
+            del bi["template"]
+            yield bi
+            mono = result.copy()
+            mono["file_format"] = "po-mono"
+            yield mono
 
 
 class QtDiscovery(BaseDiscovery):

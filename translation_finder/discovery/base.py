@@ -39,7 +39,6 @@ class BaseDiscovery(object):
     """Abstract base class for discovery."""
 
     file_format = "auto"
-    file_format_mono = None
     mask = "*.*"
     new_base_mask = None
 
@@ -121,11 +120,7 @@ class BaseDiscovery(object):
                 result["template"] = template
 
     def fill_in_file_format(self, result):
-        if "file_format" in result:
-            return
-        if "template" in result and self.file_format_mono:
-            result["file_format"] = self.file_format_mono
-        else:
+        if "file_format" not in result:
             result["file_format"] = self.file_format
 
     def adjust_encoding(self, result):

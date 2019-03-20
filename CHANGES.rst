@@ -12,6 +12,7 @@ Changelog
 * Added detection for JSON files.
 * Ignore symlinks during discovery.
 * Improved detection of matching pot files in several corner cases.
+* Improved detection of monolingual Gettext.
 
 1.0
 ---
