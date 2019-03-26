@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Fixed discovery of monolingual files in root.
 
 1.1
 ---

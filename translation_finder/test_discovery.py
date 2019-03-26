@@ -245,6 +245,16 @@ class GetttetTest(DiscoveryTestCase):
             discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
         )
 
+    def test_root(self):
+        discovery = GettextDiscovery(self.get_finder(["en.po", "de.po"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {"filemask": "*.po", "file_format": "po"},
+                {"filemask": "*.po", "file_format": "po-mono", "template": "en.po"},
+            ],
+        )
+
 
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
