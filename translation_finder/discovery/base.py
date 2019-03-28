@@ -28,7 +28,16 @@ from chardet.universaldetector import UniversalDetector
 
 from ..languages import LANGUAGES
 
-BLACKLIST = frozenset(("po", "ts", "tr"))
+BLACKLIST = {
+    # Clash with file formats
+    "po",
+    "ts",
+    "tr",
+    # Common names clashing with language codes
+    "in",
+    "bi",
+    "sa",
+}
 
 TOKEN_SPLIT = re.compile(r"([_-])")
 

@@ -506,6 +506,7 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                     "tr/register-en.json",
                     "tr/register-sk.json",
                     "tr/recordings-en.json",
+                    "sa/profiles/Generic/snmp_metrics/interface_errors_in.json",
                 ]
             )
         )

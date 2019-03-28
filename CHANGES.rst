@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Fixed discovery of monolingual files in root.
+* Improved detection of non language paths.
 
 1.1
 ---
