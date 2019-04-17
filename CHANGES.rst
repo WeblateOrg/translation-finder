@@ -4,7 +4,7 @@ Changelog
 1.2
 ---
 
-* Not yet released.
+* Released on 17th April 2019.
 * Fixed discovery of monolingual files in root.
 * Improved detection of non language paths.
 
