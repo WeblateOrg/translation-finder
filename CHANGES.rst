@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Improved detection of nested language codes with country suffix.
 
 1.2
 ---
