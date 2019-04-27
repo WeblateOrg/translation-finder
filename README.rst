@@ -35,32 +35,45 @@ In can be used from Python:
 .. code-block:: python
 
    >>> from translation_finder import discover
-   >>> discover('.')
-   [
-       {
-           "filemask": "locales/*/messages.po",
-           "file_format": "po",
-           "template": None,
-       },
-       {
-           "filemask": "app/src/res/main/values-*/strings.xml",
-           "file_format": "aresource",
-           "template": "app/src/res/main/values/strings.xml",
-       }
-   ]
+   >>> from pprint import pprint
+   >>> results = discover('translation_finder/test_data/')
+   >>> len(results)
+   9
+   >>> pprint(results[0])
+   {'file_format': 'aresource',
+    'filemask': 'app/src/res/main/values-*/strings.xml',
+    'name': 'android',
+    'template': 'app/src/res/main/values/strings.xml'}
+   >>> pprint(results[5])
+   {'file_format': 'po',
+    'filemask': 'locales/*.po',
+    'new_base': 'locales/messages.pot'}
+
+Additional information about discovery can be obtained from meta attribute:
+
+.. code-block:: python
+
+   >>> pprint(results[0].meta)
+   {'discovery': 'TransifexDiscovery', 'origin': 'Transifex', 'priority': 500}
+   >>> pprint(results[5].meta)
+   {'discovery': 'GettextDiscovery', 'origin': None, 'priority': 1000}
+
 
 Or command line:
 
 .. code-block:: console
 
    $ weblate-discovery translation_finder/test_data/
-   == Match 1 ==
-   file_format    : po
-   filemask       : locales/*.po
-
-   == Match 2 ==
+   == Match 1 (Transifex) ==
    file_format    : aresource
    filemask       : app/src/res/main/values-*/strings.xml
+   name           : android
    template       : app/src/res/main/values/strings.xml
+   ...
+
+   == Match 7 ==
+   file_format    : po
+   filemask       : locales/*.po
+   new_base       : locales/messages.pot
 
 .. _Weblate: https://weblate.org/
