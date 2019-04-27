@@ -8,6 +8,7 @@ Changelog
 * Improved detection of nested language codes with country suffix.
 * Improved processing of Transifex .tx/config files.
 * Include discovery metadata in API results.
+* Improve detection of files in source directory.
 
 1.2
 ---

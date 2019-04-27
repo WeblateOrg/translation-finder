@@ -527,7 +527,6 @@ LANGUAGES = frozenset(
         "som",
         "son",
         "sot",
-        "source",
         "spa",
         "spanish",
         "sq",

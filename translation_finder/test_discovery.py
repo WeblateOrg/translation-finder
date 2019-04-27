@@ -84,6 +84,9 @@ class GetttetTest(DiscoveryTestCase):
                     "help/pt_BR/pt_BR.po",
                     "help/nl/nl.po",
                     "help/de/de.po",
+                    "Source/WebCore/platform/gtk/po/ar.po",
+                    "Source/WebCore/platform/gtk/po/pt.po",
+                    "Source/WebCore/platform/gtk/po/sv.po",
                 ]
             )
         )
@@ -111,6 +114,10 @@ class GetttetTest(DiscoveryTestCase):
                     "file_format": "po",
                 },
                 {"filemask": "help/*/*.po", "file_format": "po"},
+                {
+                    "filemask": "Source/WebCore/platform/gtk/po/*.po",
+                    "file_format": "po",
+                },
             ],
         )
 
@@ -511,6 +518,9 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                     "tr/register-sk.json",
                     "tr/recordings-en.json",
                     "sa/profiles/Generic/snmp_metrics/interface_errors_in.json",
+                    "Source/JavaScriptCore/inspector/protocol/Canvas.json",
+                    "Source/JavaScriptCore/inspector/protocol/Target.json",
+                    "Source/JavaScriptCore/inspector/protocol/Console.json",
                 ]
             )
         )

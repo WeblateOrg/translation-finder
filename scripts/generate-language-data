@@ -76,7 +76,7 @@ with open("scripts/language-data/languages.csv", "r") as csvfile:
 # Read aliases
 with open("scripts/language-data/aliases.csv", "r") as csvfile:
     reader = csv.reader(csvfile, delimiter=";")
-    ALIASES = [alias for alias in reader if alias[0] != "#"]
+    ALIASES = [alias for alias in reader if alias[0] != "#" and alias[0] != "source"]
 
 
 CODES = set([item[0].lower() for item in chain(ALIASES, LANGUAGES)])
