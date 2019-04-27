@@ -50,6 +50,12 @@ class APITest(DiscoveryTestCase):
                     "name": "translation",
                 },
                 {
+                    "file_format": "po",
+                    "filemask": "other/locales/*.po",
+                    "new_base": "other/locales/messages.pot",
+                    "name": "auto",
+                },
+                {
                     "file_format": "aresource",
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "name": "android",
@@ -79,6 +85,12 @@ class APITest(DiscoveryTestCase):
                     "filemask": "java/iso_*.properties",
                     "template": "java/iso.properties",
                     "file_format": "properties",
+                },
+                {
+                    "filemask": "po/*.po",
+                    "file_format": "po",
+                    "new_base": "po/messages.pot",
+                    "name": "implicit",
                 },
             ],
         )

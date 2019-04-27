@@ -8,8 +8,8 @@ source_lang = en
 type = PO
 
 [auto]
-file_filter = locales/<lang>.po
-source_file = locales/messages.pot
+file_filter = other/locales/<lang>.po
+source_file = other/locales/messages.pot
 source_lang = en
 type = AUTO
 
@@ -18,3 +18,8 @@ file_filter = app/src/res/main/values-<lang>/strings.xml
 source_file = app/src/res/main/values/strings.xml
 source_lang = en
 type = ANDROID
+
+[implicit]
+file_filter = po/<lang>.po
+source_file = po/messages.pot
+source_lang = en

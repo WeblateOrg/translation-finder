@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Improved detection of nested language codes with country suffix.
+* Improved processing of Transifex .tx/config files.
 
 1.2
 ---

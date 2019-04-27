@@ -49,23 +49,54 @@ class TransifexDiscovery(BaseDiscovery):
         "YML": "ruby-yaml",
     }
 
+    extension_map = (
+        (".po", "po"),
+        ("strings.xml", "aresource"),
+        (".ini", "joomla"),
+        (".csv", "csv"),
+        (".json", "json-nested"),
+        (".dtd", "dtd"),
+        (".php", "php"),
+        (".xlf", "xliff"),
+        (".xliff", "xliff"),
+        (".ts", "ts"),
+        (".resx", "resx"),
+        (".resw", "resx"),
+        (".xlsx", "xlsx"),
+        (".yml", "yaml"),
+        (".yaml", "yaml"),
+        (".properties", "properties"),
+        (".strings", "strings"),
+    )
+
     def extract_format(self, transifex):
         transifex = transifex.upper()
         try:
             return self.typemap[transifex]
         except KeyError:
-            return "auto"
+            return ""
+
+    def detect_format(self, filemask):
+        filemask = filemask.lower()
+        for end, result in self.extension_map:
+            if filemask.endswith(end):
+                return result
+        return ""
 
     def extract_section(self, config, section):
-        if not config.has_option(section, "file_filter"):
+        if section == "main" or not config.has_option(section, "file_filter"):
             return None
         result = {
             "name": section,
             "filemask": config.get(section, "file_filter").replace("<lang>", "*"),
+            "file_format": "",
         }
 
         if config.has_option(section, "type"):
             result["file_format"] = self.extract_format(config.get(section, "type"))
+
+        if not result["file_format"]:
+            result["file_format"] = self.detect_format(result["filemask"])
 
         if config.has_option(section, "source_file"):
             template = config.get(section, "source_file")

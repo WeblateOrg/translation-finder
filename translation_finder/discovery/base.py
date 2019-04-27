@@ -45,7 +45,7 @@ TOKEN_SPLIT = re.compile(r"([_-])")
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
 
-    file_format = "auto"
+    file_format = ""
     mask = "*.*"
     new_base_mask = None
 

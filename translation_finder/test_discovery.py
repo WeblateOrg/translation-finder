@@ -554,6 +554,18 @@ class TransifexTest(DiscoveryTestCase):
                     "name": "android",
                     "template": "app/src/res/main/values/strings.xml",
                 },
+                {
+                    "filemask": "po/*.po",
+                    "file_format": "po",
+                    "new_base": "po/messages.pot",
+                    "name": "implicit",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "other/locales/*.po",
+                    "new_base": "other/locales/messages.pot",
+                    "name": "auto",
+                },
             ],
         )
 
