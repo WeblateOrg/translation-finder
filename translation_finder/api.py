@@ -65,7 +65,7 @@ def discover(root, files=None, dirs=None, source_language="en"):
     for backend in BACKENDS:
         instance = backend(finder, source_language)
         results.extend(instance.discover())
-    return results
+    return list(sorted(results))
 
 
 def cli(stdout=None, args=None):
@@ -83,7 +83,8 @@ def cli(stdout=None, args=None):
     params = parser.parse_args(args)
 
     for pos, match in enumerate(discover(params.directory)):
-        print("== Match {} ==".format(pos + 1), file=stdout)
+        origin = ' ({})'.format(match.meta['origin']) if match.meta['origin'] else ''
+        print("== Match {}{} ==".format(pos + 1, origin), file=stdout)
         for key, value in sorted(match.items()):
             print("{:15}: {}".format(key, value), file=stdout)
         print("", file=stdout)

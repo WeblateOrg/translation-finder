@@ -42,12 +42,30 @@ BLACKLIST = {
 TOKEN_SPLIT = re.compile(r"([_-])")
 
 
+class DiscoverResult(dict):
+    def __init__(self, *args, **kwargs):
+        super(DiscoverResult, self).__init__(*args, **kwargs)
+        self.meta = {}
+
+    @property
+    def _sort_key(self):
+        return (self.meta['priority'], self['file_format'])
+
+    def __lt__(self, other):
+        return self._sort_key < other._sort_key
+
+    def __gt__(self, other):
+        return self._sort_key > other._sort_key
+
+
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
 
     file_format = ""
     mask = "*.*"
     new_base_mask = None
+    origin = None
+    priority = 1000
 
     def __init__(self, finder, source_language="en"):
         self.finder = finder
@@ -146,6 +164,10 @@ class BaseDiscovery(object):
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
             discovered.add(result["filemask"])
+            result = DiscoverResult(result)
+            result.meta['discovery'] = self.__class__.__name__
+            result.meta['origin'] = self.origin
+            result.meta['priority'] = self.priority
             yield result
 
     def filter_files(self):

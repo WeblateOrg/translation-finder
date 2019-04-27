@@ -28,6 +28,8 @@ from .base import BaseDiscovery
 
 class TransifexDiscovery(BaseDiscovery):
     """Transifex configuration discovery."""
+    origin = "Transifex"
+    priority = 500
 
     typemap = {
         "ANDROID": "aresource",

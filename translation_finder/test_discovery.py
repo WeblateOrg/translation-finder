@@ -539,8 +539,9 @@ class JSONDiscoveryTest(DiscoveryTestCase):
 class TransifexTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = TransifexDiscovery(self.get_real_finder())
+        results = list(discovery.discover())
         self.assert_discovery(
-            discovery.discover(),
+            results,
             [
                 {
                     "filemask": "locales/*.po",
@@ -568,6 +569,8 @@ class TransifexTest(DiscoveryTestCase):
                 },
             ],
         )
+        self.assertEqual(results[0].meta['discovery'], 'TransifexDiscovery')
+        self.assertEqual(results[0].meta['origin'], 'Transifex')
 
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
