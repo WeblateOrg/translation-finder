@@ -83,7 +83,7 @@ def cli(stdout=None, args=None):
     params = parser.parse_args(args)
 
     for pos, match in enumerate(discover(params.directory)):
-        origin = ' ({})'.format(match.meta['origin']) if match.meta['origin'] else ''
+        origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
         print("== Match {}{} ==".format(pos + 1, origin), file=stdout)
         for key, value in sorted(match.items()):
             print("{:15}: {}".format(key, value), file=stdout)

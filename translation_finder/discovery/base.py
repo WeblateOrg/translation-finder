@@ -49,7 +49,7 @@ class DiscoverResult(dict):
 
     @property
     def _sort_key(self):
-        return (self.meta['priority'], self['file_format'])
+        return (self.meta["priority"], self["file_format"])
 
     def __lt__(self, other):
         return self._sort_key < other._sort_key
@@ -165,9 +165,9 @@ class BaseDiscovery(object):
             self.fill_in_file_format(result)
             discovered.add(result["filemask"])
             result = DiscoverResult(result)
-            result.meta['discovery'] = self.__class__.__name__
-            result.meta['origin'] = self.origin
-            result.meta['priority'] = self.priority
+            result.meta["discovery"] = self.__class__.__name__
+            result.meta["origin"] = self.origin
+            result.meta["priority"] = self.priority
             yield result
 
     def filter_files(self):

@@ -569,8 +569,8 @@ class TransifexTest(DiscoveryTestCase):
                 },
             ],
         )
-        self.assertEqual(results[0].meta['discovery'], 'TransifexDiscovery')
-        self.assertEqual(results[0].meta['origin'], 'Transifex')
+        self.assertEqual(results[0].meta["discovery"], "TransifexDiscovery")
+        self.assertEqual(results[0].meta["origin"], "Transifex")
 
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
