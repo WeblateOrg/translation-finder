@@ -4,7 +4,7 @@ Changelog
 1.3
 ---
 
-* Not yet released.
+* Released on 28th April 2019.
 * Improved detection of nested language codes with country suffix.
 * Improved processing of Transifex .tx/config files.
 * Include discovery metadata in API results.
