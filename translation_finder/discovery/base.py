@@ -57,6 +57,11 @@ class DiscoverResult(dict):
     def __gt__(self, other):
         return self._sort_key > other._sort_key
 
+    def copy(self):
+        result = DiscoverResult(super(DiscoverResult, self).copy())
+        result.meta = self.meta.copy()
+        return result
+
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
