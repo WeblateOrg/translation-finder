@@ -65,7 +65,8 @@ def discover(root, files=None, dirs=None, source_language="en"):
     for backend in BACKENDS:
         instance = backend(finder, source_language)
         results.extend(instance.discover())
-    return list(sorted(results))
+    results.sort()
+    return results
 
 
 def cli(stdout=None, args=None):
