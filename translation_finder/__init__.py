@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+"""Translation finder, a module to locate translatable files in
+a filesystem."""
 from __future__ import unicode_literals, absolute_import
 
 from .finder import Finder
