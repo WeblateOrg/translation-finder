@@ -26,6 +26,6 @@ source_lang = en
 
 [invalid]
 file_filter = other/locales/<lang>.xx
-file_filter = other/locales/en.xx
+source_file = other/locales/en.xx
 source_lang = en
 type = AUTO
