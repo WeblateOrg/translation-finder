@@ -26,28 +26,10 @@ import re
 
 from chardet.universaldetector import UniversalDetector
 
+from .result import DiscoverResult
 from ..languages import LANGUAGES
 
 TOKEN_SPLIT = re.compile(r"([_-])")
-
-
-class DiscoverResult(dict):
-    def __init__(self, *args, **kwargs):
-        super(DiscoverResult, self).__init__(*args, **kwargs)
-        self.meta = {}
-
-    @property
-    def _sort_key(self):
-        return (self.meta["priority"], self["file_format"])
-
-    def __lt__(self, other):
-        """This is only method needed for sort."""
-        return self._sort_key < other._sort_key
-
-    def copy(self):
-        result = DiscoverResult(super(DiscoverResult, self).copy())
-        result.meta = self.meta.copy()
-        return result
 
 
 class BaseDiscovery(object):
