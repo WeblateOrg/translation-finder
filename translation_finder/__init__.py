@@ -26,4 +26,4 @@ from .finder import Finder
 from .api import discover
 
 __all__ = ("Finder", "discover")
-__version__ = "1.3"
+__version__ = "1.4"
