@@ -23,3 +23,9 @@ type = ANDROID
 file_filter = po/<lang>.po
 source_file = po/messages.pot
 source_lang = en
+
+[invalid]
+file_filter = other/locales/<lang>.xx
+file_filter = other/locales/en.xx
+source_lang = en
+type = AUTO

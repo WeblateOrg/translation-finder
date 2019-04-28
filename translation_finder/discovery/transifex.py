@@ -100,6 +100,8 @@ class TransifexDiscovery(BaseDiscovery):
 
         if not result["file_format"]:
             result["file_format"] = self.detect_format(result["filemask"])
+        if not result["file_format"]:
+            return None
 
         if config.has_option(section, "source_file"):
             template = config.get(section, "source_file")
