@@ -39,7 +39,7 @@ install:
   - pip install --upgrade pip wheel
   - pip install -U -r requirements-test.txt
 script: 
-  - py.test --cov=translation_finder --doctest-glob='*.rst' translation_finder
+  - py.test --cov=translation_finder translation_finder README.rst
   - ./setup.py sdist
   - twine check dist/*
 after_script:
