@@ -78,6 +78,7 @@ BLACKLIST = {
     "bi",
     "sa",
     "io",
+    "no",
     "source",
 }
 

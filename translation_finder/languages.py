@@ -417,7 +417,6 @@ LANGUAGES = frozenset(
         "nn",
         "nnh",
         "nno",
-        "no",
         "no_nb",
         "nob",
         "nor",
