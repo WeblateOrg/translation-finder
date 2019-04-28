@@ -66,6 +66,12 @@ class APITest(DiscoveryTestCase):
                     "new_base": "locales/messages.pot",
                     "file_format": "po",
                 },
+                {"file_format": "po", "filemask": "monopo/*.po"},
+                {
+                    "file_format": "po-mono",
+                    "filemask": "monopo/*.po",
+                    "template": "monopo/en.po",
+                },
                 {
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "file_format": "aresource",
