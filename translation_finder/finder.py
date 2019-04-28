@@ -95,6 +95,8 @@ class Finder(object):
         for name, path in sorted(self.lc_files.items()):
             if (
                 "test" in path.parts
+                or "t" in path.parts
+                or ".deps" in path.parts
                 or "tests" in path.parts
                 or "test_data" in path.parts
             ):
