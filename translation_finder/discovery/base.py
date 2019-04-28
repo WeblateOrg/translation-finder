@@ -28,17 +28,6 @@ from chardet.universaldetector import UniversalDetector
 
 from ..languages import LANGUAGES
 
-BLACKLIST = {
-    # Clash with file formats
-    "po",
-    "ts",
-    "tr",
-    # Common names clashing with language codes
-    "in",
-    "bi",
-    "sa",
-}
-
 TOKEN_SPLIT = re.compile(r"([_-])")
 
 
@@ -79,11 +68,7 @@ class BaseDiscovery(object):
     @staticmethod
     def is_language_code(code):
         """Analysis whether passed parameter looks like language code."""
-        code = code.lower()
-        if code in BLACKLIST:
-            return False
-
-        code = code.replace("-", "_")
+        code = code.lower().replace("-", "_")
         if code in LANGUAGES:
             return True
 

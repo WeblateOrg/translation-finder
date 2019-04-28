@@ -68,6 +68,19 @@ from __future__ import unicode_literals
 
 WRAPPER = TextWrapper(width=79, initial_indent=" " * 4, subsequent_indent=" " * 4)
 
+BLACKLIST = {
+    # Clash with file formats
+    "po",
+    "ts",
+    "tr",
+    # Common names clashing with language codes
+    "in",
+    "bi",
+    "sa",
+    "io",
+    "source",
+}
+
 # Read languages
 with open("scripts/language-data/languages.csv", "r") as csvfile:
     reader = csv.reader(csvfile, delimiter=";")
@@ -76,7 +89,7 @@ with open("scripts/language-data/languages.csv", "r") as csvfile:
 # Read aliases
 with open("scripts/language-data/aliases.csv", "r") as csvfile:
     reader = csv.reader(csvfile, delimiter=";")
-    ALIASES = [alias for alias in reader if alias[0] != "#" and alias[0] != "source"]
+    ALIASES = [alias for alias in reader if alias[0] != "#"]
 
 
 CODES = set([item[0].lower() for item in chain(ALIASES, LANGUAGES)])
@@ -89,5 +102,7 @@ with open("translation_finder/languages.py", "w") as output:
     output.write("# Known language codes\n")
     output.write("LANGUAGES = frozenset(\n    (\n")
     for word in sorted(CODES):
+        if word in BLACKLIST:
+            continue
         output.write('        "{}",\n'.format(word.replace('"', '\\"')))
     output.write("    )\n)\n")
