@@ -228,7 +228,6 @@ LANGUAGES = frozenset(
         "ger",
         "german",
         "gez",
-        "gl",
         "gla",
         "gle",
         "glg",

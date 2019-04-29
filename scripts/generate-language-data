@@ -74,6 +74,7 @@ BLACKLIST = {
     "ts",
     "tr",
     # Common names clashing with language codes
+    "gl",
     "in",
     "bi",
     "sa",
