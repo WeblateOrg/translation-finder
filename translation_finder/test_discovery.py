@@ -90,6 +90,8 @@ class GetttetTest(DiscoveryTestCase):
                     "Source/WebCore/platform/gtk/po/ar.po",
                     "Source/WebCore/platform/gtk/po/pt.po",
                     "Source/WebCore/platform/gtk/po/sv.po",
+                    "desktop-docs/gpl/sr/sr.po",
+                    "desktop-docs/gpl/sr@latin/sr@latin.po",
                 ]
             )
         )
@@ -117,6 +119,7 @@ class GetttetTest(DiscoveryTestCase):
                     "file_format": "po",
                 },
                 {"filemask": "help/*/*.po", "file_format": "po"},
+                {'file_format': 'po', 'filemask': 'desktop-docs/gpl/*/*.po'},
                 {
                     "filemask": "Source/WebCore/platform/gtk/po/*.po",
                     "file_format": "po",
