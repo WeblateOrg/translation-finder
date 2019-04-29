@@ -119,7 +119,7 @@ class GetttetTest(DiscoveryTestCase):
                     "file_format": "po",
                 },
                 {"filemask": "help/*/*.po", "file_format": "po"},
-                {'file_format': 'po', 'filemask': 'desktop-docs/gpl/*/*.po'},
+                {"file_format": "po", "filemask": "desktop-docs/gpl/*/*.po"},
                 {
                     "filemask": "Source/WebCore/platform/gtk/po/*.po",
                     "file_format": "po",
