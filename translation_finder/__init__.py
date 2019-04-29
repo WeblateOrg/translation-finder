@@ -27,4 +27,4 @@ from .api import discover
 from .discovery.result import DiscoveryResult
 
 __all__ = ("Finder", "discover", "DiscoveryResult")
-__version__ = "1.4"
+__version__ = "1.5"
