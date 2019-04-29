@@ -20,7 +20,7 @@
 #
 from __future__ import absolute_import
 
-from .discovery.result import DiscoverResult
+from .discovery.result import DiscoveryResult
 
 from pickle import loads, dumps
 from unittest import TestCase
@@ -28,26 +28,26 @@ from unittest import TestCase
 
 class ResultTest(TestCase):
     def test_lt(self):
-        r1 = DiscoverResult({"file_format": "a"})
+        r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
-        r2 = DiscoverResult({"file_format": "b"})
+        r2 = DiscoveryResult({"file_format": "b"})
         r2.meta["priority"] = 20
         self.assertLess(r1, r2)
         r2.meta["priority"] = 10
         self.assertLess(r1, r2)
 
     def test_repr(self):
-        r1 = DiscoverResult({"file_format": "a"})
+        r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
         self.assertEqual(
             "{!r}".format(r1), "{'file_format': 'a'} [meta:{'priority': 10}]"
         )
 
     def test_pickle(self):
-        r1 = DiscoverResult({"file_format": "a"})
+        r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
         r2 = loads(dumps(r1))
-        self.assertIsInstance(r2, DiscoverResult)
+        self.assertIsInstance(r2, DiscoveryResult)
         self.assertEqual(r2, r1)
         r2.meta["x"] = "y"
         self.assertNotEqual(r2, r1)

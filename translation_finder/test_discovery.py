@@ -24,7 +24,7 @@ from unittest import TestCase
 import os.path
 
 from .finder import Finder, PurePath
-from .discovery.base import DiscoverResult
+from .discovery.base import DiscoveryResult
 from .discovery.files import (
     GettextDiscovery,
     QtDiscovery,
@@ -63,7 +63,7 @@ class DiscoveryTestCase(TestCase):
 
         self.assertEqual(sorted(first, key=sort_key), sorted(second, key=sort_key))
         for value in first:
-            self.assertIsInstance(value, DiscoverResult)
+            self.assertIsInstance(value, DiscoveryResult)
 
 
 class GetttetTest(DiscoveryTestCase):

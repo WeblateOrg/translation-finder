@@ -24,6 +24,7 @@ from __future__ import unicode_literals, absolute_import
 
 from .finder import Finder
 from .api import discover
+from .discovery.result import DiscoveryResult
 
-__all__ = ("Finder", "discover")
+__all__ = ("Finder", "discover", "DiscoveryResult")
 __version__ = "1.4"

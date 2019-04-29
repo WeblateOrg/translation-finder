@@ -26,7 +26,7 @@ import re
 
 from chardet.universaldetector import UniversalDetector
 
-from .result import DiscoverResult
+from .result import DiscoveryResult
 from ..languages import LANGUAGES
 
 TOKEN_SPLIT = re.compile(r"([_-])")
@@ -134,7 +134,7 @@ class BaseDiscovery(object):
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
             discovered.add(result["filemask"])
-            result = DiscoverResult(result)
+            result = DiscoveryResult(result)
             result.meta["discovery"] = self.__class__.__name__
             result.meta["origin"] = self.origin
             result.meta["priority"] = self.priority
