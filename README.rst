@@ -39,12 +39,12 @@ In can be used from Python:
    >>> results = discover('translation_finder/test_data/')
    >>> len(results)
    11
-   >>> pprint(results[0])
+   >>> pprint(results[0].match)
    {'file_format': 'aresource',
     'filemask': 'app/src/res/main/values-*/strings.xml',
     'name': 'android',
     'template': 'app/src/res/main/values/strings.xml'}
-   >>> pprint(results[5])
+   >>> pprint(results[5].match)
    {'file_format': 'po',
     'filemask': 'locales/*.po',
     'new_base': 'locales/messages.pot'}

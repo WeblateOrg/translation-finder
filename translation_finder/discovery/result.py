@@ -31,9 +31,24 @@ class DiscoverResult(dict):
     def _sort_key(self):
         return (self.meta["priority"], self["file_format"])
 
+    @property
+    def match(self):
+        return dict(self)
+
     def __lt__(self, other):
         """This is only method needed for sort."""
         return self._sort_key < other._sort_key
+
+    def __eq__(self, other):
+        return super(DiscoverResult, self).__eq__(other) and (
+            self.meta == other.meta if isinstance(other, DiscoverResult) else True
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return "{!r} [meta:{!r}]".format(self.match, self.meta)
 
     def copy(self):
         result = DiscoverResult(super(DiscoverResult, self).copy())

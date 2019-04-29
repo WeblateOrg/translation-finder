@@ -18,10 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import
 
 from .discovery.result import DiscoverResult
 
+from pickle import loads, dumps
 from unittest import TestCase
 
 
@@ -34,3 +35,19 @@ class ResultTest(TestCase):
         self.assertLess(r1, r2)
         r2.meta["priority"] = 10
         self.assertLess(r1, r2)
+
+    def test_repr(self):
+        r1 = DiscoverResult({"file_format": "a"})
+        r1.meta["priority"] = 10
+        self.assertEqual(
+            "{!r}".format(r1), "{'file_format': 'a'} [meta:{'priority': 10}]"
+        )
+
+    def test_pickle(self):
+        r1 = DiscoverResult({"file_format": "a"})
+        r1.meta["priority"] = 10
+        r2 = loads(dumps(r1))
+        self.assertIsInstance(r2, DiscoverResult)
+        self.assertEqual(r2, r1)
+        r2.meta["x"] = "y"
+        self.assertNotEqual(r2, r1)
