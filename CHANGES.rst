@@ -4,7 +4,9 @@ Changelog
 1.4
 ---
 
-* Not yet released.
+* Released on 29th April 2019.
+* Improved detection in Perl code.
+* Extended skip list for language codes.
 
 1.3
 ---
