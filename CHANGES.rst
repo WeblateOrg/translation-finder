@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Vairous performance improvements.
 
 1.4
 ---
