@@ -28,8 +28,19 @@ try:
 except ImportError:
     from pathlib2 import Path, PurePath
 
-EXCLUDES = frozenset((".git", ".hg", ".eggs", "*.swp", "__pycache__"))
-SKIP = frozenset(("test", "t", ".deps", "tests", "test_data"))
+EXCLUDES = {
+    ".git",
+    ".hg",
+    ".eggs",
+    "*.swp",
+    "__pycache__",
+    "test",
+    "t",
+    ".deps",
+    "tests",
+    "test_data",
+    "testing",
+}
 
 
 class Finder(object):
@@ -94,8 +105,6 @@ class Finder(object):
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
         for name, path in sorted(self.lc_files.items()):
-            if SKIP & set(path.parts):
-                continue
             try:
                 directory, filename = name.rsplit("/", 1)
             except ValueError:
