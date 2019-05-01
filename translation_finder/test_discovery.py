@@ -50,8 +50,8 @@ class DiscoveryTestCase(TestCase):
             dirs = []
         return Finder(
             PurePath("."),
-            [PurePath(path) for path in paths],
-            [PurePath(path) for path in dirs],
+            [(PurePath(path), PurePath(path), path) for path in paths],
+            [(PurePath(path), PurePath(path), path) for path in dirs],
         )
 
     def get_real_finder(self):

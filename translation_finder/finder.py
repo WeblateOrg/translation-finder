@@ -53,50 +53,64 @@ class Finder(object):
         if files is None or dirs is None:
             files = []
             dirs = []
-            self.list_files(root, files, dirs)
-        relatives = [(path, path.relative_to(root)) for path in files]
-        relative_dirs = [(path, path.relative_to(root)) for path in dirs]
+            self.list_files(root, files, dirs, root)
         # For the has_file/has_dir
-        self.files = {path.as_posix(): path for absolute, path in relatives}
-        self.dirs = {path.as_posix(): path for absolute, path in relative_dirs}
+        self.filenames = {relative_path for absolute, relative, relative_path in files}
+        self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
         # Needed for filter_files
-        self.lc_files = {path.lower(): obj for path, obj in self.files.items()}
+        self.lc_files = [
+            (relative_path.lower(), relative)
+            for absolute, relative, relative_path in files
+        ]
+        self.lc_files.sort()
         # Needed for open
-        self.absolutes = {path.as_posix(): absolute for absolute, path in relatives}
+        self.absolutes = {
+            relative_path: absolute for absolute, relative, relative_path in files
+        }
+        # Needed for mask_matches
+        self.files = [
+            (relative_path, relative) for absolute, relative, relative_path in files
+        ]
+        self.files.sort()
 
     @classmethod
-    def list_files(cls, root, files, dirs):
+    def list_files(cls, root, files, dirs, toproot):
         """Recursively list files in a path.
 
         It skips excluded files."""
+
+        def process_path(path):
+            relative = path.relative_to(toproot)
+            return (path, relative, relative.as_posix())
+
         for path in root.iterdir():
             if any((path.match(exclude) for exclude in EXCLUDES)):
                 continue
             if path.is_symlink():
                 continue
             if path.is_dir():
-                dirs.append(path)
-                cls.list_files(path, files, dirs)
+                dirs.append(process_path(path))
+                cls.list_files(path, files, dirs, toproot)
             else:
-                files.append(path)
+                files.append(process_path(path))
 
     def has_file(self, name):
         """Check whether file exists."""
-        return name in self.files
+        return name in self.filenames
 
     def has_dir(self, name):
         """Check whether dir exists."""
-        return name in self.dirs
+        return name in self.dirnames
 
     def mask_matches(self, mask):
         """Return all mask matches."""
-        for name, path in sorted(self.files.items()):
+        for name, path in self.files:
             if fnmatch(name, mask):
                 yield path
 
     def filter_files(self, glob, dirglob=None):
         """Filter lowercase file names against glob."""
-        for name, path in sorted(self.lc_files.items()):
+        for name, path in self.lc_files:
             try:
                 directory, filename = name.rsplit("/", 1)
             except ValueError:
