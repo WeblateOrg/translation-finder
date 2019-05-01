@@ -46,14 +46,16 @@ EXCLUDES = {
 class Finder(object):
     """Finder for files which might be considered translations."""
 
-    def __init__(self, root, files=None, dirs=None):
+    def __init__(self, root, mock=None):
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
-        if files is None or dirs is None:
+        if mock is None:
             files = []
             dirs = []
             self.list_files(root, files, dirs, root)
+        else:
+            files, dirs = mock
         # For the has_file/has_dir
         self.filenames = {relative_path for absolute, relative, relative_path in files}
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}

@@ -36,8 +36,7 @@ class APITest(DiscoveryTestCase):
         self.assert_discovery(
             discover(
                 PurePath("."),
-                [(PurePath(path), PurePath(path), path) for path in paths],
-                [],
+                mock=([(PurePath(path), PurePath(path), path) for path in paths], []),
             ),
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
