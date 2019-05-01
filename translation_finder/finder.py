@@ -50,18 +50,22 @@ class Finder(object):
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
-        if files is None:
-            files = self.list_files(root)
-        if dirs is None:
-            dirs = self.list_dirs(root)
+        if files is None or dirs is None:
+            files = []
+            dirs = []
+            self.list_files(root, files, dirs)
         relatives = [(path, path.relative_to(root)) for path in files]
         relative_dirs = [(path, path.relative_to(root)) for path in dirs]
+        # For the has_file/has_dir
         self.files = {path.as_posix(): path for absolute, path in relatives}
         self.dirs = {path.as_posix(): path for absolute, path in relative_dirs}
+        # Needed for filter_files
         self.lc_files = {path.lower(): obj for path, obj in self.files.items()}
+        # Needed for open
         self.absolutes = {path.as_posix(): absolute for absolute, path in relatives}
 
-    def list_files(self, root):
+    @classmethod
+    def list_files(cls, root, files, dirs):
         """Recursively list files in a path.
 
         It skips excluded files."""
@@ -71,22 +75,10 @@ class Finder(object):
             if path.is_symlink():
                 continue
             if path.is_dir():
-                for ret in self.list_files(path):
-                    yield ret
+                dirs.append(path)
+                cls.list_files(path, files, dirs)
             else:
-                yield path
-
-    def list_dirs(self, root):
-        """Recursively list dirs in a path.
-
-        It skips excluded dirs."""
-        for path in root.iterdir():
-            if any((path.match(exclude) for exclude in EXCLUDES)):
-                continue
-            if path.is_dir():
-                yield path
-                for ret in self.list_dirs(path):
-                    yield ret
+                files.append(path)
 
     def has_file(self, name):
         """Check whether file exists."""
