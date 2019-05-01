@@ -53,7 +53,7 @@ class Finder(object):
         if mock is None:
             files = []
             dirs = []
-            self.list_files(root, files, dirs, root)
+            self.list_files(root, files, dirs)
         else:
             files, dirs = mock
         # For the has_file/has_dir
@@ -75,15 +75,14 @@ class Finder(object):
         ]
         self.files.sort()
 
-    @classmethod
-    def list_files(cls, root, files, dirs, toproot):
-        """Recursively list files in a path.
+    def process_path(self, path):
+        relative = path.relative_to(self.root)
+        return (path, relative, relative.as_posix())
+
+    def list_files(self, root, files, dirs):
+        """Recursively list files and dirs in a path.
 
         It skips excluded files."""
-
-        def process_path(path):
-            relative = path.relative_to(toproot)
-            return (path, relative, relative.as_posix())
 
         for path in root.iterdir():
             if any((path.match(exclude) for exclude in EXCLUDES)):
@@ -91,10 +90,10 @@ class Finder(object):
             if path.is_symlink():
                 continue
             if path.is_dir():
-                dirs.append(process_path(path))
-                cls.list_files(path, files, dirs, toproot)
+                dirs.append(self.process_path(path))
+                self.list_files(path, files, dirs)
             else:
-                files.append(process_path(path))
+                files.append(self.process_path(path))
 
     def has_file(self, name):
         """Check whether file exists."""
