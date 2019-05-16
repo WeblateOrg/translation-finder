@@ -21,9 +21,11 @@
 #
 """Setup file for easy installation."""
 from __future__ import unicode_literals
+
 import os
 import sys
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 VERSION = __import__("translation_finder").__version__
 

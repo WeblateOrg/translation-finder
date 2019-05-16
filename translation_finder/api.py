@@ -19,27 +19,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Highlevel API for translation-finder."""
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
-from argparse import ArgumentParser
 import sys
+from argparse import ArgumentParser
 
-from .finder import Finder
 from .discovery.files import (
-    GettextDiscovery,
-    QtDiscovery,
     AndroidDiscovery,
-    OSXDiscovery,
+    AppStoreDiscovery,
+    GettextDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
+    JSONDiscovery,
+    OSXDiscovery,
+    QtDiscovery,
     RESXDiscovery,
+    WebExtensionDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
-    WebExtensionDiscovery,
-    AppStoreDiscovery,
-    JSONDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
+from .finder import Finder
 
 BACKENDS = [
     TransifexDiscovery,

@@ -20,10 +20,10 @@
 #
 from __future__ import absolute_import
 
-from .discovery.result import DiscoveryResult
-
-from pickle import loads, dumps
+from pickle import dumps, loads
 from unittest import TestCase
+
+from .discovery.result import DiscoveryResult
 
 
 class ResultTest(TestCase):

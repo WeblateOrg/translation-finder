@@ -20,11 +20,11 @@
 #
 """Translation finder, a module to locate translatable files in
 a filesystem."""
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from .finder import Finder
 from .api import discover
 from .discovery.result import DiscoveryResult
+from .finder import Finder
 
 __all__ = ("Finder", "discover", "DiscoveryResult")
 __version__ = "1.5"

@@ -19,15 +19,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Base discovery code."""
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from itertools import chain
 import re
+from itertools import chain
 
 from chardet.universaldetector import UniversalDetector
 
-from .result import DiscoveryResult
 from ..languages import LANGUAGES
+from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_-])")
 

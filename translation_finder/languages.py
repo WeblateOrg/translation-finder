@@ -30,7 +30,6 @@ https://github.com/WeblateOrg/language-data
 
 from __future__ import unicode_literals
 
-
 # Known language codes
 LANGUAGES = frozenset(
     (

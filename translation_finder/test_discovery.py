@@ -18,28 +18,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from unittest import TestCase
 import os.path
+from unittest import TestCase
 
-from .finder import Finder, PurePath
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
-    GettextDiscovery,
-    QtDiscovery,
     AndroidDiscovery,
-    OSXDiscovery,
+    AppStoreDiscovery,
+    GettextDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
+    JSONDiscovery,
+    OSXDiscovery,
+    QtDiscovery,
     RESXDiscovery,
+    WebExtensionDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
-    WebExtensionDiscovery,
-    AppStoreDiscovery,
-    JSONDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
+from .finder import Finder, PurePath
 
 TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 

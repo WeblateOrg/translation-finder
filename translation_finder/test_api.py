@@ -18,14 +18,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
-from io import StringIO
 import os.path
+from io import StringIO
 
+from .api import cli, discover
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
-from .api import discover, cli
 
 TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
