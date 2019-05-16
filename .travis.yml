@@ -42,6 +42,7 @@ script:
   - py.test --cov=translation_finder translation_finder README.rst
   - ./setup.py sdist
   - twine check dist/*
+  - flake8
 after_script:
   - coverage xml
   - codecov
