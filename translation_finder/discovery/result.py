@@ -37,7 +37,7 @@ class DiscoveryResult(dict):
 
     def __lt__(self, other):
         """This is only method needed for sort."""
-        return self._sort_key < other._sort_key
+        return self._sort_key < other._sort_key  # noqa:SF01,SLF001
 
     def __eq__(self, other):
         return super(DiscoveryResult, self).__eq__(other) and (

@@ -57,7 +57,7 @@ class BaseDiscovery(object):
             if lang in LANGUAGES and len(country) == 2 and country.isalpha():
                 return True
 
-        return
+        return False
 
     def get_wildcard(self, part):
         """Generate language wilcard for a path part.

@@ -44,7 +44,10 @@ setup(
     version=VERSION,
     author="Michal Čihař",
     author_email="michal@cihar.com",
-    description="A translation file finder for Weblate, translation tool with tight version control integration",
+    description="""
+A translation file finder for Weblate, the localization tool with
+tight version control integration.
+""",
     license="GPLv3+",
     keywords="i18n l10n gettext translate",
     url="https://weblate.org/",
