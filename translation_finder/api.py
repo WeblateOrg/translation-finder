@@ -27,6 +27,7 @@ from argparse import ArgumentParser
 from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
+    FluentDiscovery,
     GettextDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
@@ -43,6 +44,7 @@ from .finder import Finder
 
 BACKENDS = [
     TransifexDiscovery,
+    FluentDiscovery,
     GettextDiscovery,
     QtDiscovery,
     AndroidDiscovery,

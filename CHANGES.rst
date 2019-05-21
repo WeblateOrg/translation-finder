@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Various performance improvements.
+* Added detection of Fluent translations.
 
 1.4
 ---

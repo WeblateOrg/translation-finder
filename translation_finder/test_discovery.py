@@ -27,6 +27,7 @@ from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
+    FluentDiscovery,
     GettextDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
@@ -615,5 +616,27 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
                     "file_format": "appstore",
                     "template": "private/metadata/en-AU",
                 },
+            ],
+        )
+
+
+class FluentDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = FluentDiscovery(
+            self.get_finder(
+                [
+                    "browser/locales/en-US/browser/component/file.ftl",
+                    "browser/locales/cs-CS/browser/component/file.ftl",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "browser/locales/*/browser/component/file.ftl",
+                    "file_format": "fluent",
+                    "template": "browser/locales/en-US/browser/component/file.ftl",
+                }
             ],
         )

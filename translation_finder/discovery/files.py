@@ -201,3 +201,16 @@ class JSONDiscovery(BaseDiscovery):
 
     file_format = "json"
     mask = "*.json"
+
+
+class FluentDiscovery(BaseDiscovery):
+    """Fluent files discovery."""
+
+    file_format = "fluent"
+    mask = "*.ftl"
+
+    def get_language_aliases(self, language):
+        """Language code aliases"""
+        if language == "en":
+            return ["en", "en-US"]
+        return [language]
