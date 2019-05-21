@@ -26,11 +26,11 @@ from itertools import chain
 
 from chardet.universaldetector import UniversalDetector
 
-from ..languages import LANGUAGES
 from ..countries import COUNTRIES
+from ..languages import LANGUAGES
 from .result import DiscoveryResult
 
-TOKEN_SPLIT = re.compile(r"([_-])")
+TOKEN_SPLIT = re.compile(r"([_.-])")
 
 LOCALES = {"latn", "cyrl", "hant", "hans"}
 
@@ -86,10 +86,16 @@ class BaseDiscovery(object):
             # Handle prefix-<language>.extension or prefix_<language>.extension
             tokens = TOKEN_SPLIT.split(base)
             for pos, token in enumerate(tokens):
-                if token in ("-", "_"):
+                if token in ("-", "_", "."):
                     continue
                 if self.is_language_code(token):
-                    return "{}*.{}".format("".join(tokens[:pos]), ext)
+                    end = pos + 1
+                    if pos + 3 <= len(tokens):
+                        if self.is_language_code("".join(tokens[pos : pos + 3])):
+                            end = pos + 3
+                    return "{}*{}.{}".format(
+                        "".join(tokens[:pos]), "".join(tokens[end:]), ext
+                    )
         return None
 
     def fill_in_new_base(self, result):

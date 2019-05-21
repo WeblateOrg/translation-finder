@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Various performance improvements.
 * Added detection of Fluent translations.
+* Improved detection of language code within filename.
 
 1.4
 ---
