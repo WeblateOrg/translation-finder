@@ -189,13 +189,11 @@ class AppStoreDiscovery(BaseDiscovery):
         """Check whether finder has a storage."""
         return self.finder.has_dir(name)
 
-    def fill_in_template(self, result, source_language=None):
-        super(AppStoreDiscovery, self).fill_in_template(result, source_language)
-        if "template" not in result and source_language is None:
-            for lang in ("en-US", "en-GB", "en-AU"):
-                super(AppStoreDiscovery, self).fill_in_template(result, lang)
-                if "template" in result:
-                    break
+    def get_language_aliases(self, language):
+        """Language code aliases"""
+        if language == "en":
+            return ["en", "en-US", "en-GB", "en-AU"]
+        return [language]
 
 
 class JSONDiscovery(BaseDiscovery):

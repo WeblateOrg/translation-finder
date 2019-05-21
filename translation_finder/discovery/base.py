@@ -106,13 +106,19 @@ class BaseDiscovery(object):
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
+    def get_language_aliases(self, language):
+        """Language code aliases"""
+        return [language]
+
     def fill_in_template(self, result, source_language=None):
         if "template" not in result:
             if source_language is None:
                 source_language = self.source_language
-            template = result["filemask"].replace("*", source_language)
-            if self.has_storage(template):
-                result["template"] = template
+            for language in self.get_language_aliases(source_language):
+                template = result["filemask"].replace("*", language)
+                if self.has_storage(template):
+                    result["template"] = template
+                    break
 
     def fill_in_file_format(self, result):
         if "file_format" not in result:
