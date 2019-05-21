@@ -24,8 +24,9 @@
 # see https://github.com/WeblateOrg/language-data
 
 import csv
-from itertools import chain
+import json
 import re
+from itertools import chain
 from textwrap import TextWrapper
 
 SPLIT_RE = re.compile(
@@ -64,6 +65,7 @@ https://github.com/WeblateOrg/language-data
 """
 
 from __future__ import unicode_literals
+
 '''
 
 WRAPPER = TextWrapper(width=79, initial_indent=" " * 4, subsequent_indent=" " * 4)
@@ -94,17 +96,33 @@ with open("scripts/language-data/aliases.csv", "r") as csvfile:
     ALIASES = [alias for alias in reader if alias[0] != "#"]
 
 
-CODES = set([item[0].lower() for item in chain(ALIASES, LANGUAGES)])
+CODES = {item[0].lower() for item in chain(ALIASES, LANGUAGES)}
 
 
 # Write same check blacklist
 with open("translation_finder/languages.py", "w") as output:
     output.write(HEADER)
-    output.write("\n\n")
     output.write("# Known language codes\n")
-    output.write("LANGUAGES = frozenset(\n    (\n")
+    output.write("LANGUAGES = {\n")
     for word in sorted(CODES):
         if word in BLACKLIST:
             continue
-        output.write('        "{}",\n'.format(word.replace('"', '\\"')))
-    output.write("    )\n)\n")
+        output.write('    "{}",\n'.format(word.replace('"', '\\"')))
+    output.write("}\n")
+
+# Read country codes
+COUNTRIES = set()
+with open("/usr/share/iso-codes/json/iso_3166-1.json", "r") as handle:
+    for item in json.load(handle)["3166-1"]:
+        COUNTRIES.add(item["alpha_2"].lower())
+        COUNTRIES.add(item["alpha_3"].lower())
+
+
+# Write same check blacklist
+with open("translation_finder/countries.py", "w") as output:
+    output.write(HEADER)
+    output.write("# Known country codes\n")
+    output.write("COUNTRIES = {\n")
+    for word in sorted(COUNTRIES):
+        output.write('    "{}",\n'.format(word.replace('"', '\\"')))
+    output.write("}\n")
