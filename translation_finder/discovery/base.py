@@ -27,9 +27,12 @@ from itertools import chain
 from chardet.universaldetector import UniversalDetector
 
 from ..languages import LANGUAGES
+from ..countries import COUNTRIES
 from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_-])")
+
+LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 
 class BaseDiscovery(object):
@@ -46,7 +49,12 @@ class BaseDiscovery(object):
         self.source_language = source_language
 
     @staticmethod
-    def is_language_code(code):
+    def is_country_code(code):
+        code = code.lower()
+        return code in COUNTRIES or code in LOCALES
+
+    @classmethod
+    def is_language_code(cls, code):
         """Analysis whether passed parameter looks like language code."""
         code = code.lower().replace("-", "_")
         if code in LANGUAGES:
@@ -54,7 +62,7 @@ class BaseDiscovery(object):
 
         if "_" in code:
             lang, country = code.split("_", 1)
-            if lang in LANGUAGES and len(country) == 2 and country.isalpha():
+            if lang in LANGUAGES and cls.is_country_code(country):
                 return True
 
         return False
