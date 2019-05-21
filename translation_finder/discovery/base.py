@@ -177,11 +177,11 @@ class EncodingDiscovery(BaseDiscovery):
 
     def adjust_encoding(self, result):
         detector = UniversalDetector()
+        matches = [self.finder.mask_matches(result["filemask"])]
+        if "template" in result:
+            matches.append(self.finder.mask_matches(result["template"]))
 
-        for path in chain(
-            self.finder.mask_matches(result["filemask"]),
-            self.finder.mask_matches(result["template"]),
-        ):
+        for path in chain(*matches):
             if not hasattr(path, "open"):
                 continue
             with self.finder.open(path, "rb") as handle:
