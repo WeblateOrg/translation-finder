@@ -138,22 +138,23 @@ class RESXDiscovery(BaseDiscovery):
     file_format = "resx"
     mask = "resources.res[xw]"
 
+    def possible_templates(self, language, mask):
+        yield mask.replace(".*", "")
+        for result in super(RESXDiscovery, self).possible_templates(language, mask):
+            yield result
+
     def get_masks(self):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
         for path in self.finder.filter_files("*.*.res[xw]"):
             mask = list(path.parts)
-            template = mask[:]
             base, code, ext = mask[-1].rsplit(".", 2)
             if not self.is_language_code(code):
                 continue
             mask[-1] = "{0}.*.{1}".format(base, ext)
-            template[-1] = "{0}.{1}".format(base, ext)
-
-            yield {"filemask": "/".join(mask), "template": "/".join(template)}
+            yield {"filemask": "/".join(mask)}
         for match in super(RESXDiscovery, self).get_masks():
-            match["template"] = match["filemask"].replace("*", self.source_language)
             yield match
 
 

@@ -451,6 +451,10 @@ class RESXTest(DiscoveryTestCase):
                     "file_format": "resx",
                     "template": "App/Localization/en/Resources.resw",
                 },
+                {
+                    "file_format": "resx",
+                    "filemask": "App/Localization/SettingsStrings.*.resx",
+                },
             ],
         )
 
