@@ -123,23 +123,12 @@ class JavaDiscovery(EncodingDiscovery):
 
     file_format = "properties"
     encoding_map = {"utf-8": "properties-utf8", "utf-16": "properties-utf16"}
+    mask = "*_*.properties"
 
-    def get_masks(self):
-        """Return all file masks found in the directory.
-
-        It is expected to contain duplicates."""
-        for path in self.finder.filter_files("*_*.properties"):
-            mask = list(path.parts)
-            template = mask[:]
-            base, code = mask[-1].rsplit(".")[0].split("_", 1)
-            if not self.is_language_code(code):
-                base, code = mask[-1].rsplit(".")[0].rsplit("_", 1)
-                if not self.is_language_code(code):
-                    continue
-            mask[-1] = "{0}_*.properties".format(base)
-            template[-1] = "{0}.properties".format(base)
-
-            yield {"filemask": "/".join(mask), "template": "/".join(template)}
+    def possible_templates(self, language, mask):
+        yield mask.replace("_*", "")
+        for result in super(JavaDiscovery, self).possible_templates(language, mask):
+            yield result
 
 
 class RESXDiscovery(BaseDiscovery):
