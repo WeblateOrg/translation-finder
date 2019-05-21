@@ -124,12 +124,18 @@ class BaseDiscovery(object):
         """Language code aliases"""
         return [language]
 
+    def possible_templates(self, language, mask):
+        """Language code aliases"""
+        for language in self.get_language_aliases(language):
+            yield mask.replace("*", language)
+
     def fill_in_template(self, result, source_language=None):
         if "template" not in result:
             if source_language is None:
                 source_language = self.source_language
-            for language in self.get_language_aliases(source_language):
-                template = result["filemask"].replace("*", language)
+            for template in self.possible_templates(
+                source_language, result["filemask"]
+            ):
                 if self.has_storage(template):
                     result["template"] = template
                     break
