@@ -375,6 +375,8 @@ class JavaTest(DiscoveryTestCase):
                     "bundle/UIMessages_zh.properties",
                     "bundle/FixedMessages.properties",
                     "bundle/Other_Messages.properties",
+                    "length_1.properties",
+                    "length_1_de.properties",
                 ]
             )
         )
@@ -385,7 +387,12 @@ class JavaTest(DiscoveryTestCase):
                     "filemask": "bundle/UIMessages_*.properties",
                     "file_format": "properties",
                     "template": "bundle/UIMessages.properties",
-                }
+                },
+                {
+                    "filemask": "length_1_*.properties",
+                    "file_format": "properties",
+                    "template": "length_1.properties",
+                },
             ],
         )
 
@@ -483,6 +490,8 @@ class XliffTest(DiscoveryTestCase):
                     "locales/en.xlf",
                     "otherlocales/cs/main.xlf",
                     "otherlocales/cs/help.xlf",
+                    "length_1.properties.xlf",
+                    "length_1_de.properties.xlf",
                 ]
             )
         )
@@ -496,6 +505,7 @@ class XliffTest(DiscoveryTestCase):
                 },
                 {"filemask": "otherlocales/*/main.xlf", "file_format": "xliff"},
                 {"filemask": "otherlocales/*/help.xlf", "file_format": "xliff"},
+                {"filemask": "length_1_*.properties.xlf", "file_format": "xliff"},
             ],
         )
 
