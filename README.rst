@@ -17,7 +17,9 @@ control integration.
     :alt: PyPI package
 
 This library is used by `Weblate`_ to discover translation files in a cloned
-repository.
+repository. It can operate on both file listings and actual filesystem.
+Filesystem access is needed for more accurate detection in some cases
+(detecting encoding or actual syntax of similar files).
 
 Usage
 -----
