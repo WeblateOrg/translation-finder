@@ -38,7 +38,7 @@ In can be used from Python:
    >>> from pprint import pprint
    >>> results = discover('translation_finder/test_data/')
    >>> len(results)
-   11
+   13
    >>> pprint(results[0].match)
    {'file_format': 'aresource',
     'filemask': 'app/src/res/main/values-*/strings.xml',
