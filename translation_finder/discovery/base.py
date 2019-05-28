@@ -144,7 +144,7 @@ class BaseDiscovery(object):
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
-    def adjust_encoding(self, result):
+    def adjust_format(self, result):
         return
 
     def discover(self):
@@ -155,8 +155,8 @@ class BaseDiscovery(object):
                 continue
             if "template" in result and not self.has_storage(result["template"]):
                 continue
-            self.adjust_encoding(result)
             self.fill_in_template(result)
+            self.adjust_format(result)
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
             discovered.add(result["filemask"])
@@ -195,7 +195,7 @@ class BaseDiscovery(object):
 class EncodingDiscovery(BaseDiscovery):
     encoding_map = {}
 
-    def adjust_encoding(self, result):
+    def adjust_format(self, result):
         detector = UniversalDetector()
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:
