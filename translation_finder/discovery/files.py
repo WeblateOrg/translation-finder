@@ -23,9 +23,9 @@ from __future__ import absolute_import, unicode_literals
 
 from itertools import chain
 
-from .base import BaseDiscovery, EncodingDiscovery
-
 import yaml
+
+from .base import BaseDiscovery, EncodingDiscovery
 
 
 class GettextDiscovery(BaseDiscovery):
@@ -62,12 +62,11 @@ class XliffDiscovery(BaseDiscovery):
     file_format = "xliff"
     mask = "*.xliff"
 
-
-class XliffDiscovery2(BaseDiscovery):
-    """XLIFF files discovery."""
-
-    file_format = "xliff"
-    mask = "*.xlf"
+    def filter_files(self):
+        """Filters possible file matches."""
+        return chain(
+            self.finder.filter_files(self.mask), self.finder.filter_files("*.xlf")
+        )
 
 
 class JoomlaDiscovery(BaseDiscovery):

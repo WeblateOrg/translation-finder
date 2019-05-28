@@ -37,7 +37,6 @@ from .discovery.files import (
     RESXDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
-    XliffDiscovery2,
     YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
@@ -54,7 +53,6 @@ BACKENDS = [
     JoomlaDiscovery,
     RESXDiscovery,
     XliffDiscovery,
-    XliffDiscovery2,
     WebExtensionDiscovery,
     AppStoreDiscovery,
     JSONDiscovery,

@@ -37,7 +37,6 @@ from .discovery.files import (
     RESXDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
-    XliffDiscovery2,
     YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
@@ -484,7 +483,7 @@ class XliffTest(DiscoveryTestCase):
         )
 
     def test_short(self):
-        discovery = XliffDiscovery2(
+        discovery = XliffDiscovery(
             self.get_finder(
                 [
                     "locales/cs.xlf",
