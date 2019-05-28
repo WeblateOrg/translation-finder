@@ -8,6 +8,7 @@ Changelog
 * Various performance improvements.
 * Added detection of Fluent translations.
 * Improved detection of language code within filename.
+* Added detection of YAML translations.
 
 1.4
 ---

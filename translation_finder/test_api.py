@@ -101,6 +101,16 @@ class APITest(DiscoveryTestCase):
                     "new_base": "po/messages.pot",
                     "name": "implicit",
                 },
+                {
+                    "filemask": "yaml/*/*.yml",
+                    "file_format": "yaml",
+                    "template": "yaml/en/en.yml",
+                },
+                {
+                    "filemask": "yaml/*.yml",
+                    "file_format": "ruby-yaml",
+                    "template": "yaml/en.yml",
+                },
             ],
         )
 

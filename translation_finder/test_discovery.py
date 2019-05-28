@@ -38,6 +38,7 @@ from .discovery.files import (
     WebExtensionDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
+    YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
 from .finder import Finder, PurePath
@@ -651,6 +652,25 @@ class FluentDiscoveryTest(DiscoveryTestCase):
                     "filemask": "browser/locales/*/browser/component/file.ftl",
                     "file_format": "fluent",
                     "template": "browser/locales/en-US/browser/component/file.ftl",
+                }
+            ],
+        )
+
+
+class YAMLDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = YAMLDiscovery(
+            self.get_finder(
+                ["translations/en/messages.en.yml", "translations/de/messages.de.yml"]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "translations/*/messages.*.yml",
+                    "file_format": "yaml",
+                    "template": "translations/en/messages.en.yml",
                 }
             ],
         )

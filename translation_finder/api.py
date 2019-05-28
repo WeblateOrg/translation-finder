@@ -38,6 +38,7 @@ from .discovery.files import (
     WebExtensionDiscovery,
     XliffDiscovery,
     XliffDiscovery2,
+    YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
 from .finder import Finder
@@ -57,6 +58,7 @@ BACKENDS = [
     WebExtensionDiscovery,
     AppStoreDiscovery,
     JSONDiscovery,
+    YAMLDiscovery,
 ]
 
 

@@ -25,6 +25,8 @@ from itertools import chain
 
 from .base import BaseDiscovery, EncodingDiscovery
 
+import yaml
+
 
 class GettextDiscovery(BaseDiscovery):
     """Gettext PO files discovery."""
@@ -204,3 +206,32 @@ class FluentDiscovery(BaseDiscovery):
         if language == "en":
             return ["en", "en-US"]
         return [language]
+
+
+class YAMLDiscovery(BaseDiscovery):
+    """YAML files discovery."""
+
+    file_format = "yaml"
+    mask = "*.yml"
+
+    def filter_files(self):
+        """Filters possible file matches."""
+        return chain(
+            self.finder.filter_files(self.mask), self.finder.filter_files("*.yaml")
+        )
+
+    def adjust_format(self, result):
+        if "template" not in result:
+            return
+
+        path = list(self.finder.mask_matches(result["template"]))[0]
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "rb") as handle:
+            data = yaml.load(handle)
+            if isinstance(data, dict) and len(data) == 1:
+                key = list(data.keys())[0]
+                if result["filemask"].replace("*", key) == result["template"]:
+                    result["file_format"] = "ruby-yaml"
