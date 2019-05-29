@@ -4,7 +4,7 @@ Changelog
 1.5
 ---
 
-* Not yet released.
+* Released on 29th May 2019.
 * Various performance improvements.
 * Added detection of Fluent translations.
 * Improved detection of language code within filename.
