@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Improved discovery of pot files.
 
 1.5
 ---

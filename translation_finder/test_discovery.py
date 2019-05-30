@@ -93,6 +93,8 @@ class GetttetTest(DiscoveryTestCase):
                     "Source/WebCore/platform/gtk/po/sv.po",
                     "desktop-docs/gpl/sr/sr.po",
                     "desktop-docs/gpl/sr@latin/sr@latin.po",
+                    "po/jp/rawhide/pages/welcome/Welcome.po",
+                    "pot/rawhide/pages/welcome/Welcome.pot",
                 ]
             )
         )
@@ -124,6 +126,11 @@ class GetttetTest(DiscoveryTestCase):
                 {
                     "filemask": "Source/WebCore/platform/gtk/po/*.po",
                     "file_format": "po",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "po/*/rawhide/pages/welcome/Welcome.po",
+                    "new_base": "pot/rawhide/pages/welcome/Welcome.pot",
                 },
             ],
         )
