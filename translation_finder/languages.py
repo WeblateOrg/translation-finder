@@ -397,7 +397,6 @@ LANGUAGES = {
     "nap",
     "naq",
     "nau",
-    "nav",
     "nb",
     "nb_no",
     "nbl",
