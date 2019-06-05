@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Improved discovery of pot files.
+* Added support for subtitle files supported in Weblate 3.7.
 
 1.5
 ---

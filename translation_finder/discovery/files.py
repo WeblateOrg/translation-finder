@@ -241,3 +241,31 @@ class YAMLDiscovery(BaseDiscovery):
                 key = list(data.keys())[0]
                 if result["filemask"].replace("*", key) == result["template"]:
                     result["file_format"] = "ruby-yaml"
+
+
+class SRTDiscovery(BaseDiscovery):
+    """SRT subtitle files discovery."""
+
+    file_format = "srt"
+    mask = "*.srt"
+
+
+class SUBDiscovery(BaseDiscovery):
+    """SUB subtitle files discovery."""
+
+    file_format = "sub"
+    mask = "*.sub"
+
+
+class ASSDiscovery(BaseDiscovery):
+    """ASS subtitle files discovery."""
+
+    file_format = "ass"
+    mask = "*.ass"
+
+
+class SSADiscovery(BaseDiscovery):
+    """SSA subtitle files discovery."""
+
+    file_format = "ssa"
+    mask = "*.ssa"
