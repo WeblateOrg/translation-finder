@@ -211,7 +211,7 @@ class JSONDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "rb") as handle:
+        with self.finder.open(path, "r") as handle:
             data = json.load(handle)
             if not isinstance(data, dict):
                 return
