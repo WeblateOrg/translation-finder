@@ -557,17 +557,17 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "tr/wizard-*.json",
-                    "file_format": "json",
+                    "file_format": "json-nested",
                     "template": "tr/wizard-en.json",
                 },
                 {
                     "filemask": "tr/register-*.json",
-                    "file_format": "json",
+                    "file_format": "json-nested",
                     "template": "tr/register-en.json",
                 },
                 {
                     "filemask": "tr/recordings-*.json",
-                    "file_format": "json",
+                    "file_format": "json-nested",
                     "template": "tr/recordings-en.json",
                 },
             ],

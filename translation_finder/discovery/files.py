@@ -21,8 +21,10 @@
 """Individual discovery rules for translation formats."""
 from __future__ import absolute_import, unicode_literals
 
+import json
 from itertools import chain
 
+import six
 import yaml
 
 from .base import BaseDiscovery, EncodingDiscovery
@@ -197,8 +199,42 @@ class AppStoreDiscovery(BaseDiscovery):
 class JSONDiscovery(BaseDiscovery):
     """JSON files discovery."""
 
-    file_format = "json"
+    file_format = "json-nested"
     mask = "*.json"
+
+    def adjust_format(self, result):
+        if "template" not in result:
+            return
+
+        path = list(self.finder.mask_matches(result["template"]))[0]
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "rb") as handle:
+            data = json.load(handle)
+            if not isinstance(data, dict):
+                return
+            all_strings = True
+            i18next = False
+            for key, value in data.items():
+                if (
+                    isinstance(value, dict)
+                    and "message" in value
+                    and "description" in value
+                ):
+                    result["file_format"] = "webextension"
+                    break
+                if not isinstance(key, six.string_types) or not isinstance(
+                    value, six.string_types
+                ):
+                    all_strings = False
+                    break
+                elif key.endswith("_plural") or "{{" in value:
+                    i18next = True
+
+            if all_strings and i18next:
+                result["file_format"] = "i18next"
 
 
 class FluentDiscovery(BaseDiscovery):

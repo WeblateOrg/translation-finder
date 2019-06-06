@@ -64,6 +64,22 @@ class APITest(DiscoveryTestCase):
                     "name": "android",
                     "template": "app/src/res/main/values/strings.xml",
                 },
+                {"file_format": "json-nested", "filemask": "json/bi-*.json"},
+                {
+                    "file_format": "i18next",
+                    "filemask": "json/i18next-*.json",
+                    "template": "json/i18next-en.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "json/nested-*.json",
+                    "template": "json/nested-en.json",
+                },
+                {
+                    "file_format": "webextension",
+                    "filemask": "json/webext-*.json",
+                    "template": "json/webext-en.json",
+                },
                 {
                     "filemask": "locales/*.po",
                     "new_base": "locales/messages.pot",
