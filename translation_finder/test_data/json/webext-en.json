@@ -1,0 +1,18 @@
+{
+    "hello": {
+        "message": "Hello, world!\n",
+        "description": "Description"
+    },
+    "orangutan": {
+        "message": "Orangutan has %d banana.\n",
+        "description": "Description"
+    },
+    "try": {
+        "message": "Try Weblate at https://demo.weblate.org/!\n",
+        "description": "Description"
+    },
+    "thanks": {
+        "message": "Thank you for using Weblate.",
+        "description": "Description"
+    }
+}
