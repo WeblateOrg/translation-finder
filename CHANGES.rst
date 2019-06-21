@@ -8,6 +8,7 @@ Changelog
 * Improved discovery of pot files.
 * Added support for subtitle files supported in Weblate 3.7.
 * Improved detection of actual JSON formats.
+* Added support for detecting PHP files.
 
 1.5
 ---

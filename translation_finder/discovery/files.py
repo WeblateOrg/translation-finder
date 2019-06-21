@@ -305,3 +305,10 @@ class SSADiscovery(BaseDiscovery):
 
     file_format = "ssa"
     mask = "*.ssa"
+
+
+class PHPDiscovery(BaseDiscovery):
+    """PHP files discovery."""
+
+    file_format = "php"
+    mask = "*.php"
