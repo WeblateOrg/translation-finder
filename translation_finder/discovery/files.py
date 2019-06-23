@@ -25,7 +25,7 @@ import json
 from itertools import chain
 
 import six
-import yaml
+from ruamel.yaml import YAML, YAMLError
 
 from .base import BaseDiscovery, EncodingDiscovery
 
@@ -272,7 +272,11 @@ class YAMLDiscovery(BaseDiscovery):
             return
 
         with self.finder.open(path, "rb") as handle:
-            data = yaml.load(handle)
+            yaml = YAML()
+            try:
+                data = yaml.load(handle)
+            except YAMLError:
+                return
             if isinstance(data, dict) and len(data) == 1:
                 key = list(data.keys())[0]
                 if result["filemask"].replace("*", key) == result["template"]:

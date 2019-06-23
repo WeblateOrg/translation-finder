@@ -1,4 +1,4 @@
 pathlib2; python_version < '3.4'
 six
 chardet
-pyyaml
+ruamel.yaml

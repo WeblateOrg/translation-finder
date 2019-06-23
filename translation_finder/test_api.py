@@ -127,6 +127,11 @@ class APITest(DiscoveryTestCase):
                     "file_format": "ruby-yaml",
                     "template": "yaml/en.yml",
                 },
+                {
+                    "filemask": "yaml/*/corrupt.yml",
+                    "template": "yaml/en/corrupt.yml",
+                    "file_format": "yaml",
+                },
             ],
         )
 
