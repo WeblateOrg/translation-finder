@@ -9,6 +9,7 @@ Changelog
 * Added support for subtitle files supported in Weblate 3.7.
 * Improved detection of actual JSON formats.
 * Added support for detecting PHP files.
+* Improved detection of YAML formats.
 
 1.5
 ---

@@ -128,6 +128,11 @@ class APITest(DiscoveryTestCase):
                     "template": "yaml/en.yml",
                 },
                 {
+                    "filemask": "yaml/*/nomatch.yml",
+                    "template": "yaml/en/nomatch.yml",
+                    "file_format": "yaml",
+                },
+                {
                     "filemask": "yaml/*/corrupt.yml",
                     "template": "yaml/en/corrupt.yml",
                     "file_format": "yaml",

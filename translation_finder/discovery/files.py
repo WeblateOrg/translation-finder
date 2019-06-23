@@ -279,7 +279,10 @@ class YAMLDiscovery(BaseDiscovery):
                 return
             if isinstance(data, dict) and len(data) == 1:
                 key = list(data.keys())[0]
-                if result["filemask"].replace("*", key) == result["template"]:
+                if "filemask" in result:
+                    if result["filemask"].replace("*", key) == result["template"]:
+                        result["file_format"] = "ruby-yaml"
+                elif key in result["template"]:
                     result["file_format"] = "ruby-yaml"
 
 
