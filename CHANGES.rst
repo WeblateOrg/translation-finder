@@ -4,7 +4,7 @@ Changelog
 1.6
 ---
 
-* Not yet released.
+* Released on 26th June 2019.
 * Improved discovery of POT files.
 * Added support for subtitle files supported in Weblate 3.7.
 * Improved detection of actual JSON formats.
