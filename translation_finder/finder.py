@@ -34,6 +34,7 @@ EXCLUDES = {
     ".eggs",
     "*.swp",
     "__pycache__",
+    "__MACOSX",
     "test",
     "t",
     ".deps",
