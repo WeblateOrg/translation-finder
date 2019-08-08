@@ -5,7 +5,7 @@ name: python-2
 steps:
 - name: test
   image: python:2
-  commands: &commands
+  commands:
   - pip install -U -r requirements-test.txt -r requirements-ci.txt
   - py.test --cov=translation_finder translation_finder README.rst
   - ./setup.py sdist
@@ -19,7 +19,12 @@ name: python-3-5
 steps:
 - name: test
   image: python:3.5
-  commands: *commands
+  commands: 
+  - pip install -U -r requirements-test.txt -r requirements-ci.txt
+  - py.test --cov=translation_finder translation_finder README.rst
+  - ./setup.py sdist
+  - twine check dist/*
+  - flake8
 
 ---
 kind: pipeline
@@ -28,6 +33,11 @@ name: python-3-7
 steps:
 - name: test
   image: python:3.7
-  commands: *commands
+  commands: 
+  - pip install -U -r requirements-test.txt -r requirements-ci.txt
+  - py.test --cov=translation_finder translation_finder README.rst
+  - ./setup.py sdist
+  - twine check dist/*
+  - flake8
 ...
 
