@@ -66,6 +66,11 @@ class APITest(DiscoveryTestCase):
                 },
                 {"file_format": "json-nested", "filemask": "json/bi-*.json"},
                 {
+                    "file_format": "json-nested",
+                    "filemask": "json/bom-*.json",
+                    "template": "json/bom-en.json",
+                },
+                {
                     "file_format": "i18next",
                     "filemask": "json/i18next-*.json",
                     "template": "json/i18next-en.json",

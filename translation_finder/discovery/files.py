@@ -212,7 +212,10 @@ class JSONDiscovery(BaseDiscovery):
             return
 
         with self.finder.open(path, "r") as handle:
-            data = json.load(handle)
+            try:
+                data = json.load(handle)
+            except ValueError:
+                return
             if not isinstance(data, dict):
                 return
             all_strings = True
