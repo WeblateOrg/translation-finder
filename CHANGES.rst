@@ -5,6 +5,8 @@ Changelog
 ---
 
 * Not yet released.
+* Improved handling of invalid JSON files.
+* Improved compatibility with OSX.
 
 1.6
 ---
