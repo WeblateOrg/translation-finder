@@ -227,7 +227,7 @@ class JSONDiscovery(BaseDiscovery):
                     and "description" in value
                 ):
                     result["file_format"] = "webextension"
-                    break
+                    return
                 if not isinstance(key, six.string_types) or not isinstance(
                     value, six.string_types
                 ):
@@ -236,8 +236,11 @@ class JSONDiscovery(BaseDiscovery):
                 elif key.endswith("_plural") or "{{" in value:
                     i18next = True
 
-            if all_strings and i18next:
-                result["file_format"] = "i18next"
+            if all_strings:
+                if i18next:
+                    result["file_format"] = "i18next"
+                else:
+                    result["file_format"] = "json"
 
 
 class FluentDiscovery(BaseDiscovery):

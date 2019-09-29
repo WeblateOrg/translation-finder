@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Improved handling of invalid JSON files.
+* Improved detection of flat JSON files.
 * Improved compatibility with OSX.
 
 1.6

@@ -86,6 +86,11 @@ class APITest(DiscoveryTestCase):
                     "template": "json/webext-en.json",
                 },
                 {
+                    "file_format": "json",
+                    "filemask": "json/flat-*.json",
+                    "template": "json/flat-en.json",
+                },
+                {
                     "filemask": "locales/*.po",
                     "new_base": "locales/messages.pot",
                     "file_format": "po",
