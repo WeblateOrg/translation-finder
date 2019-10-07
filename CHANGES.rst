@@ -8,6 +8,7 @@ Changelog
 * Improved handling of invalid JSON files.
 * Improved detection of flat JSON files.
 * Improved compatibility with OSX.
+* Improved detection of new base with gettext PO files.
 
 1.6
 ---

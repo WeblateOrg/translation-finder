@@ -52,9 +52,14 @@ class GettextDiscovery(BaseDiscovery):
     def fill_in_new_base(self, result):
         super(GettextDiscovery, self).fill_in_new_base(result)
         if "new_base" not in result:
-            pot_name = result["filemask"].replace("po/*/", "pot/") + "t"
-            if self.finder.has_file(pot_name):
-                result["new_base"] = pot_name
+            pot_names = [
+                result["filemask"].replace("po/*/", "pot/") + "t",
+                result["filemask"].replace(".*", ""),
+            ]
+            for pot_name in pot_names:
+                if self.finder.has_file(pot_name):
+                    result["new_base"] = pot_name
+                    break
 
 
 class QtDiscovery(BaseDiscovery):

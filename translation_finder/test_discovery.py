@@ -280,6 +280,13 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
+    def test_new_base(self):
+        discovery = GettextDiscovery(self.get_finder(["foo.fr.po", "foo.po"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [{"filemask": "foo.*.po", "file_format": "po", "new_base": "foo.po"}],
+        )
+
 
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
