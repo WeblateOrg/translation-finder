@@ -23,9 +23,12 @@ jobs:
         pip install -U -r requirements-test.txt -r requirements-ci.txt
     - name: Lint with flake8
       run: |
-        pip install flake8
         flake8
     - name: Test with pytest
       run: |
-        pip install pytest
         py.test --cov=translation_finder translation_finder README.rst
+        codecov
+    - name: Check sdist
+      run: |
+        python ./setup.py sdist
+        twine check dist/*
