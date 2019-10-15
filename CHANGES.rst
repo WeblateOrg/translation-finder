@@ -4,7 +4,7 @@ Changelog
 1.7
 ---
 
-* Not yet released.
+* Released on 15th October 2019.
 * Improved handling of invalid JSON files.
 * Improved detection of flat JSON files.
 * Improved compatibility with OSX.
