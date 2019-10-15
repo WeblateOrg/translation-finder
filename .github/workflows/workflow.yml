@@ -27,7 +27,10 @@ jobs:
     - name: Test with pytest
       run: |
         py.test --cov=translation_finder translation_finder README.rst
-        codecov
+        coverage xml
+    - uses: codecov/codecov-action@v1.0.2
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
     - name: Check sdist
       run: |
         python ./setup.py sdist
