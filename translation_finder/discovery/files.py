@@ -25,7 +25,8 @@ import json
 from itertools import chain
 
 import six
-from ruamel.yaml import YAML, YAMLError
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
 from .base import BaseDiscovery, EncodingDiscovery
 
@@ -286,7 +287,7 @@ class YAMLDiscovery(BaseDiscovery):
             yaml = YAML()
             try:
                 data = yaml.load(handle)
-            except YAMLError:
+            except (YAMLError, YAMLFutureWarning):
                 return
             if isinstance(data, dict) and len(data) == 1:
                 key = list(data.keys())[0]
