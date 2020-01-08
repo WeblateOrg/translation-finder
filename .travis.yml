@@ -1,11 +1,11 @@
 language: python
-dist: xenial
+dist: bionic
 python:
   - "2.7"
   - "3.5"
   - "3.6"
   - "3.7"
-  - "pypy3"
+  - "3.8"
 matrix:
   include:
     - os: osx
