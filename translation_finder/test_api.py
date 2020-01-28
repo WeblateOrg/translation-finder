@@ -31,6 +31,8 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class APITest(DiscoveryTestCase):
+    maxDiff = None
+
     def test_discover(self):
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assert_discovery(
@@ -42,7 +44,6 @@ class APITest(DiscoveryTestCase):
         )
 
     def test_discover_files(self):
-        self.maxDiff = None
         self.assert_discovery(
             discover(TEST_DATA),
             [

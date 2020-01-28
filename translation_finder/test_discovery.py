@@ -70,8 +70,9 @@ class DiscoveryTestCase(TestCase):
 
 
 class GetttetTest(DiscoveryTestCase):
+    maxDiff = None
+
     def test_basic(self):
-        self.maxDiff = None
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -161,7 +162,6 @@ class GetttetTest(DiscoveryTestCase):
         )
 
     def test_double(self):
-        self.maxDiff = None
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -228,7 +228,6 @@ class GetttetTest(DiscoveryTestCase):
         )
 
     def test_mono(self):
-        self.maxDiff = None
         discovery = GettextDiscovery(
             self.get_finder(["locale/en/strings.po", "locale/de/strings.po"])
         )
@@ -245,7 +244,6 @@ class GetttetTest(DiscoveryTestCase):
         )
 
     def test_mono_language(self):
-        self.maxDiff = None
         discovery = GettextDiscovery(
             self.get_finder(["locale/cs_CZ/strings.po", "locale/de/strings.po"]),
             "cs_CZ",
