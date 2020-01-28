@@ -126,8 +126,8 @@ class BaseDiscovery(object):
 
     def possible_templates(self, language, mask):
         """Language code aliases"""
-        for language in self.get_language_aliases(language):
-            yield mask.replace("*", language)
+        for alias in self.get_language_aliases(language):
+            yield mask.replace("*", alias)
 
     def fill_in_template(self, result, source_language=None):
         if "template" not in result:
