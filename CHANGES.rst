@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Fixed discovery of filenames with digits.
 
 1.7
 ---

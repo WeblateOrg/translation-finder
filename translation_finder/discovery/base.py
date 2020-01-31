@@ -187,7 +187,9 @@ class BaseDiscovery(object):
                     for i, current in enumerate(mask):
                         if match.findall(current):
                             skip.add(i)
-                            mask[i] = match.sub("\\1{}\\2".format(wildcard), current)
+                            mask[i] = match.sub(
+                                "\\g<1>{}\\g<2>".format(wildcard), current
+                            )
                     mask[pos] = wildcard
                     yield {"filemask": "/".join(mask)}
 

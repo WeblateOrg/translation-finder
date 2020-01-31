@@ -46,6 +46,8 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class DiscoveryTestCase(TestCase):
+    maxDiff = None
+
     def get_finder(self, paths, dirs=None):
         if dirs is None:
             dirs = []
@@ -296,6 +298,7 @@ class QtTest(DiscoveryTestCase):
                     "lrc/translations/lrc_id.ts",
                     "quickevent/app/quickevent/quickevent.cs_CZ.ts",
                     "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
+                    "6-migrate-archived-model-to-revision.ts",
                 ]
             )
         )
@@ -317,6 +320,10 @@ class QtTest(DiscoveryTestCase):
                     "filemask": "libqf/libqfqmlwidgets/libqfqmlwidgets.*.ts",
                     "file_format": "ts",
                     "new_base": "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
+                },
+                {
+                    "filemask": "6-migrate-archived-model-*-revision.ts",
+                    "file_format": "ts",
                 },
             ],
         )
