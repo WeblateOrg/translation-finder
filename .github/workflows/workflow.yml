@@ -12,7 +12,7 @@ jobs:
         python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
@@ -28,9 +28,10 @@ jobs:
       run: |
         py.test --cov=translation_finder translation_finder README.rst
         coverage xml
-    - uses: codecov/codecov-action@v1.0.4
+    - uses: codecov/codecov-action@v1
       with:
         token: ${{secrets.CODECOV_TOKEN}}
+        name: Python ${{ matrix.python-version }}
     - name: Check sdist
       run: |
         python ./setup.py sdist
