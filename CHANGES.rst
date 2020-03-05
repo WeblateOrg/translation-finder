@@ -4,7 +4,7 @@ Changelog
 1.8
 ---
 
-* Not yet released.
+* Released on 5th March 2020.
 * Fixed discovery of filenames with digits.
 * Fixed crash on invalid YAML files.
 
