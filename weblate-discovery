@@ -19,9 +19,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-"""Simple wrapper to execute weblate-discovery commandline"""
+"""Simple wrapper to execute weblate-discovery commandline."""
+
+import sys
 
 import translation_finder.api
-import sys
 
 sys.exit(translation_finder.api.cli())
