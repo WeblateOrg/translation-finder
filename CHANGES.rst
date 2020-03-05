@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Fixed discovery of filenames with digits.
+* Fixed crash on invalid YAML files.
 
 1.7
 ---
