@@ -1,16 +1,25 @@
-translation-finder
-==================
+.. image:: https://s.weblate.org/cdn/Logo-Darktext-borders.png
+   :alt: Weblate
+   :target: https://weblate.org/
+   :height: 80px
+
+**Weblate is a copylefted libre software web-based continuous localization system,
+used by over 1150 libre projects and companies in more than 115 countries.**
 
 A translation file finder for `Weblate`_, translation tool with tight version
 control integration.
 
-.. image:: https://travis-ci.com/WeblateOrg/translation-finder.svg?branch=master
-    :target: https://travis-ci.com/WeblateOrg/translation-finder
-    :alt: Build Status
+.. image:: https://img.shields.io/badge/website-weblate.org-blue.svg
+    :alt: Website
+    :target: https://weblate.org/
 
-.. image:: https://codecov.io/github/WeblateOrg/translation-finder/coverage.svg?branch=master
-    :target: https://codecov.io/github/WeblateOrg/translation-finder?branch=master
-    :alt: Code coverage
+.. image:: https://hosted.weblate.org/widgets/weblate/-/svg-badge.svg
+    :alt: Translation status
+    :target: https://hosted.weblate.org/engage/weblate/?utm_source=widget
+
+.. image:: https://bestpractices.coreinfrastructure.org/projects/552/badge
+    :alt: CII Best Practices
+    :target: https://bestpractices.coreinfrastructure.org/projects/552
 
 .. image:: https://img.shields.io/pypi/v/translation-finder.svg
     :target: https://pypi.org/project/translation-finder/
