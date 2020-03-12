@@ -1,6 +1,4 @@
 -r requirements.txt
-codacy-coverage
-codecov
 pre-commit
 pytest
 pytest-cov
