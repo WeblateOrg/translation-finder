@@ -1,10 +1,11 @@
 Changelog
 =========
 
-1.9
+2.0
 ---
 
 * Not yet released.
+* Dropped support for Python 2.
 
 1.8
 ---

@@ -22,7 +22,6 @@
 from __future__ import unicode_literals
 
 import os
-import sys
 
 from setuptools import find_packages, setup
 
@@ -31,15 +30,14 @@ VERSION = __import__("translation_finder").__version__
 with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
     LONG_DESCRIPTION = readme.read()
 
-REQUIRES = [
-    line.split(";")[0]
-    for line in open("requirements.txt").read().splitlines()
-    if "python_version" not in line or sys.version_info < (3, 4)
-]
-REQUIRES_TEST = open("requirements-test.txt").read().splitlines()[1:]
+with open("requirements.txt") as handle:
+    REQUIRES = handle.read().splitlines()
+with open("requirements-test.txt") as handle:
+    REQUIRES_TEST = handle.read().splitlines()[1:]
 
 setup(
     name="translation-finder",
+    python_requires=">=3.5",
     version=VERSION,
     author="Michal Čihař",
     author_email="michal@cihar.com",
@@ -65,9 +63,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
