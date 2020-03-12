@@ -25,6 +25,10 @@ control integration.
     :target: https://pypi.org/project/translation-finder/
     :alt: PyPI package
 
+.. image:: https://readthedocs.org/projects/weblate/badge/
+    :alt: Documentation
+    :target: https://docs.weblate.org/
+
 This library is used by `Weblate`_ to discover translation files in a cloned
 repository. It can operate on both file listings and actual filesystem.
 Filesystem access is needed for more accurate detection in some cases
