@@ -120,11 +120,11 @@ class BaseDiscovery(object):
         return self.finder.has_file(name)
 
     def get_language_aliases(self, language):
-        """Language code aliases"""
+        """Language code aliases."""
         return [language]
 
     def possible_templates(self, language, mask):
-        """Language code aliases"""
+        """Yield possible template filenames."""
         for alias in self.get_language_aliases(language):
             yield mask.replace("*", alias)
 

@@ -194,7 +194,7 @@ class AppStoreDiscovery(BaseDiscovery):
         return self.finder.has_dir(name)
 
     def get_language_aliases(self, language):
-        """Language code aliases"""
+        """Language code aliases."""
         if language == "en":
             return ["en", "en-US", "en-GB", "en-AU"]
         return [language]
@@ -252,7 +252,7 @@ class FluentDiscovery(BaseDiscovery):
     mask = "*.ftl"
 
     def get_language_aliases(self, language):
-        """Language code aliases"""
+        """Language code aliases."""
         if language == "en":
             return ["en", "en-US"]
         return [language]
