@@ -23,7 +23,6 @@ from __future__ import absolute_import, unicode_literals
 import json
 from itertools import chain
 
-import six
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
@@ -233,9 +232,7 @@ class JSONDiscovery(BaseDiscovery):
                 ):
                     result["file_format"] = "webextension"
                     return
-                if not isinstance(key, six.string_types) or not isinstance(
-                    value, six.string_types
-                ):
+                if not isinstance(key, str) or not isinstance(value, str):
                     all_strings = False
                     break
                 elif key.endswith("_plural") or "{{" in value:

@@ -20,7 +20,7 @@
 """Transifex configuration discovery."""
 from __future__ import absolute_import, unicode_literals
 
-from six.moves.configparser import RawConfigParser
+from configparser import RawConfigParser
 
 from .base import BaseDiscovery
 
