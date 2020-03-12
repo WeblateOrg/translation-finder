@@ -116,7 +116,7 @@ class TransifexDiscovery(BaseDiscovery):
         for path in self.finder.filter_files("config", ".tx"):
             config = RawConfigParser()
             with self.finder.open(path) as handle:
-                config.readfp(handle)
+                config.read_file(handle)
             for section in config.sections():
                 result = self.extract_section(config, section)
                 if result:
