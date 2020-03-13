@@ -63,8 +63,6 @@ Do not edit, please adjust language definitions in following repository:
 https://github.com/WeblateOrg/language-data
 """
 
-from __future__ import unicode_literals
-
 '''
 
 WRAPPER = TextWrapper(width=79, initial_indent=" " * 4, subsequent_indent=" " * 4)

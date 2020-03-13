@@ -18,7 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Discovery result class."""
-from __future__ import unicode_literals
 
 
 class DiscoveryResult(dict):

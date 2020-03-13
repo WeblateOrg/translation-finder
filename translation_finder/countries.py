@@ -27,8 +27,6 @@ Do not edit, please adjust language definitions in following repository:
 https://github.com/WeblateOrg/language-data
 """
 
-from __future__ import unicode_literals
-
 # Known country codes
 COUNTRIES = {
     "abw",

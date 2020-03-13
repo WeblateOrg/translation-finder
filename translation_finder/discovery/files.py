@@ -18,7 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Individual discovery rules for translation formats."""
-from __future__ import absolute_import, unicode_literals
 
 import json
 from itertools import chain

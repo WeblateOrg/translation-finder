@@ -18,7 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Translation finder, a module to locate translatable files in a filesystem."""
-from __future__ import absolute_import, unicode_literals
 
 from .api import discover
 from .discovery.result import DiscoveryResult

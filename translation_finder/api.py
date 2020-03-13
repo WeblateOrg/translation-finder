@@ -18,7 +18,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 """Highlevel API for translation-finder."""
-from __future__ import absolute_import, print_function, unicode_literals
 
 import sys
 from argparse import ArgumentParser
