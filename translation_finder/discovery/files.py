@@ -37,7 +37,7 @@ class GettextDiscovery(BaseDiscovery):
     new_base_mask = "*.pot"
 
     def discover(self):
-        for result in super(GettextDiscovery, self).discover():
+        for result in super().discover():
             if "template" not in result:
                 yield result
                 continue
@@ -49,7 +49,7 @@ class GettextDiscovery(BaseDiscovery):
             yield mono
 
     def fill_in_new_base(self, result):
-        super(GettextDiscovery, self).fill_in_new_base(result)
+        super().fill_in_new_base(result)
         if "new_base" not in result:
             pot_names = [
                 result["filemask"].replace("po/*/", "pot/") + "t",
@@ -141,7 +141,7 @@ class JavaDiscovery(EncodingDiscovery):
 
     def possible_templates(self, language, mask):
         yield mask.replace("_*", "")
-        for result in super(JavaDiscovery, self).possible_templates(language, mask):
+        for result in super().possible_templates(language, mask):
             yield result
 
 
@@ -154,7 +154,7 @@ class RESXDiscovery(BaseDiscovery):
 
     def possible_templates(self, language, mask):
         yield mask.replace(".*", "")
-        for result in super(RESXDiscovery, self).possible_templates(language, mask):
+        for result in super().possible_templates(language, mask):
             yield result
 
     def get_masks(self):
@@ -168,7 +168,7 @@ class RESXDiscovery(BaseDiscovery):
                 continue
             mask[-1] = "{0}.*.{1}".format(base, ext)
             yield {"filemask": "/".join(mask)}
-        for match in super(RESXDiscovery, self).get_masks():
+        for match in super().get_masks():
             yield match
 
 

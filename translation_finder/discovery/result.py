@@ -23,7 +23,7 @@ from __future__ import unicode_literals
 
 class DiscoveryResult(dict):
     def __init__(self, *args, **kwargs):
-        super(DiscoveryResult, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.meta = {}
 
     @property
@@ -39,7 +39,7 @@ class DiscoveryResult(dict):
         return self._sort_key < other._sort_key  # noqa:SF01,SLF001
 
     def __eq__(self, other):
-        return super(DiscoveryResult, self).__eq__(other) and (
+        return super().__eq__(other) and (
             self.meta == other.meta if isinstance(other, DiscoveryResult) else True
         )
 
@@ -50,6 +50,6 @@ class DiscoveryResult(dict):
         return "{!r} [meta:{!r}]".format(self.match, self.meta)
 
     def copy(self):
-        result = DiscoveryResult(super(DiscoveryResult, self).copy())
+        result = DiscoveryResult(super().copy())
         result.meta = self.meta.copy()
         return result
