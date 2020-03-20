@@ -32,6 +32,26 @@ TOKEN_SPLIT = re.compile(r"([_.-])")
 
 LOCALES = {"latn", "cyrl", "hant", "hans"}
 
+EXTENSION_MAP = (
+    (".po", "po"),
+    ("strings.xml", "aresource"),
+    (".ini", "joomla"),
+    (".csv", "csv"),
+    (".json", "json-nested"),
+    (".dtd", "dtd"),
+    (".php", "php"),
+    (".xlf", "xliff"),
+    (".xliff", "xliff"),
+    (".ts", "ts"),
+    (".resx", "resx"),
+    (".resw", "resx"),
+    (".xlsx", "xlsx"),
+    (".yml", "yaml"),
+    (".yaml", "yaml"),
+    (".properties", "properties"),
+    (".strings", "strings"),
+)
+
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
@@ -64,6 +84,13 @@ class BaseDiscovery(object):
                 return True
 
         return False
+
+    def detect_format(self, filemask):
+        filemask = filemask.lower()
+        for end, result in EXTENSION_MAP:
+            if filemask.endswith(end):
+                return result
+        return ""
 
     def get_wildcard(self, part):
         """Generate language wilcard for a path part.

@@ -50,39 +50,12 @@ class TransifexDiscovery(BaseDiscovery):
         "YML": "ruby-yaml",
     }
 
-    extension_map = (
-        (".po", "po"),
-        ("strings.xml", "aresource"),
-        (".ini", "joomla"),
-        (".csv", "csv"),
-        (".json", "json-nested"),
-        (".dtd", "dtd"),
-        (".php", "php"),
-        (".xlf", "xliff"),
-        (".xliff", "xliff"),
-        (".ts", "ts"),
-        (".resx", "resx"),
-        (".resw", "resx"),
-        (".xlsx", "xlsx"),
-        (".yml", "yaml"),
-        (".yaml", "yaml"),
-        (".properties", "properties"),
-        (".strings", "strings"),
-    )
-
     def extract_format(self, transifex):
         transifex = transifex.upper()
         try:
             return self.typemap[transifex]
         except KeyError:
             return ""
-
-    def detect_format(self, filemask):
-        filemask = filemask.lower()
-        for end, result in self.extension_map:
-            if filemask.endswith(end):
-                return result
-        return ""
 
     def extract_section(self, config, section):
         if section == "main" or not config.has_option(section, "file_filter"):
