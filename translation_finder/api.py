@@ -89,11 +89,14 @@ def cli(stdout=None, args=None):
             "https://github.com/WeblateOrg/translation-finder"
         ),
     )
+    parser.add_argument("--source-language", help="Source language code", default="en")
     parser.add_argument("directory", help="Directory where to perform discovery")
 
     params = parser.parse_args(args)
 
-    for pos, match in enumerate(discover(params.directory)):
+    for pos, match in enumerate(
+        discover(params.directory, source_language=params.source_language)
+    ):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
         print("== Match {}{} ==".format(pos + 1, origin), file=stdout)
         for key, value in sorted(match.items()):
