@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Dropped support for Python 2.
+* Improved i18next detection.
 
 1.8
 ---

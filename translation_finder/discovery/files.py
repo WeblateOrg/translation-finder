@@ -205,6 +205,29 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
+    def detect_dict(self, data, level=0):
+        all_strings = True
+        i18next = False
+        for key, value in data.items():
+            if (
+                level == 0
+                and isinstance(value, dict)
+                and "message" in value
+                and "description" in value
+            ):
+                return False, False, True
+            if not isinstance(key, str):
+                all_strings = False
+                break
+            if not isinstance(value, str):
+                all_strings = False
+                if isinstance(value, dict):
+                    i18next |= self.detect_dict(value, level + 1)[1]
+            elif key.endswith("_plural") or "{{" in value:
+                i18next = True
+
+        return all_strings, i18next, False
+
     def adjust_format(self, result):
         if "template" not in result:
             return
@@ -221,27 +244,15 @@ class JSONDiscovery(BaseDiscovery):
                 return
             if not isinstance(data, dict):
                 return
-            all_strings = True
-            i18next = False
-            for key, value in data.items():
-                if (
-                    isinstance(value, dict)
-                    and "message" in value
-                    and "description" in value
-                ):
-                    result["file_format"] = "webextension"
-                    return
-                if not isinstance(key, str) or not isinstance(value, str):
-                    all_strings = False
-                    break
-                elif key.endswith("_plural") or "{{" in value:
-                    i18next = True
 
-            if all_strings:
-                if i18next:
-                    result["file_format"] = "i18next"
-                else:
-                    result["file_format"] = "json"
+            all_strings, i18next, webext = self.detect_dict(data)
+
+            if webext:
+                result["file_format"] = "webextension"
+            elif i18next:
+                result["file_format"] = "i18next"
+            elif all_strings:
+                result["file_format"] = "json"
 
 
 class FluentDiscovery(BaseDiscovery):
