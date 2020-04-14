@@ -280,9 +280,18 @@ class GetttetTest(DiscoveryTestCase):
 
     def test_new_base(self):
         discovery = GettextDiscovery(self.get_finder(["foo.fr.po", "foo.po"]))
+        print(list(discovery.discover()))
         self.assert_discovery(
             discovery.discover(),
-            [{"filemask": "foo.*.po", "file_format": "po", "new_base": "foo.po"}],
+            [
+                {"filemask": "foo.*.po", "new_base": "foo.po", "file_format": "po"},
+                {
+                    "filemask": "foo.*.po",
+                    "template": "foo.po",
+                    "new_base": "foo.po",
+                    "file_format": "po-mono",
+                },
+            ],
         )
 
 
@@ -559,6 +568,8 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                     "Source/JavaScriptCore/inspector/protocol/Canvas.json",
                     "Source/JavaScriptCore/inspector/protocol/Target.json",
                     "Source/JavaScriptCore/inspector/protocol/Console.json",
+                    "data/cs/strings.json",
+                    "data/strings.json",
                 ]
             )
         )
@@ -579,6 +590,11 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                     "filemask": "tr/recordings-*.json",
                     "file_format": "json-nested",
                     "template": "tr/recordings-en.json",
+                },
+                {
+                    "filemask": "data/*/strings.json",
+                    "file_format": "json-nested",
+                    "template": "data/strings.json",
                 },
             ],
         )

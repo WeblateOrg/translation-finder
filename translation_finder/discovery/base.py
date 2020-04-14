@@ -52,6 +52,13 @@ EXTENSION_MAP = (
     (".strings", "strings"),
 )
 
+TEMPLATE_REPLACEMENTS = (
+    ("/*/", "/"),
+    ("-*", ""),
+    (".*", ""),
+    ("*", ""),
+)
+
 
 class BaseDiscovery(object):
     """Abstract base class for discovery."""
@@ -129,7 +136,8 @@ class BaseDiscovery(object):
         path = result["filemask"]
         basename = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
         if "*" in basename:
-            basename = basename.replace(".*", "").replace("-*", "").replace("*", "")
+            for match, replacement in TEMPLATE_REPLACEMENTS:
+                basename = basename.replace(match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
         while "/" in path:
@@ -153,6 +161,9 @@ class BaseDiscovery(object):
         """Yield possible template filenames."""
         for alias in self.get_language_aliases(language):
             yield mask.replace("*", alias)
+        for match, replacement in TEMPLATE_REPLACEMENTS:
+            if match in mask:
+                yield mask.replace(match, replacement)
 
     def fill_in_template(self, result, source_language=None):
         if "template" not in result:

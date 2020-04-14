@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Dropped support for Python 2.
 * Improved i18next detection.
+* Improved detection of monolingual templates.
 
 1.8
 ---
