@@ -4,7 +4,7 @@ Changelog
 2.0
 ---
 
-* Not yet released.
+* Released on 14th April 2020.
 * Dropped support for Python 2.
 * Improved i18next detection.
 * Improved detection of monolingual templates.
