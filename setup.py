@@ -31,8 +31,6 @@ with open(os.path.join(os.path.dirname(__file__), "README.rst")) as readme:
 
 with open("requirements.txt") as handle:
     REQUIRES = handle.read().splitlines()
-with open("requirements-test.txt") as handle:
-    REQUIRES_TEST = handle.read().splitlines()[1:]
 
 setup(
     name="translation-finder",
@@ -71,7 +69,5 @@ setup(
         "Topic :: Software Development :: Localization",
         "Topic :: Utilities",
     ],
-    setup_requires=["pytest-runner"],
-    tests_require=REQUIRES_TEST,
     entry_points={"console_scripts": ["weblate-discover = translation_finder.api:cli"]},
 )
