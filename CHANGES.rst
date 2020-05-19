@@ -5,6 +5,8 @@ Changelog
 ---
 
 * Not yet released.
+* Added discovery support for formats newly supported by Weblate (HTML,
+  IDML, OpenDocument, InnoSetup and INI).
 
 2.0
 ---

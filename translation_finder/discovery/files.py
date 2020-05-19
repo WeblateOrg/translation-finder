@@ -337,3 +337,38 @@ class PHPDiscovery(BaseDiscovery):
 
     file_format = "php"
     mask = "*.php"
+
+
+class IDMLDiscovery(BaseDiscovery):
+    """IDML files discovery."""
+
+    file_format = "idml"
+    mask = "*.idml"
+
+
+class HTMLDiscovery(BaseDiscovery):
+    """HTML files discovery."""
+
+    file_format = "html"
+    mask = "*.html"
+
+
+class ODFDiscovery(BaseDiscovery):
+    """ODF files discovery."""
+
+    file_format = "odf"
+    mask = "*.odt"
+
+
+class INIDiscovery(BaseDiscovery):
+    """INI files discovery."""
+
+    file_format = "ini"
+    mask = "*.ini"
+
+
+class InnoSetupDiscovery(BaseDiscovery):
+    """InnoSetup files discovery."""
+
+    file_format = "islu"
+    mask = "*.islu"
