@@ -204,7 +204,11 @@ class BaseDiscovery(object):
 
     def filter_files(self):
         """Filters possible file matches."""
-        return self.finder.filter_files(self.mask)
+        if isinstance(self.mask, str):
+            masks = [self.mask]
+        else:
+            masks = self.mask
+        return chain.from_iterable(self.finder.filter_files(mask) for mask in masks)
 
     def get_masks(self):
         """Return all file masks found in the directory.

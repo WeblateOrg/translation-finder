@@ -72,13 +72,7 @@ class XliffDiscovery(BaseDiscovery):
     """XLIFF files discovery."""
 
     file_format = "xliff"
-    mask = "*.xliff"
-
-    def filter_files(self):
-        """Filters possible file matches."""
-        return chain(
-            self.finder.filter_files(self.mask), self.finder.filter_files("*.xlf")
-        )
+    mask = ("*.xliff", "*.xlf")
 
 
 class JoomlaDiscovery(BaseDiscovery):
@@ -272,13 +266,7 @@ class YAMLDiscovery(BaseDiscovery):
     """YAML files discovery."""
 
     file_format = "yaml"
-    mask = "*.yml"
-
-    def filter_files(self):
-        """Filters possible file matches."""
-        return chain(
-            self.finder.filter_files(self.mask), self.finder.filter_files("*.yaml")
-        )
+    mask = ("*.yml", "*.yaml")
 
     def adjust_format(self, result):
         if "template" not in result:
@@ -350,14 +338,14 @@ class HTMLDiscovery(BaseDiscovery):
     """HTML files discovery."""
 
     file_format = "html"
-    mask = "*.html"
+    mask = ("*.html", "*.htm")
 
 
 class ODFDiscovery(BaseDiscovery):
     """ODF files discovery."""
 
     file_format = "odf"
-    mask = "*.odt"
+    mask = ("*.odt", "*.ods", "*.odp")
 
 
 class INIDiscovery(BaseDiscovery):
