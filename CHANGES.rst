@@ -4,7 +4,7 @@ Changelog
 2.1
 ---
 
-* Not yet released.
+* Released on 27th May 2020.
 * Added discovery support for formats newly supported by Weblate (HTML,
   IDML, OpenDocument, InnoSetup and INI).
 
