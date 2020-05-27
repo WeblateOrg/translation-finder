@@ -25,7 +25,7 @@ from itertools import chain
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
-from .base import BaseDiscovery, EncodingDiscovery
+from .base import BaseDiscovery, EncodingDiscovery, MonoTemplateDiscovery
 
 
 class GettextDiscovery(BaseDiscovery):
@@ -292,28 +292,28 @@ class YAMLDiscovery(BaseDiscovery):
                     result["file_format"] = "ruby-yaml"
 
 
-class SRTDiscovery(BaseDiscovery):
+class SRTDiscovery(MonoTemplateDiscovery):
     """SRT subtitle files discovery."""
 
     file_format = "srt"
     mask = "*.srt"
 
 
-class SUBDiscovery(BaseDiscovery):
+class SUBDiscovery(MonoTemplateDiscovery):
     """SUB subtitle files discovery."""
 
     file_format = "sub"
     mask = "*.sub"
 
 
-class ASSDiscovery(BaseDiscovery):
+class ASSDiscovery(MonoTemplateDiscovery):
     """ASS subtitle files discovery."""
 
     file_format = "ass"
     mask = "*.ass"
 
 
-class SSADiscovery(BaseDiscovery):
+class SSADiscovery(MonoTemplateDiscovery):
     """SSA subtitle files discovery."""
 
     file_format = "ssa"
@@ -327,21 +327,21 @@ class PHPDiscovery(BaseDiscovery):
     mask = "*.php"
 
 
-class IDMLDiscovery(BaseDiscovery):
+class IDMLDiscovery(MonoTemplateDiscovery):
     """IDML files discovery."""
 
     file_format = "idml"
     mask = "*.idml"
 
 
-class HTMLDiscovery(BaseDiscovery):
+class HTMLDiscovery(MonoTemplateDiscovery):
     """HTML files discovery."""
 
     file_format = "html"
     mask = ("*.html", "*.htm")
 
 
-class ODFDiscovery(BaseDiscovery):
+class ODFDiscovery(MonoTemplateDiscovery):
     """ODF files discovery."""
 
     file_format = "odf"

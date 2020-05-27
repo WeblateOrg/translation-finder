@@ -234,6 +234,12 @@ class BaseDiscovery(object):
                     yield {"filemask": "/".join(mask)}
 
 
+class MonoTemplateDiscovery(BaseDiscovery):
+    def fill_in_new_base(self, result):
+        if "new_base" not in result and "template" in result:
+            result["new_base"] = result["template"]
+
+
 class EncodingDiscovery(BaseDiscovery):
     encoding_map = {}
 
