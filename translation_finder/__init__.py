@@ -24,4 +24,4 @@ from .discovery.result import DiscoveryResult
 from .finder import Finder
 
 __all__ = ("Finder", "discover", "DiscoveryResult")
-__version__ = "2.1"
+__version__ = "2.2"
