@@ -236,6 +236,9 @@ class JSONDiscovery(BaseDiscovery):
                 data = json.load(handle)
             except ValueError:
                 return
+            if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
+                result["file_format"] = "golang-json"
+                return
             if not isinstance(data, dict):
                 return
 

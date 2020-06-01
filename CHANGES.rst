@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Added detection of Golang i18n json files.
 
 2.1
 ---
