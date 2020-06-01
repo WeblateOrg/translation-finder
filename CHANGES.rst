@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Added detection of Golang i18n json files.
+* Added detection of TOML files.
 
 2.1
 ---

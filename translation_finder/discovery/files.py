@@ -363,3 +363,10 @@ class InnoSetupDiscovery(BaseDiscovery):
 
     file_format = "islu"
     mask = "*.islu"
+
+
+class TOMLDiscovery(BaseDiscovery):
+    """TOML files discovery."""
+
+    file_format = "toml"
+    mask = "*.toml"
