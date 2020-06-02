@@ -34,7 +34,7 @@ with open("requirements.txt") as handle:
 
 setup(
     name="translation-finder",
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     version=VERSION,
     author="Michal Čihař",
     author_email="michal@cihar.com",
@@ -61,7 +61,6 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
