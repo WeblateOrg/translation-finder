@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Added detection of Golang i18n json files.
 * Added detection of TOML files.
+* Improved charset detection by switching to charamel.
 
 2.1
 ---

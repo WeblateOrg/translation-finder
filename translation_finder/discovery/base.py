@@ -22,7 +22,7 @@
 import re
 from itertools import chain
 
-from chardet.universaldetector import UniversalDetector
+from charamel import Detector
 
 from ..countries import COUNTRIES
 from ..languages import LANGUAGES
@@ -242,9 +242,10 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
 class EncodingDiscovery(BaseDiscovery):
     encoding_map = {}
+    detector = Detector(min_confidence=0.7)
 
     def adjust_format(self, result):
-        detector = UniversalDetector()
+        encoding = None
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:
             matches.append(self.finder.mask_matches(result["template"]))
@@ -253,12 +254,8 @@ class EncodingDiscovery(BaseDiscovery):
             if not hasattr(path, "open"):
                 continue
             with self.finder.open(path, "rb") as handle:
-                detector.feed(handle.read())
-                if detector.done:
-                    break
-        detector.close()
-
-        if detector.result["encoding"]:
-            encoding = detector.result["encoding"].lower()
-            if encoding in self.encoding_map:
-                result["file_format"] = self.encoding_map[encoding]
+                encoding = self.detector.detect(handle.read())
+                if encoding is not None and encoding.value != "ascii":
+                    if encoding.value in self.encoding_map:
+                        result["file_format"] = self.encoding_map[encoding.value]
+                    return
