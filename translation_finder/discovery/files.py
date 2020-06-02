@@ -237,7 +237,7 @@ class JSONDiscovery(BaseDiscovery):
             except ValueError:
                 return
             if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
-                result["file_format"] = "golang-json"
+                result["file_format"] = "go-i18n-json"
                 return
             if not isinstance(data, dict):
                 return

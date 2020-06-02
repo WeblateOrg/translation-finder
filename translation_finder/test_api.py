@@ -80,7 +80,7 @@ class APITest(DiscoveryTestCase):
                     "template": "json/nested-en.json",
                 },
                 {
-                    "file_format": "golang-json",
+                    "file_format": "go-i18n-json",
                     "filemask": "json/go-*.json",
                     "template": "json/go-en.json",
                 },
