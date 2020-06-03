@@ -370,3 +370,10 @@ class TOMLDiscovery(BaseDiscovery):
 
     file_format = "toml"
     mask = "*.toml"
+
+
+class ARBDiscovery(BaseDiscovery):
+    """ARB files discovery."""
+
+    file_format = "arb"
+    mask = "*.arb"

@@ -9,6 +9,7 @@ Changelog
 * Added detection of TOML files.
 * Improved charset detection by switching to charamel.
 * Dropped support for Python 3.5.
+* Added detection of ARB files.
 
 2.1
 ---
