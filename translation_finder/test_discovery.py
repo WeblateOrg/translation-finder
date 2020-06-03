@@ -25,6 +25,7 @@ from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
+    ARBDiscovery,
     FluentDiscovery,
     GettextDiscovery,
     JavaDiscovery,
@@ -724,5 +725,35 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                     "file_format": "toml",
                     "template": "translations/en/messages.en.toml",
                 }
+            ],
+        )
+
+
+class ARBDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = ARBDiscovery(
+            self.get_finder(
+                [
+                    "lib/l10n/intl_en.arb",
+                    "lib/l10n/intl_messages.arb",
+                    "lib/l10n/intl_cs.arb",
+                    "res/values/strings_en.arb",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "lib/l10n/intl_*.arb",
+                    "file_format": "arb",
+                    "template": "lib/l10n/intl_en.arb",
+                    "intermediate": "lib/l10n/intl_messages.arb",
+                },
+                {
+                    "filemask": "res/values/strings_*.arb",
+                    "file_format": "arb",
+                    "template": "res/values/strings_en.arb",
+                },
             ],
         )

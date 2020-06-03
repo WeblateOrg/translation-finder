@@ -377,3 +377,11 @@ class ARBDiscovery(BaseDiscovery):
 
     file_format = "arb"
     mask = "*.arb"
+
+    def fill_in_new_base(self, result):
+        super().fill_in_new_base(result)
+        if "intermediate" not in result:
+            # Flutter intermediate files
+            intermediate = result["filemask"].replace("*", "messages")
+            if self.finder.has_file(intermediate):
+                result["intermediate"] = intermediate
