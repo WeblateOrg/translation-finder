@@ -33,6 +33,7 @@ from .discovery.files import (
     OSXDiscovery,
     QtDiscovery,
     RESXDiscovery,
+    TOMLDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
     YAMLDiscovery,
@@ -703,6 +704,25 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                     "filemask": "translations/*/messages.*.yml",
                     "file_format": "yaml",
                     "template": "translations/en/messages.en.yml",
+                }
+            ],
+        )
+
+
+class TOMLDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = TOMLDiscovery(
+            self.get_finder(
+                ["translations/en/messages.en.toml", "translations/de/messages.de.toml"]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "translations/*/messages.*.toml",
+                    "file_format": "toml",
+                    "template": "translations/en/messages.en.toml",
                 }
             ],
         )
