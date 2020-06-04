@@ -53,6 +53,8 @@ class GettextDiscovery(BaseDiscovery):
             pot_names = [
                 result["filemask"].replace("po/*/", "pot/") + "t",
                 result["filemask"].replace(".*", ""),
+                result["filemask"].replace("_*", ""),
+                result["filemask"].replace("-*", ""),
             ]
             for pot_name in pot_names:
                 if self.finder.has_file(pot_name):

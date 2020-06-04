@@ -282,7 +282,6 @@ class GetttetTest(DiscoveryTestCase):
 
     def test_new_base(self):
         discovery = GettextDiscovery(self.get_finder(["foo.fr.po", "foo.po"]))
-        print(list(discovery.discover()))
         self.assert_discovery(
             discovery.discover(),
             [
@@ -293,6 +292,19 @@ class GetttetTest(DiscoveryTestCase):
                     "new_base": "foo.po",
                     "file_format": "po-mono",
                 },
+            ],
+        )
+
+    def test_po_pot(self):
+        discovery = GettextDiscovery(self.get_finder(["po/jasp_nl.po", "po/jasp.po"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "po/jasp_*.po",
+                    "file_format": "po",
+                    "new_base": "po/jasp.po",
+                }
             ],
         )
 
