@@ -20,11 +20,7 @@
 """Filesystem finder for translations."""
 
 from fnmatch import fnmatch
-
-try:
-    from pathlib import Path, PurePath
-except ImportError:
-    from pathlib2 import Path, PurePath
+from pathlib import Path, PurePath
 
 EXCLUDES = {
     ".git",
