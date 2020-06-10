@@ -28,6 +28,7 @@ from .discovery.files import (
     ARBDiscovery,
     FluentDiscovery,
     GettextDiscovery,
+    HTMLDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
@@ -766,6 +767,22 @@ class ARBDiscoveryTest(DiscoveryTestCase):
                     "filemask": "res/values/strings_*.arb",
                     "file_format": "arb",
                     "template": "res/values/strings_en.arb",
+                },
+            ],
+        )
+
+
+class HTMLDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = HTMLDiscovery(self.get_finder(["docs/en.html", "docs/cs.html"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "docs/*.html",
+                    "file_format": "html",
+                    "template": "docs/en.html",
+                    "new_base": "docs/en.html",
                 },
             ],
         )
