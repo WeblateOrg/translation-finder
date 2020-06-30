@@ -1,9 +1,9 @@
 [
-    {
-        "id": "tag",
-        "translation": {
-            "one": "{{.count}} tag",
-            "other": "{{.count}} tags"
-        }
+  {
+    "id": "tag",
+    "translation": {
+      "one": "{{.count}} tag",
+      "other": "{{.count}} tags"
     }
+  }
 ]
