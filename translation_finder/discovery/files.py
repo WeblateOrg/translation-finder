@@ -141,8 +141,7 @@ class JavaDiscovery(EncodingDiscovery):
 
 
 class RESXDiscovery(BaseDiscovery):
-    """RESX files discovery.
-    """
+    """RESX files discovery."""
 
     file_format = "resx"
     mask = "resources.res[xw]"
@@ -168,8 +167,7 @@ class RESXDiscovery(BaseDiscovery):
 
 
 class AppStoreDiscovery(BaseDiscovery):
-    """App store metadata.
-    """
+    """App store metadata."""
 
     file_format = "appstore"
 
