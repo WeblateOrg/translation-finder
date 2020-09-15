@@ -4,7 +4,7 @@ Changelog
 2.2
 ---
 
-* Not yet released.
+* Released on 15th September 2020.
 * Added detection of Golang i18n json files.
 * Added detection of TOML files.
 * Improved charset detection by switching to charamel.
