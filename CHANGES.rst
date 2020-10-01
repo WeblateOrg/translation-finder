@@ -5,7 +5,7 @@ Changelog
 ---
 
 * Not yet released.
-
+* New dependency on weblate-language-data module.
 
 2.2
 ---
