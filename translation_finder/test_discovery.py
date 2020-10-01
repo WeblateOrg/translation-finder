@@ -309,6 +309,176 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
+    def test_po_many(self):
+        with open(os.path.join(TEST_DATA, "calibre.txt"), "r") as handle:
+            filenames = handle.read().splitlines()
+        discovery = GettextDiscovery(self.get_finder(filenames))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/catalogs.po",
+                    "new_base": "translations/manual/catalogs.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/conversion.po",
+                    "new_base": "translations/manual/conversion.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/creating_plugins.po",
+                    "new_base": "translations/manual/creating_plugins.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/customize.po",
+                    "new_base": "translations/manual/customize.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/db_api.po",
+                    "new_base": "translations/manual/db_api.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/develop.po",
+                    "new_base": "translations/manual/develop.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/diff.po",
+                    "new_base": "translations/manual/diff.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/drm.po",
+                    "new_base": "translations/manual/drm.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/edit.po",
+                    "new_base": "translations/manual/edit.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/faq.po",
+                    "new_base": "translations/manual/faq.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/function_mode.po",
+                    "new_base": "translations/manual/function_mode.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/glossary.po",
+                    "new_base": "translations/manual/glossary.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/gui.po",
+                    "new_base": "translations/manual/gui.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/index.po",
+                    "new_base": "translations/manual/index.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/metadata.po",
+                    "new_base": "translations/manual/metadata.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/news.po",
+                    "new_base": "translations/manual/news.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/news_recipe.po",
+                    "new_base": "translations/manual/news_recipe.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/plugins.po",
+                    "new_base": "translations/manual/plugins.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/polish.po",
+                    "new_base": "translations/manual/polish.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/regexp.po",
+                    "new_base": "translations/manual/regexp.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/regexp_quick_reference.po",
+                    "new_base": "translations/manual/regexp_quick_reference.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/server.po",
+                    "new_base": "translations/manual/server.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/simple_index.po",
+                    "new_base": "translations/manual/simple_index.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/snippets.po",
+                    "new_base": "translations/manual/snippets.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/sphinx.po",
+                    "new_base": "translations/manual/sphinx.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/sub_groups.po",
+                    "new_base": "translations/manual/sub_groups.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/template_lang.po",
+                    "new_base": "translations/manual/template_lang.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/tutorials.po",
+                    "new_base": "translations/manual/tutorials.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/typesetting_math.po",
+                    "new_base": "translations/manual/typesetting_math.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/viewer.po",
+                    "new_base": "translations/manual/viewer.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/virtual_libraries.po",
+                    "new_base": "translations/manual/virtual_libraries.pot",
+                },
+                {
+                    "file_format": "po",
+                    "filemask": "translations/manual/*/xpath.po",
+                    "new_base": "translations/manual/xpath.pot",
+                },
+            ],
+        )
+
 
 class QtTest(DiscoveryTestCase):
     def test_basic(self):
