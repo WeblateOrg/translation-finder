@@ -125,6 +125,9 @@ class BaseDiscovery(object):
                     if pos + 3 <= len(tokens):
                         if self.is_language_code("".join(tokens[pos : pos + 3])):
                             end = pos + 3
+                    # Skip possible language codes in middle of string
+                    if pos != 0 and end != len(tokens) and tokens[end] != ".":
+                        continue
                     return "{}*{}.{}".format(
                         "".join(tokens[:pos]), "".join(tokens[end:]), ext
                     )

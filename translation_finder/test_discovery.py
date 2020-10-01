@@ -320,7 +320,6 @@ class QtTest(DiscoveryTestCase):
                     "lrc/translations/lrc_id.ts",
                     "quickevent/app/quickevent/quickevent.cs_CZ.ts",
                     "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
-                    "6-migrate-archived-model-to-revision.ts",
                 ]
             )
         )
@@ -342,10 +341,6 @@ class QtTest(DiscoveryTestCase):
                     "filemask": "libqf/libqfqmlwidgets/libqfqmlwidgets.*.ts",
                     "file_format": "ts",
                     "new_base": "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
-                },
-                {
-                    "filemask": "6-migrate-archived-model-*-revision.ts",
-                    "file_format": "ts",
                 },
             ],
         )
@@ -614,6 +609,138 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_json_data(self):
+        """
+        Test discovery on huge list of JSON files.
+
+        Based on Cataclysm-DDA, see
+        https://github.com/WeblateOrg/translation-finder/issues/54
+        """
+        with open(os.path.join(TEST_DATA, "catalysm.txt"), "r") as handle:
+            filenames = handle.read().splitlines()
+        discovery = JSONDiscovery(self.get_finder(filenames))
+        # This has many false positives, but most of them come from
+        # filename starting with language code what is something we generally want
+        # to detect
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_car_dealership.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_car_showroom.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_city_dump_small.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_gardening_allotment.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_internet_cafe.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_market_small.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_open_sewer_small.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_private_park.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_public_art_piece.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_public_space.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_sex_shop.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/*_tire_shop.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/house/house05_*.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/mi-go/*-go_encampment.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/mi-go/*-go_nested.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/mi-go/*-go_scout_tower.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen/refugee_center/rc_grounds_*.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/mapgen_palettes/*-go_palette.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/monstergroups/*-go.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/monsters/*-go.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/npcs/*_trait_groups.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/npcs/*_traits.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/npcs/holdouts/*_Lapin.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/json/npcs/prisoners/*-go_prisoners.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/mods/more_classes_scenarios/*_classes.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/mods/more_classes_scenarios/*_scenarios.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/mods/more_classes_scenarios/*_locations.json",
+                },
+                {
+                    "file_format": "json-nested",
+                    "filemask": "data/names/*.json",
+                    "template": "data/names/en.json",
+                },
+            ],
+        )
+
 
 class TransifexTest(DiscoveryTestCase):
     def test_basic(self):
@@ -721,6 +848,18 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 }
             ],
         )
+
+    def test_workflows(self):
+        discovery = YAMLDiscovery(
+            self.get_finder(
+                [
+                    ".github/workflows/json.yml",
+                    ".github/workflows/pr-validator.yml",
+                    ".github/workflows/ccpp.yml",
+                ]
+            )
+        )
+        self.assert_discovery(discovery.discover(), [])
 
 
 class TOMLDiscoveryTest(DiscoveryTestCase):

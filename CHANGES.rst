@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * New dependency on weblate-language-data module.
+* Reduced amount of false positives on language codes inside a filename.
 
 2.2
 ---
