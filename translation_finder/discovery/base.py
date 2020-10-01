@@ -23,9 +23,9 @@ import re
 from itertools import chain
 
 from charamel import Detector
+from weblate_language_data.country_codes import COUNTRIES
+from weblate_language_data.language_codes import LANGUAGES
 
-from ..countries import COUNTRIES
-from ..languages import LANGUAGES
 from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_.-])")

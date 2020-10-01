@@ -1,2 +1,3 @@
 charamel>=1.0.0,<1.1
 ruamel.yaml
+weblate-language-data>=2020.10

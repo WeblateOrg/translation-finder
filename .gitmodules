@@ -1,3 +1,0 @@
-[submodule "scripts/language-data"]
-	path = scripts/language-data
-	url = https://github.com/WeblateOrg/language-data.git
