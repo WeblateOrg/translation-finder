@@ -583,6 +583,8 @@ class JavaTest(DiscoveryTestCase):
                     "bundle/Other_Messages.properties",
                     "length_1.properties",
                     "length_1_de.properties",
+                    "foo_en.properties",
+                    "foo_de.properties",
                 ]
             )
         )
@@ -598,6 +600,11 @@ class JavaTest(DiscoveryTestCase):
                     "filemask": "length_1_*.properties",
                     "file_format": "properties",
                     "template": "length_1.properties",
+                },
+                {
+                    "file_format": "properties",
+                    "filemask": "foo_*.properties",
+                    "template": "foo_en.properties",
                 },
             ],
         )
