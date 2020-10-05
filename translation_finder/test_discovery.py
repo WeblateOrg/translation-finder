@@ -487,6 +487,7 @@ class QtTest(DiscoveryTestCase):
                 [
                     "ts/cs.ts",
                     "ts/zh_CN.ts",
+                    "lrc/translations/lrc_de.ts",
                     "lrc/translations/lrc_id.ts",
                     "quickevent/app/quickevent/quickevent.cs_CZ.ts",
                     "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
@@ -500,7 +501,7 @@ class QtTest(DiscoveryTestCase):
                 {
                     "filemask": "lrc/translations/lrc_*.ts",
                     "file_format": "ts",
-                    "new_base": "lrc/translations/lrc_id.ts",
+                    "new_base": "lrc/translations/lrc_de.ts",
                 },
                 {
                     "filemask": "quickevent/app/quickevent/quickevent.*.ts",
