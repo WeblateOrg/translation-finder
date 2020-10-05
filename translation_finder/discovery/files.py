@@ -185,9 +185,10 @@ class AppStoreDiscovery(BaseDiscovery):
 
     def get_language_aliases(self, language):
         """Language code aliases."""
+        result = super().get_language_aliases(language)
         if language == "en":
-            return ["en", "en-US", "en-GB", "en-AU"]
-        return [language]
+            result.extend(["en-US", "en-GB", "en-AU"])
+        return result
 
 
 class JSONDiscovery(BaseDiscovery):
@@ -257,9 +258,10 @@ class FluentDiscovery(BaseDiscovery):
 
     def get_language_aliases(self, language):
         """Language code aliases."""
+        result = super().get_language_aliases(language)
         if language == "en":
-            return ["en", "en-US"]
-        return [language]
+            result.append("en-US")
+        return result
 
 
 class YAMLDiscovery(BaseDiscovery):
