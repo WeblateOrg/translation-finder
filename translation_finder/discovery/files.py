@@ -136,8 +136,7 @@ class JavaDiscovery(EncodingDiscovery):
 
     def possible_templates(self, language, mask):
         yield mask.replace("_*", "")
-        for result in super().possible_templates(language, mask):
-            yield result
+        yield from super().possible_templates(language, mask)
 
 
 class RESXDiscovery(BaseDiscovery):
@@ -148,8 +147,7 @@ class RESXDiscovery(BaseDiscovery):
 
     def possible_templates(self, language, mask):
         yield mask.replace(".*", "")
-        for result in super().possible_templates(language, mask):
-            yield result
+        yield from super().possible_templates(language, mask)
 
     def get_masks(self):
         """Return all file masks found in the directory.
@@ -162,8 +160,7 @@ class RESXDiscovery(BaseDiscovery):
                 continue
             mask[-1] = "{0}.*.{1}".format(base, ext)
             yield {"filemask": "/".join(mask)}
-        for match in super().get_masks():
-            yield match
+        yield from super().get_masks()
 
 
 class AppStoreDiscovery(BaseDiscovery):
