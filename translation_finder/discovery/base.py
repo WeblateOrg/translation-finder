@@ -192,8 +192,6 @@ class BaseDiscovery(object):
         for result in self.get_masks():
             if result["filemask"] in discovered:
                 continue
-            if "template" in result and not self.has_storage(result["template"]):
-                continue
             self.fill_in_template(result)
             self.adjust_format(result)
             self.fill_in_new_base(result)
