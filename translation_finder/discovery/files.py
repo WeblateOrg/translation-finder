@@ -110,10 +110,10 @@ class AndroidDiscovery(BaseDiscovery):
 class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
-    file_format = "strings"
+    file_format = "strings-utf8"
     encoding_map = {
-        "utf_8": "strings-utf8",
-        "utf_8_sig": "strings-utf8",
+        "utf_16": "strings-utf16",
+        "utf_16_sig": "strings-utf16",
     }
 
     def get_masks(self):

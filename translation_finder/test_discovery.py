@@ -556,12 +556,12 @@ class OSXTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "App/Resources/*.lproj/Localizable.strings",
-                    "file_format": "strings",
+                    "file_format": "strings-utf8",
                     "template": "App/Resources/en.lproj/Localizable.strings",
                 },
                 {
                     "filemask": "App/Resources/*.lproj/Other.strings",
-                    "file_format": "strings",
+                    "file_format": "strings-utf8",
                     "template": "App/Resources/Base.lproj/Other.strings",
                 },
             ],
