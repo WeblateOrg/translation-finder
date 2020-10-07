@@ -111,7 +111,10 @@ class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
     file_format = "strings"
-    encoding_map = {"utf_8": "strings-utf8"}
+    encoding_map = {
+        "utf_8": "strings-utf8",
+        "utf_8_sig": "strings-utf8",
+    }
 
     def get_masks(self):
         """Return all file masks found in the directory.
@@ -131,7 +134,12 @@ class JavaDiscovery(EncodingDiscovery):
     """Java string properties files discovery."""
 
     file_format = "properties"
-    encoding_map = {"utf_8": "properties-utf8", "utf_16": "properties-utf16"}
+    encoding_map = {
+        "utf_8": "properties-utf8",
+        "utf_8_sig": "properties-utf8",
+        "utf_16": "properties-utf16",
+        "utf_16_sig": "properties-utf16",
+    }
     mask = "*_*.properties"
 
     def possible_templates(self, language, mask):
