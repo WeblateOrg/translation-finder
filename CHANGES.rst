@@ -8,6 +8,7 @@ Changelog
 * New dependency on weblate-language-data module.
 * Reduced amount of false positives on language codes inside a filename.
 * Improved iOS strings encoding detection.
+* Removed charamel dependency.
 
 2.2
 ---

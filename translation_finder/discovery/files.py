@@ -112,8 +112,7 @@ class OSXDiscovery(EncodingDiscovery):
 
     file_format = "strings-utf8"
     encoding_map = {
-        "utf_16": "strings-utf16",
-        "utf_16_sig": "strings-utf16",
+        "utf-16": "strings-utf16",
     }
 
     def get_masks(self):
@@ -135,10 +134,8 @@ class JavaDiscovery(EncodingDiscovery):
 
     file_format = "properties"
     encoding_map = {
-        "utf_8": "properties-utf8",
-        "utf_8_sig": "properties-utf8",
-        "utf_16": "properties-utf16",
-        "utf_16_sig": "properties-utf16",
+        "utf-8": "properties-utf8",
+        "utf-16": "properties-utf16",
     }
     mask = "*_*.properties"
 

@@ -22,10 +22,10 @@
 import re
 from itertools import chain
 
-from charamel import Detector
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
+from ..chardet import detect_charset
 from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
@@ -243,7 +243,6 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
 class EncodingDiscovery(BaseDiscovery):
     encoding_map = {}
-    detector = Detector(min_confidence=0.7)
 
     def adjust_format(self, result):
         encoding = None
@@ -255,8 +254,7 @@ class EncodingDiscovery(BaseDiscovery):
             if not hasattr(path, "open"):
                 continue
             with self.finder.open(path, "rb") as handle:
-                encoding = self.detector.detect(handle.read())
-                if encoding is not None and encoding.value != "ascii":
-                    if encoding.value in self.encoding_map:
-                        result["file_format"] = self.encoding_map[encoding.value]
-                    return
+                encoding = detect_charset(handle.read())
+                if encoding in self.encoding_map:
+                    result["file_format"] = self.encoding_map[encoding]
+                return
