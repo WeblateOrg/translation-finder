@@ -4,7 +4,8 @@ Changelog
 2.4
 ---
 
-* Not yet released.
+* Released on 19th October 2020.
+* Fixed build of wheel packages.
 
 2.3
 ---
