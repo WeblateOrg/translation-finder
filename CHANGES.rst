@@ -4,7 +4,7 @@ Changelog
 2.3
 ---
 
-* Not yet released.
+* Released on 19th October 2020.
 * New dependency on weblate-language-data module.
 * Reduced amount of false positives on language codes inside a filename.
 * Improved iOS strings encoding detection.
