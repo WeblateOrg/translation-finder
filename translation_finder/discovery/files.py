@@ -52,6 +52,7 @@ class GettextDiscovery(BaseDiscovery):
         if "new_base" not in result:
             pot_names = [
                 result["filemask"].replace("po/*/", "pot/") + "t",
+                result["filemask"].replace("*", "templates") + "t",
                 result["filemask"].replace(".*", ""),
                 result["filemask"].replace("_*", ""),
                 result["filemask"].replace("-*", ""),

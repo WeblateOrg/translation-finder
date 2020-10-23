@@ -57,6 +57,7 @@ TEMPLATE_REPLACEMENTS = (
     ("-*", ""),
     (".*", ""),
     ("*", ""),
+    ("*", "templates"),
 )
 
 

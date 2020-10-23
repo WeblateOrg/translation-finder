@@ -516,6 +516,34 @@ class QtTest(DiscoveryTestCase):
             ],
         )
 
+    def test_po_mono_template(self):
+        discovery = GettextDiscovery(
+            self.get_finder(
+                [
+                    "PoFiles/templates",
+                    "PoFiles/templates/MdeMeta.pot",
+                    "PoFiles/en/MdeMeta.po",
+                    "PoFiles/de/MdeMeta.po",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "file_format": "po",
+                    "filemask": "PoFiles/*/MdeMeta.po",
+                    "new_base": "PoFiles/templates/MdeMeta.pot",
+                },
+                {
+                    "file_format": "po-mono",
+                    "filemask": "PoFiles/*/MdeMeta.po",
+                    "new_base": "PoFiles/templates/MdeMeta.pot",
+                    "template": "PoFiles/en/MdeMeta.po",
+                },
+            ],
+        )
+
 
 class AndroidTest(DiscoveryTestCase):
     def test_basic(self):

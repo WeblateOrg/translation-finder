@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Improved POT detection in some cases.
 
 2.4
 ---
