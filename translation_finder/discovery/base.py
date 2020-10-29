@@ -26,6 +26,7 @@ from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
 from ..chardet import detect_charset
+from ..data import LANGUAGES_BLACKLIST
 from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
@@ -83,12 +84,16 @@ class BaseDiscovery(object):
     def is_language_code(cls, code):
         """Analysis whether passed parameter looks like language code."""
         code = code.lower().replace("-", "_")
-        if code in LANGUAGES:
+        if code in LANGUAGES and code not in LANGUAGES_BLACKLIST:
             return True
 
         if "_" in code:
             lang, country = code.split("_", 1)
-            if lang in LANGUAGES and cls.is_country_code(country):
+            if (
+                lang in LANGUAGES
+                and code not in LANGUAGES_BLACKLIST
+                and cls.is_country_code(country)
+            ):
                 return True
 
         return False
