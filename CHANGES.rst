@@ -4,8 +4,9 @@ Changelog
 2.5
 ---
 
-* Not yet released.
+* Released on 4th November 2020.
 * Improved POT detection in some cases.
+* Tested with Python 3.9.
 
 2.4
 ---
