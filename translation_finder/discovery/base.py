@@ -91,7 +91,7 @@ class BaseDiscovery:
             lang, country = code.split("_", 1)
             if (
                 lang in LANGUAGES
-                and code not in LANGUAGES_BLACKLIST
+                and lang not in LANGUAGES_BLACKLIST
                 and cls.is_country_code(country)
             ):
                 return True
