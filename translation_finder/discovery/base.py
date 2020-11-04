@@ -245,12 +245,16 @@ class BaseDiscovery:
 
 
 class MonoTemplateDiscovery(BaseDiscovery):
+    """Base class for monolingual template based files."""
+
     def fill_in_new_base(self, result):
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
 
 
 class EncodingDiscovery(BaseDiscovery):
+    """Base class for formats needing encoding detection."""
+
     encoding_map = {}
 
     def adjust_format(self, result):

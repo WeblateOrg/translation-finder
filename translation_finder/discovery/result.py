@@ -21,6 +21,13 @@
 
 
 class DiscoveryResult(dict):
+    """
+    Discovery result class.
+
+    This is essentially a dict with meta dict containing additional
+    information.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.meta = {}
