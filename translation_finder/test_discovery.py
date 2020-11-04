@@ -49,7 +49,8 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 class DiscoveryTestCase(TestCase):
     maxDiff = None
 
-    def get_finder(self, paths, dirs=None):
+    @staticmethod
+    def get_finder(paths, dirs=None):
         if dirs is None:
             dirs = []
         return Finder(
@@ -60,7 +61,8 @@ class DiscoveryTestCase(TestCase):
             ),
         )
 
-    def get_real_finder(self):
+    @staticmethod
+    def get_real_finder():
         return Finder(TEST_DATA)
 
     def assert_discovery(self, first, second):

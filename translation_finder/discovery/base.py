@@ -98,7 +98,8 @@ class BaseDiscovery:
 
         return False
 
-    def detect_format(self, filemask):
+    @staticmethod
+    def detect_format(filemask):
         filemask = filemask.lower()
         for end, result in EXTENSION_MAP:
             if filemask.endswith(end):
@@ -162,7 +163,8 @@ class BaseDiscovery:
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
-    def get_language_aliases(self, language):
+    @staticmethod
+    def get_language_aliases(language):
         """Language code aliases."""
         return [language]
 
@@ -189,7 +191,8 @@ class BaseDiscovery:
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
-    def adjust_format(self, result):
+    @staticmethod
+    def adjust_format(result):
         return
 
     def discover(self):
