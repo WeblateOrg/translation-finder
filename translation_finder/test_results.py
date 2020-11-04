@@ -18,7 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from pickle import dumps, loads
+from pickle import dumps, loads  # nosec
 from unittest import TestCase
 
 from .discovery.result import DiscoveryResult
