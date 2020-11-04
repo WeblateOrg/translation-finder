@@ -38,7 +38,7 @@ EXCLUDES = {
 }
 
 
-class Finder(object):
+class Finder:
     """Finder for files which might be considered translations."""
 
     def __init__(self, root, mock=None):

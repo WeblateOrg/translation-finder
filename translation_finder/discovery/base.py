@@ -62,7 +62,7 @@ TEMPLATE_REPLACEMENTS = (
 )
 
 
-class BaseDiscovery(object):
+class BaseDiscovery:
     """Abstract base class for discovery."""
 
     file_format = ""
