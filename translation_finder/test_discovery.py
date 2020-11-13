@@ -26,6 +26,7 @@ from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
+    CSVDiscovery,
     FluentDiscovery,
     GettextDiscovery,
     HTMLDiscovery,
@@ -1130,6 +1131,22 @@ class HTMLDiscoveryTest(DiscoveryTestCase):
                     "file_format": "html",
                     "template": "docs/en.html",
                     "new_base": "docs/en.html",
+                },
+            ],
+        )
+
+
+class CSVDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = CSVDiscovery(self.get_finder(["csv/en.csv", "csv/cs.csv"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "csv/*.csv",
+                    "file_format": "csv",
+                    "template": "csv/en.csv",
+                    "new_base": "csv/en.csv",
                 },
             ],
         )

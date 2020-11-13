@@ -85,6 +85,13 @@ class JoomlaDiscovery(BaseDiscovery):
     mask = "*.ini"
 
 
+class CSVDiscovery(MonoTemplateDiscovery):
+    """CSV files discovery."""
+
+    file_format = "csv"
+    mask = "*.csv"
+
+
 class WebExtensionDiscovery(BaseDiscovery):
     """web extension files discovery."""
 
