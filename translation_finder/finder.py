@@ -80,7 +80,7 @@ class Finder:
         It skips excluded files."""
 
         for path in root.iterdir():
-            if any((path.match(exclude) for exclude in EXCLUDES)):
+            if any(path.match(exclude) for exclude in EXCLUDES):
                 continue
             if path.is_symlink():
                 continue

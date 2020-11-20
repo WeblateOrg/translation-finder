@@ -37,9 +37,7 @@ class ResultTest(TestCase):
     def test_repr(self):
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
-        self.assertEqual(
-            "{!r}".format(r1), "{'file_format': 'a'} [meta:{'priority': 10}]"
-        )
+        self.assertEqual(f"{r1!r}", "{'file_format': 'a'} [meta:{'priority': 10}]")
 
     def test_pickle(self):
         r1 = DiscoveryResult({"file_format": "a"})

@@ -99,7 +99,7 @@ def cli(stdout=None, args=None):
 
     parser = ArgumentParser(
         description="Weblate translation discovery utility.",
-        epilog="This utility is developed at <{0}>.".format(
+        epilog="This utility is developed at <{}>.".format(
             "https://github.com/WeblateOrg/translation-finder"
         ),
     )
@@ -114,6 +114,6 @@ def cli(stdout=None, args=None):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
         print("== Match {}{} ==".format(pos + 1, origin), file=stdout)
         for key, value in sorted(match.items()):
-            print("{:15}: {}".format(key, value), file=stdout)
+            print(f"{key:15}: {value}", file=stdout)
         print("", file=stdout)
     return 0

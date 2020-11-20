@@ -313,7 +313,7 @@ class GetttetTest(DiscoveryTestCase):
         )
 
     def test_po_many(self):
-        with open(os.path.join(TEST_DATA, "calibre.txt"), "r") as handle:
+        with open(os.path.join(TEST_DATA, "calibre.txt")) as handle:
             filenames = handle.read().splitlines()
         discovery = GettextDiscovery(self.get_finder(filenames))
         self.assert_discovery(
@@ -825,7 +825,7 @@ class JSONDiscoveryTest(DiscoveryTestCase):
         Based on Cataclysm-DDA, see
         https://github.com/WeblateOrg/translation-finder/issues/54
         """
-        with open(os.path.join(TEST_DATA, "catalysm.txt"), "r") as handle:
+        with open(os.path.join(TEST_DATA, "catalysm.txt")) as handle:
             filenames = handle.read().splitlines()
         discovery = JSONDiscovery(self.get_finder(filenames))
         # This has many false positives, but most of them come from

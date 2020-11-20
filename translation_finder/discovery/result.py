@@ -53,7 +53,7 @@ class DiscoveryResult(dict):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "{!r} [meta:{!r}]".format(self.match, self.meta)
+        return f"{self.match!r} [meta:{self.meta!r}]"
 
     def copy(self):
         result = DiscoveryResult(super().copy())

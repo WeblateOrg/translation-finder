@@ -116,12 +116,12 @@ class BaseDiscovery:
             base, ext = part.rsplit(".", 1)
             # Handle <language>.extension
             if self.is_language_code(base):
-                return "*.{}".format(ext)
+                return f"*.{ext}"
             # Handle prefix.<language>.extension
             if "." in base:
                 prefix, token = base.split(".", 1)
                 if self.is_language_code(token):
-                    return "{}.*.{}".format(prefix, ext)
+                    return f"{prefix}.*.{ext}"
             # Handle prefix-<language>.extension or prefix_<language>.extension
             tokens = TOKEN_SPLIT.split(base)
             for pos, token in enumerate(tokens):
@@ -237,9 +237,7 @@ class BaseDiscovery:
                     for i, current in enumerate(mask):
                         if match.findall(current):
                             skip.add(i)
-                            mask[i] = match.sub(
-                                "\\g<1>{}\\g<2>".format(wildcard), current
-                            )
+                            mask[i] = match.sub(f"\\g<1>{wildcard}\\g<2>", current)
                     mask[pos] = wildcard
                     yield {"filemask": "/".join(mask)}
 

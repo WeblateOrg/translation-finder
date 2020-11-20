@@ -171,7 +171,7 @@ class RESXDiscovery(BaseDiscovery):
             base, code, ext = mask[-1].rsplit(".", 2)
             if not self.is_language_code(code):
                 continue
-            mask[-1] = "{0}.*.{1}".format(base, ext)
+            mask[-1] = f"{base}.*.{ext}"
             yield {"filemask": "/".join(mask)}
         yield from super().get_masks()
 
