@@ -34,6 +34,7 @@ from .discovery.files import (
     JoomlaDiscovery,
     JSONDiscovery,
     OSXDiscovery,
+    PHPDiscovery,
     QtDiscovery,
     RESXDiscovery,
     TOMLDiscovery,
@@ -1147,6 +1148,22 @@ class CSVDiscoveryTest(DiscoveryTestCase):
                     "file_format": "csv",
                     "template": "csv/en.csv",
                     "new_base": "csv/en.csv",
+                },
+            ],
+        )
+
+
+class PHPDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = PHPDiscovery(self.get_finder(["test/en.php"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "test/*.php",
+                    "file_format": "php",
+                    "template": "test/en.php",
+                    "new_base": "test/en.php",
                 },
             ],
         )

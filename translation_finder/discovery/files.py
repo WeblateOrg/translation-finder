@@ -335,7 +335,7 @@ class SSADiscovery(MonoTemplateDiscovery):
     mask = "*.ssa"
 
 
-class PHPDiscovery(BaseDiscovery):
+class PHPDiscovery(MonoTemplateDiscovery):
     """PHP files discovery."""
 
     file_format = "php"
