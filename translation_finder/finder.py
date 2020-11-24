@@ -81,7 +81,10 @@ class Finder:
                 continue
             if path.is_dir():
                 dirs.append(self.process_path(path))
-                self.list_files(path, files, dirs)
+                try:
+                    self.list_files(path, files, dirs)
+                except OSError:
+                    continue
             else:
                 files.append(self.process_path(path))
 

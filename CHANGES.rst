@@ -8,6 +8,7 @@ Changelog
 * Added support for CSV files.
 * Improved detection of PHP files.
 * Removed filtering of test files.
+* Finder now skips non accessible directories.
 
 2.5
 ---
