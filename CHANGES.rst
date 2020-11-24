@@ -6,6 +6,8 @@ Changelog
 
 * Not yet released.
 * Added support for CSV files.
+* Improved detection of PHP files.
+* Removed filtering of test files.
 
 2.5
 ---
