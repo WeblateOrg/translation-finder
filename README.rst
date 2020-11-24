@@ -45,13 +45,13 @@ In can be used from Python:
    >>> from pprint import pprint
    >>> results = discover('translation_finder/test_data/')
    >>> len(results)
-   23
+   25
    >>> pprint(results[0].match)
    {'file_format': 'aresource',
     'filemask': 'app/src/res/main/values-*/strings.xml',
     'name': 'android',
     'template': 'app/src/res/main/values/strings.xml'}
-   >>> pprint(results[11].match)
+   >>> pprint(results[13].match)
    {'file_format': 'po',
     'filemask': 'locales/*.po',
     'new_base': 'locales/messages.pot'}
@@ -62,7 +62,7 @@ Additional information about discovery can be obtained from meta attribute:
 
    >>> pprint(results[0].meta)
    {'discovery': 'TransifexDiscovery', 'origin': 'Transifex', 'priority': 500}
-   >>> pprint(results[11].meta)
+   >>> pprint(results[13].meta)
    {'discovery': 'GettextDiscovery', 'origin': None, 'priority': 1000}
 
 

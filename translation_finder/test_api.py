@@ -156,6 +156,18 @@ class APITest(DiscoveryTestCase):
                     "template": "yaml/en/corrupt.yml",
                     "file_format": "yaml",
                 },
+                {
+                    "file_format": "php",
+                    "filemask": "php/*.php",
+                    "new_base": "php/en.php",
+                    "template": "php/en.php",
+                },
+                {
+                    "file_format": "laravel",
+                    "filemask": "laravel/*.php",
+                    "new_base": "laravel/en.php",
+                    "template": "laravel/en.php",
+                },
             ],
         )
 

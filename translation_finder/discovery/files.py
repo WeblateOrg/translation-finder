@@ -20,12 +20,15 @@
 """Individual discovery rules for translation formats."""
 
 import json
+import re
 from itertools import chain
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
 from .base import BaseDiscovery, EncodingDiscovery, MonoTemplateDiscovery
+
+LARAVEL_RE = re.compile(r"=>.*\|")
 
 
 class GettextDiscovery(BaseDiscovery):
@@ -340,6 +343,20 @@ class PHPDiscovery(MonoTemplateDiscovery):
 
     file_format = "php"
     mask = "*.php"
+
+    def adjust_format(self, result):
+        if "template" not in result:
+            return
+
+        path = list(self.finder.mask_matches(result["template"]))[0]
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "r") as handle:
+            content = handle.read()
+            if "return [" in content and LARAVEL_RE.search(content):
+                result["file_format"] = "laravel"
 
 
 class IDMLDiscovery(MonoTemplateDiscovery):
