@@ -29,12 +29,7 @@ EXCLUDES = {
     "*.swp",
     "__pycache__",
     "__MACOSX",
-    "test",
-    "t",
     ".deps",
-    "tests",
-    "test_data",
-    "testing",
 }
 
 

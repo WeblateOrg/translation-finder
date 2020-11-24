@@ -53,6 +53,11 @@ class APITest(DiscoveryTestCase):
                 },
                 {
                     "file_format": "po",
+                    "filemask": "test/*.po",
+                    "new_base": "test/messages.pot",
+                },
+                {
+                    "file_format": "po",
                     "filemask": "other/locales/*.po",
                     "new_base": "other/locales/messages.pot",
                     "name": "auto",
