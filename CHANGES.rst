@@ -4,7 +4,7 @@ Changelog
 2.6
 ---
 
-* Not yet released.
+* Released on 26th November 2020.
 * Added support for CSV files.
 * Improved detection of PHP files.
 * Removed filtering of test files.
