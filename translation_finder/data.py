@@ -68,4 +68,5 @@ LANGUAGES_BLACKLIST = {
     "ter",
     "base",
     "source",
+    "zen",
 }
