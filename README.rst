@@ -39,7 +39,7 @@ Usage
 
 In can be used from Python:
 
-.. code-block:: python-console
+.. code-block:: pycon
 
    >>> from translation_finder import discover
    >>> from pprint import pprint
@@ -58,7 +58,7 @@ In can be used from Python:
 
 Additional information about discovery can be obtained from meta attribute:
 
-.. code-block:: python-console
+.. code-block:: pycon
 
    >>> pprint(results[0].meta)
    {'discovery': 'TransifexDiscovery', 'origin': 'Transifex', 'priority': 500}
