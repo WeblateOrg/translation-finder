@@ -43,7 +43,7 @@ In can be used from Python:
 
    >>> from translation_finder import discover
    >>> from pprint import pprint
-   >>> results = discover('translation_finder/test_data/')
+   >>> results = discover("translation_finder/test_data/")
    >>> len(results)
    25
    >>> pprint(results[0].match)
