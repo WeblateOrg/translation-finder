@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Fixed support for CSV files.
 
 2.6
 ---
