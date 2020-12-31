@@ -377,7 +377,7 @@ class ODFDiscovery(MonoTemplateDiscovery):
     """ODF files discovery."""
 
     file_format = "odf"
-    mask = ("*.odt", "*.ods", "*.odp")
+    mask = ("*.odt", "*.ods", "*.odp", "*.odg")
 
 
 class INIDiscovery(BaseDiscovery):
