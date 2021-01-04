@@ -70,6 +70,7 @@ class BaseDiscovery:
     new_base_mask = None
     origin = None
     priority = 1000
+    uses_template = False
 
     def __init__(self, finder, source_language="en"):
         self.finder = finder
@@ -195,10 +196,10 @@ class BaseDiscovery:
     def adjust_format(result):
         return
 
-    def discover(self):
+    def discover(self, eager: bool = False):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
-        for result in self.get_masks():
+        for result in self.get_masks(eager=eager):
             if result["filemask"] in discovered:
                 continue
             self.fill_in_template(result)
@@ -220,12 +221,19 @@ class BaseDiscovery:
             masks = self.mask
         return chain.from_iterable(self.finder.filter_files(mask) for mask in masks)
 
-    def get_masks(self):
+    def get_masks(self, eager: bool = False):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
         for path in self.filter_files():
             parts = list(path.parts)
+            if eager:
+                parts[-1] = "*.{}".format(parts[-1].rsplit(".", 1)[1])
+                result = {"filemask": "/".join(parts)}
+                if self.uses_template:
+                    result["new_base"] = result["template"] = "/".join(path.parts)
+                yield result
+                continue
             skip = set()
             for pos, part in enumerate(parts):
                 if pos in skip:
@@ -244,6 +252,8 @@ class BaseDiscovery:
 
 class MonoTemplateDiscovery(BaseDiscovery):
     """Base class for monolingual template based files."""
+
+    uses_template = True
 
     def fill_in_new_base(self, result):
         if "new_base" not in result and "template" in result:

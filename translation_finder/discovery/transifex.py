@@ -83,7 +83,7 @@ class TransifexDiscovery(BaseDiscovery):
 
         return result
 
-    def get_masks(self):
+    def get_masks(self, eager: bool = False):
         """Retuns matches from transifex files."""
         for path in self.finder.filter_files("config", ".tx"):
             config = RawConfigParser()

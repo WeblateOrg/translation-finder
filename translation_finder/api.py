@@ -84,13 +84,22 @@ BACKENDS = [
 ]
 
 
-def discover(root, mock=None, source_language="en"):
-    """High level discovery interface."""
+def discover(root, mock=None, source_language: str = "en", eager: bool = False):
+    """
+    High level discovery interface.
+
+    It detects all files which seem translatable (either follow conventions for
+    given file format or contain source langauge in a file path or name).
+
+    The eager mode detects all files in known format regardless their naming.
+    Use this in case you want to list all files which can be handled by
+    localization tools such as Weblate.
+    """
     finder = Finder(root, mock=mock)
     results = []
     for backend in BACKENDS:
         instance = backend(finder, source_language)
-        results.extend(instance.discover())
+        results.extend(instance.discover(eager=eager))
     results.sort()
     return results
 
@@ -106,12 +115,20 @@ def cli(stdout=None, args=None):
         ),
     )
     parser.add_argument("--source-language", help="Source language code", default="en")
+    parser.add_argument(
+        "--eager",
+        help="Enable eager discovery mode",
+        default=False,
+        action="store_true",
+    )
     parser.add_argument("directory", help="Directory where to perform discovery")
 
     params = parser.parse_args(args)
 
     for pos, match in enumerate(
-        discover(params.directory, source_language=params.source_language)
+        discover(
+            params.directory, source_language=params.source_language, eager=params.eager
+        )
     ):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
         print("== Match {}{} ==".format(pos + 1, origin), file=stdout)

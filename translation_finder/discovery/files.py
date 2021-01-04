@@ -38,8 +38,8 @@ class GettextDiscovery(BaseDiscovery):
     mask = "*.po"
     new_base_mask = "*.pot"
 
-    def discover(self):
-        for result in super().discover():
+    def discover(self, eager: bool = False):
+        for result in super().discover(eager=eager):
             if "template" not in result:
                 yield result
                 continue
@@ -107,7 +107,7 @@ class AndroidDiscovery(BaseDiscovery):
 
     file_format = "aresource"
 
-    def get_masks(self):
+    def get_masks(self, eager: bool = False):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -126,7 +126,7 @@ class OSXDiscovery(EncodingDiscovery):
         "utf-16": "strings-utf16",
     }
 
-    def get_masks(self):
+    def get_masks(self, eager: bool = False):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -165,7 +165,7 @@ class RESXDiscovery(BaseDiscovery):
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self):
+    def get_masks(self, eager: bool = False):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -176,7 +176,7 @@ class RESXDiscovery(BaseDiscovery):
                 continue
             mask[-1] = f"{base}.*.{ext}"
             yield {"filemask": "/".join(mask)}
-        yield from super().get_masks()
+        yield from super().get_masks(eager=eager)
 
 
 class AppStoreDiscovery(BaseDiscovery):

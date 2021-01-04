@@ -175,3 +175,21 @@ class APITest(DiscoveryTestCase):
         output = StringIO()
         cli(args=[TEST_DATA], stdout=output)
         self.assertIn("Match 2", output.getvalue())
+
+    def test_no_match(self):
+        paths = ["files/document.odt"]
+        self.assert_discovery(
+            discover(
+                PurePath("."),
+                mock=([(PurePath(path), PurePath(path), path) for path in paths], []),
+                eager=True,
+            ),
+            [
+                {
+                    "filemask": "files/*.odt",
+                    "new_base": "files/document.odt",
+                    "template": "files/document.odt",
+                    "file_format": "odf",
+                }
+            ],
+        )
