@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Fixed support for CSV files.
 * Added eager detection mode.
+* Added type hints.
 
 2.6
 ---

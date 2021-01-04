@@ -21,6 +21,7 @@
 
 from fnmatch import fnmatch
 from pathlib import Path, PurePath
+from typing import Optional
 
 EXCLUDES = {
     ".git",
@@ -88,21 +89,21 @@ class Finder:
             else:
                 files.append(self.process_path(path))
 
-    def has_file(self, name):
+    def has_file(self, name: str):
         """Check whether file exists."""
         return name in self.filenames
 
-    def has_dir(self, name):
+    def has_dir(self, name: str):
         """Check whether dir exists."""
         return name in self.dirnames
 
-    def mask_matches(self, mask):
+    def mask_matches(self, mask: str):
         """Return all mask matches."""
         for name, path in self.files:
             if fnmatch(name, mask):
                 yield path
 
-    def filter_files(self, glob, dirglob=None):
+    def filter_files(self, glob: str, dirglob: Optional[str] = None):
         """Filter lowercase file names against glob."""
         for name, path in self.lc_files:
             try:

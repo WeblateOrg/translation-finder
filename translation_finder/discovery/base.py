@@ -21,6 +21,7 @@
 
 import re
 from itertools import chain
+from typing import Dict, Optional
 
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
@@ -82,7 +83,7 @@ class BaseDiscovery:
         return code in COUNTRIES or code in LOCALES
 
     @classmethod
-    def is_language_code(cls, code):
+    def is_language_code(cls, code: str):
         """Analysis whether passed parameter looks like language code."""
         code = code.lower().replace("-", "_")
         if code in LANGUAGES and code not in LANGUAGES_BLACKLIST:
@@ -100,14 +101,14 @@ class BaseDiscovery:
         return False
 
     @staticmethod
-    def detect_format(filemask):
+    def detect_format(filemask: str):
         filemask = filemask.lower()
         for end, result in EXTENSION_MAP:
             if filemask.endswith(end):
                 return result
         return ""
 
-    def get_wildcard(self, part):
+    def get_wildcard(self, part: str):
         """Generate language wilcard for a path part.
 
         Retruns None if not possible."""
@@ -141,7 +142,7 @@ class BaseDiscovery:
                     )
         return None
 
-    def fill_in_new_base(self, result):
+    def fill_in_new_base(self, result: Dict[str, str]):
         if not self.new_base_mask:
             return
         path = result["filemask"]
@@ -160,16 +161,16 @@ class BaseDiscovery:
                 result["new_base"] = "/".join(match.parts)
                 return
 
-    def has_storage(self, name):
+    def has_storage(self, name: str):
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
     @staticmethod
-    def get_language_aliases(language):
+    def get_language_aliases(language: str):
         """Language code aliases."""
         return [language]
 
-    def possible_templates(self, language, mask):
+    def possible_templates(self, language: str, mask: str):
         """Yield possible template filenames."""
         for alias in self.get_language_aliases(language):
             yield mask.replace("*", alias)
@@ -177,7 +178,9 @@ class BaseDiscovery:
             if match in mask:
                 yield mask.replace(match, replacement)
 
-    def fill_in_template(self, result, source_language=None):
+    def fill_in_template(
+        self, result: Dict[str, str], source_language: Optional[str] = None
+    ):
         if "template" not in result:
             if source_language is None:
                 source_language = self.source_language
@@ -188,12 +191,12 @@ class BaseDiscovery:
                     result["template"] = template
                     break
 
-    def fill_in_file_format(self, result):
+    def fill_in_file_format(self, result: Dict[str, str]):
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
     @staticmethod
-    def adjust_format(result):
+    def adjust_format(result: Dict[str, str]):
         return
 
     def discover(self, eager: bool = False):
@@ -255,7 +258,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
     uses_template = True
 
-    def fill_in_new_base(self, result):
+    def fill_in_new_base(self, result: Dict[str, str]):
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
 
@@ -265,7 +268,7 @@ class EncodingDiscovery(BaseDiscovery):
 
     encoding_map = {}
 
-    def adjust_format(self, result):
+    def adjust_format(self, result: Dict[str, str]):
         encoding = None
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:

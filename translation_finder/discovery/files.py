@@ -22,6 +22,7 @@
 import json
 import re
 from itertools import chain
+from typing import Dict
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -150,7 +151,7 @@ class JavaDiscovery(EncodingDiscovery):
     }
     mask = "*_*.properties"
 
-    def possible_templates(self, language, mask):
+    def possible_templates(self, language: str, mask: str):
         yield mask.replace("_*", "")
         yield from super().possible_templates(language, mask)
 
@@ -161,7 +162,7 @@ class RESXDiscovery(BaseDiscovery):
     file_format = "resx"
     mask = "resources.res[xw]"
 
-    def possible_templates(self, language, mask):
+    def possible_templates(self, language: str, mask: str):
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
@@ -195,11 +196,11 @@ class AppStoreDiscovery(BaseDiscovery):
         for path in self.finder.filter_files("*.txt", "*/changelogs"):
             yield path.parent.parent
 
-    def has_storage(self, name):
+    def has_storage(self, name: str):
         """Check whether finder has a storage."""
         return self.finder.has_dir(name)
 
-    def get_language_aliases(self, language):
+    def get_language_aliases(self, language: str):
         """Language code aliases."""
         result = super().get_language_aliases(language)
         if language == "en":
@@ -236,7 +237,7 @@ class JSONDiscovery(BaseDiscovery):
 
         return all_strings, i18next, False
 
-    def adjust_format(self, result):
+    def adjust_format(self, result: Dict[str, str]):
         if "template" not in result:
             return
 
@@ -272,7 +273,7 @@ class FluentDiscovery(BaseDiscovery):
     file_format = "fluent"
     mask = "*.ftl"
 
-    def get_language_aliases(self, language):
+    def get_language_aliases(self, language: str):
         """Language code aliases."""
         result = super().get_language_aliases(language)
         if language == "en":
@@ -286,7 +287,7 @@ class YAMLDiscovery(BaseDiscovery):
     file_format = "yaml"
     mask = ("*.yml", "*.yaml")
 
-    def adjust_format(self, result):
+    def adjust_format(self, result: Dict[str, str]):
         if "template" not in result:
             return
 
@@ -344,7 +345,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
     file_format = "php"
     mask = "*.php"
 
-    def adjust_format(self, result):
+    def adjust_format(self, result: Dict[str, str]):
         if "template" not in result:
             return
 
@@ -425,7 +426,7 @@ class ARBDiscovery(BaseDiscovery):
     file_format = "arb"
     mask = "*.arb"
 
-    def fill_in_new_base(self, result):
+    def fill_in_new_base(self, result: Dict[str, str]):
         super().fill_in_new_base(result)
         if "intermediate" not in result:
             # Flutter intermediate files

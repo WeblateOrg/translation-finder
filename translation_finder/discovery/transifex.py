@@ -50,14 +50,14 @@ class TransifexDiscovery(BaseDiscovery):
         "YML": "ruby-yaml",
     }
 
-    def extract_format(self, transifex):
+    def extract_format(self, transifex: str):
         transifex = transifex.upper()
         try:
             return self.typemap[transifex]
         except KeyError:
             return ""
 
-    def extract_section(self, config, section):
+    def extract_section(self, config, section: str):
         if section == "main" or not config.has_option(section, "file_filter"):
             return None
         result = {
