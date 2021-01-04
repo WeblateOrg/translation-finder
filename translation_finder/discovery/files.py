@@ -149,7 +149,7 @@ class JavaDiscovery(EncodingDiscovery):
         "utf-8": "properties-utf8",
         "utf-16": "properties-utf16",
     }
-    mask = "*_*.properties"
+    mask = ["*_*.properties", "*.properties"]
 
     def possible_templates(self, language: str, mask: str):
         yield mask.replace("_*", "")
