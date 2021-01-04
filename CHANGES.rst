@@ -4,7 +4,7 @@ Changelog
 2.7
 ---
 
-* Not yet released.
+* Released on 4th January 2021.
 * Fixed support for CSV files.
 * Added eager detection mode.
 * Added type hints.
