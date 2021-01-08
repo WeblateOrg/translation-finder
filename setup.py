@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright © 2012 - 2020 Michal Čihař <michal@cihar.com>
+# Copyright © 2012 - 2021 Michal Čihař <michal@cihar.com>
 #
 # This file is part of Weblate translation-finder
 # <https://github.com/WeblateOrg/translation-finder>
