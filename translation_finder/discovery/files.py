@@ -440,3 +440,10 @@ class RCDiscovery(MonoTemplateDiscovery):
 
     file_format = "rc"
     mask = ("*.rc",)
+
+    @staticmethod
+    def get_language_aliases(language: str):
+        """Language code aliases."""
+        if language == "en":
+            return [language, "enu", "ENU"]
+        return [language]

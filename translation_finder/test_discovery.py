@@ -36,6 +36,7 @@ from .discovery.files import (
     OSXDiscovery,
     PHPDiscovery,
     QtDiscovery,
+    RCDiscovery,
     RESXDiscovery,
     TOMLDiscovery,
     WebExtensionDiscovery,
@@ -1164,6 +1165,28 @@ class PHPDiscoveryTest(DiscoveryTestCase):
                     "file_format": "php",
                     "template": "test/en.php",
                     "new_base": "test/en.php",
+                },
+            ],
+        )
+
+
+class TestRCDiscovery(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = RCDiscovery(self.get_finder(["test_enu.rc", "other_ENU.rc"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "test_*.rc",
+                    "file_format": "rc",
+                    "template": "test_enu.rc",
+                    "new_base": "test_enu.rc",
+                },
+                {
+                    "filemask": "other_*.rc",
+                    "file_format": "rc",
+                    "template": "other_ENU.rc",
+                    "new_base": "other_ENU.rc",
                 },
             ],
         )
