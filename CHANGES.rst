@@ -5,6 +5,7 @@ Changelog
 ---
 
 * Not yet released.
+* Added detection of RC files.
 
 2.7
 ---

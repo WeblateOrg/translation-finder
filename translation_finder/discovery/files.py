@@ -433,3 +433,10 @@ class ARBDiscovery(BaseDiscovery):
             intermediate = result["filemask"].replace("*", "messages")
             if self.finder.has_file(intermediate):
                 result["intermediate"] = intermediate
+
+
+class RCDiscovery(MonoTemplateDiscovery):
+    """RC files discovery."""
+
+    file_format = "rc"
+    mask = ("*.rc",)
