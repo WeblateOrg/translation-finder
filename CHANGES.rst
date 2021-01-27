@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Added detection of RC files.
+* Added detection of TBX files.
 
 2.7
 ---

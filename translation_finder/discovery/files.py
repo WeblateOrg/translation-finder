@@ -447,3 +447,10 @@ class RCDiscovery(MonoTemplateDiscovery):
         if language == "en":
             return [language, "enu", "ENU"]
         return [language]
+
+
+class TBXDiscovery(BaseDiscovery):
+    """TBX files discovery."""
+
+    file_format = "tbx"
+    mask = "*.tbx"
