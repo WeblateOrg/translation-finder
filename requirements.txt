@@ -1,2 +1,2 @@
 ruamel.yaml
-weblate-language-data>=2021.1
+weblate-language-data>=2021.2
