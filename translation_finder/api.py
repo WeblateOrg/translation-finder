@@ -22,70 +22,15 @@
 import sys
 from argparse import ArgumentParser
 
-from .discovery.files import (
-    AndroidDiscovery,
-    AppStoreDiscovery,
-    ARBDiscovery,
-    ASSDiscovery,
-    CSVDiscovery,
-    FluentDiscovery,
-    GettextDiscovery,
-    HTMLDiscovery,
-    IDMLDiscovery,
-    INIDiscovery,
-    InnoSetupDiscovery,
-    JavaDiscovery,
-    JoomlaDiscovery,
-    JSONDiscovery,
-    ODFDiscovery,
-    OSXDiscovery,
-    PHPDiscovery,
-    QtDiscovery,
-    RCDiscovery,
-    RESXDiscovery,
-    SRTDiscovery,
-    SSADiscovery,
-    SUBDiscovery,
-    TBXDiscovery,
-    TOMLDiscovery,
-    WebExtensionDiscovery,
-    XliffDiscovery,
-    YAMLDiscovery,
-)
-from .discovery.transifex import TransifexDiscovery
 from .finder import Finder
 
-BACKENDS = [
-    TransifexDiscovery,
-    AndroidDiscovery,
-    AppStoreDiscovery,
-    ARBDiscovery,
-    ASSDiscovery,
-    CSVDiscovery,
-    FluentDiscovery,
-    GettextDiscovery,
-    HTMLDiscovery,
-    IDMLDiscovery,
-    INIDiscovery,
-    InnoSetupDiscovery,
-    JavaDiscovery,
-    JoomlaDiscovery,
-    JSONDiscovery,
-    ODFDiscovery,
-    OSXDiscovery,
-    PHPDiscovery,
-    QtDiscovery,
-    RESXDiscovery,
-    RCDiscovery,
-    SRTDiscovery,
-    SSADiscovery,
-    SUBDiscovery,
-    TBXDiscovery,
-    TOMLDiscovery,
-    WebExtensionDiscovery,
-    XliffDiscovery,
-    YAMLDiscovery,
-]
+BACKENDS = []
+
+
+def register_discovery(cls):
+    """Registers a discovery class."""
+    BACKENDS.append(cls)
+    return cls
 
 
 def discover(root, mock=None, source_language: str = "en", eager: bool = False):

@@ -21,9 +21,11 @@
 
 from configparser import RawConfigParser
 
+from ..api import register_discovery
 from .base import BaseDiscovery
 
 
+@register_discovery
 class TransifexDiscovery(BaseDiscovery):
     """Transifex configuration discovery."""
 

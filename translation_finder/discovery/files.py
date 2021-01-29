@@ -27,11 +27,13 @@ from typing import Dict
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
+from ..api import register_discovery
 from .base import BaseDiscovery, EncodingDiscovery, MonoTemplateDiscovery
 
 LARAVEL_RE = re.compile(r"=>.*\|")
 
 
+@register_discovery
 class GettextDiscovery(BaseDiscovery):
     """Gettext PO files discovery."""
 
@@ -67,6 +69,7 @@ class GettextDiscovery(BaseDiscovery):
                     break
 
 
+@register_discovery
 class QtDiscovery(BaseDiscovery):
     """Qt Linguist files discovery."""
 
@@ -75,6 +78,7 @@ class QtDiscovery(BaseDiscovery):
     new_base_mask = "*.ts"
 
 
+@register_discovery
 class XliffDiscovery(BaseDiscovery):
     """XLIFF files discovery."""
 
@@ -82,6 +86,7 @@ class XliffDiscovery(BaseDiscovery):
     mask = ("*.xliff", "*.xlf")
 
 
+@register_discovery
 class JoomlaDiscovery(BaseDiscovery):
     """Joomla files discovery."""
 
@@ -89,6 +94,7 @@ class JoomlaDiscovery(BaseDiscovery):
     mask = "*.ini"
 
 
+@register_discovery
 class CSVDiscovery(MonoTemplateDiscovery):
     """CSV files discovery."""
 
@@ -96,6 +102,7 @@ class CSVDiscovery(MonoTemplateDiscovery):
     mask = "*.csv"
 
 
+@register_discovery
 class WebExtensionDiscovery(BaseDiscovery):
     """web extension files discovery."""
 
@@ -103,6 +110,7 @@ class WebExtensionDiscovery(BaseDiscovery):
     mask = "messages.json"
 
 
+@register_discovery
 class AndroidDiscovery(BaseDiscovery):
     """Android string files discovery."""
 
@@ -119,6 +127,7 @@ class AndroidDiscovery(BaseDiscovery):
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
+@register_discovery
 class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
@@ -141,6 +150,7 @@ class OSXDiscovery(EncodingDiscovery):
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
 
+@register_discovery
 class JavaDiscovery(EncodingDiscovery):
     """Java string properties files discovery."""
 
@@ -156,6 +166,7 @@ class JavaDiscovery(EncodingDiscovery):
         yield from super().possible_templates(language, mask)
 
 
+@register_discovery
 class RESXDiscovery(BaseDiscovery):
     """RESX files discovery."""
 
@@ -180,6 +191,7 @@ class RESXDiscovery(BaseDiscovery):
         yield from super().get_masks(eager=eager)
 
 
+@register_discovery
 class AppStoreDiscovery(BaseDiscovery):
     """App store metadata."""
 
@@ -208,6 +220,7 @@ class AppStoreDiscovery(BaseDiscovery):
         return result
 
 
+@register_discovery
 class JSONDiscovery(BaseDiscovery):
     """JSON files discovery."""
 
@@ -267,6 +280,7 @@ class JSONDiscovery(BaseDiscovery):
                 result["file_format"] = "json"
 
 
+@register_discovery
 class FluentDiscovery(BaseDiscovery):
     """Fluent files discovery."""
 
@@ -281,6 +295,7 @@ class FluentDiscovery(BaseDiscovery):
         return result
 
 
+@register_discovery
 class YAMLDiscovery(BaseDiscovery):
     """YAML files discovery."""
 
@@ -311,6 +326,7 @@ class YAMLDiscovery(BaseDiscovery):
                     result["file_format"] = "ruby-yaml"
 
 
+@register_discovery
 class SRTDiscovery(MonoTemplateDiscovery):
     """SRT subtitle files discovery."""
 
@@ -318,6 +334,7 @@ class SRTDiscovery(MonoTemplateDiscovery):
     mask = "*.srt"
 
 
+@register_discovery
 class SUBDiscovery(MonoTemplateDiscovery):
     """SUB subtitle files discovery."""
 
@@ -325,6 +342,7 @@ class SUBDiscovery(MonoTemplateDiscovery):
     mask = "*.sub"
 
 
+@register_discovery
 class ASSDiscovery(MonoTemplateDiscovery):
     """ASS subtitle files discovery."""
 
@@ -332,6 +350,7 @@ class ASSDiscovery(MonoTemplateDiscovery):
     mask = "*.ass"
 
 
+@register_discovery
 class SSADiscovery(MonoTemplateDiscovery):
     """SSA subtitle files discovery."""
 
@@ -339,6 +358,7 @@ class SSADiscovery(MonoTemplateDiscovery):
     mask = "*.ssa"
 
 
+@register_discovery
 class PHPDiscovery(MonoTemplateDiscovery):
     """PHP files discovery."""
 
@@ -360,6 +380,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
                 result["file_format"] = "laravel"
 
 
+@register_discovery
 class IDMLDiscovery(MonoTemplateDiscovery):
     """IDML files discovery."""
 
@@ -367,6 +388,7 @@ class IDMLDiscovery(MonoTemplateDiscovery):
     mask = "*.idml"
 
 
+@register_discovery
 class HTMLDiscovery(MonoTemplateDiscovery):
     """HTML files discovery."""
 
@@ -374,6 +396,7 @@ class HTMLDiscovery(MonoTemplateDiscovery):
     mask = ("*.html", "*.htm")
 
 
+@register_discovery
 class ODFDiscovery(MonoTemplateDiscovery):
     """ODF files discovery."""
 
@@ -399,6 +422,7 @@ class ODFDiscovery(MonoTemplateDiscovery):
     )
 
 
+@register_discovery
 class INIDiscovery(BaseDiscovery):
     """INI files discovery."""
 
@@ -406,6 +430,7 @@ class INIDiscovery(BaseDiscovery):
     mask = "*.ini"
 
 
+@register_discovery
 class InnoSetupDiscovery(BaseDiscovery):
     """InnoSetup files discovery."""
 
@@ -413,6 +438,7 @@ class InnoSetupDiscovery(BaseDiscovery):
     mask = "*.islu"
 
 
+@register_discovery
 class TOMLDiscovery(BaseDiscovery):
     """TOML files discovery."""
 
@@ -420,6 +446,7 @@ class TOMLDiscovery(BaseDiscovery):
     mask = "*.toml"
 
 
+@register_discovery
 class ARBDiscovery(BaseDiscovery):
     """ARB files discovery."""
 
@@ -435,6 +462,7 @@ class ARBDiscovery(BaseDiscovery):
                 result["intermediate"] = intermediate
 
 
+@register_discovery
 class RCDiscovery(MonoTemplateDiscovery):
     """RC files discovery."""
 
@@ -449,6 +477,7 @@ class RCDiscovery(MonoTemplateDiscovery):
         return [language]
 
 
+@register_discovery
 class TBXDiscovery(BaseDiscovery):
     """TBX files discovery."""
 
