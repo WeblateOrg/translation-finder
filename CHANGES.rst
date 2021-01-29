@@ -4,7 +4,7 @@ Changelog
 2.8
 ---
 
-* Not yet released.
+* Released on 29th January 2021.
 * Added detection of RC files.
 * Added detection of TBX files.
 
