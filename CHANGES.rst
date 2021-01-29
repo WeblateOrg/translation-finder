@@ -4,7 +4,8 @@ Changelog
 2.9
 ---
 
-* Not yet released.
+* Released on 29th January 2021.
+* Fixed discovery execution in standalone environments.
 
 2.8
 ---
