@@ -244,7 +244,7 @@ class BaseDiscovery:
                 wildcard = self.get_wildcard(part)
                 if wildcard:
                     mask = parts[:]
-                    match = re.compile("(^|[._-]){}($|[._-])".format(re.escape(part)))
+                    match = re.compile(f"(^|[._-]){re.escape(part)}($|[._-])")
                     for i, current in enumerate(mask):
                         if match.findall(current):
                             skip.add(i)
