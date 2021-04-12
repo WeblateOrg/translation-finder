@@ -80,7 +80,7 @@ def cli(stdout=None, args=None):
         )
     ):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
-        print("== Match {}{} ==".format(pos + 1, origin), file=stdout)
+        print(f"== Match {pos + 1}{origin} ==", file=stdout)
         for key, value in sorted(match.items()):
             print(f"{key:15}: {value}", file=stdout)
         print("", file=stdout)
