@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Fixed detection of POT files in top level directory.
 
 2.9
 ---

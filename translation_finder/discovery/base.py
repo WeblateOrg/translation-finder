@@ -154,9 +154,12 @@ class BaseDiscovery:
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
+            path_wild = path.replace("*", "")
             for match in chain(
                 self.finder.filter_files(new_name, path),
+                self.finder.filter_files(new_name, path_wild),
                 self.finder.filter_files(self.new_base_mask, path),
+                self.finder.filter_files(self.new_base_mask, path_wild),
             ):
                 result["new_base"] = "/".join(match.parts)
                 return

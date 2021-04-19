@@ -104,12 +104,19 @@ class GetttetTest(DiscoveryTestCase):
                     "desktop-docs/gpl/sr@latin/sr@latin.po",
                     "po/jp/rawhide/pages/welcome/Welcome.po",
                     "pot/rawhide/pages/welcome/Welcome.pot",
+                    "de/LC_MESSAGES/pot_not_honored.po",
+                    "pot_not_honored.pot",
                 ]
             )
         )
         self.assert_discovery(
             discovery.discover(),
             [
+                {
+                    "file_format": "po",
+                    "filemask": "*/LC_MESSAGES/pot_not_honored.po",
+                    "new_base": "pot_not_honored.pot",
+                },
                 {
                     "filemask": "locales/*/messages.po",
                     "file_format": "po",
