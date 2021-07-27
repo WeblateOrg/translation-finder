@@ -83,7 +83,7 @@ class XliffDiscovery(BaseDiscovery):
     """XLIFF files discovery."""
 
     file_format = "xliff"
-    mask = ("*.xliff", "*.xlf")
+    mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff")
 
 
 @register_discovery
