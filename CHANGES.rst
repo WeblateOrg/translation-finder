@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Fixed detection of POT files in top level directory.
+* Added support for detecting stringsdict files.
 
 2.9
 ---

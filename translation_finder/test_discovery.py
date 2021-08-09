@@ -38,6 +38,7 @@ from .discovery.files import (
     QtDiscovery,
     RCDiscovery,
     RESXDiscovery,
+    StringsdictDiscovery,
     TOMLDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
@@ -603,6 +604,34 @@ class OSXTest(DiscoveryTestCase):
                     "filemask": "App/Resources/*.lproj/Other.strings",
                     "file_format": "strings-utf8",
                     "template": "App/Resources/Base.lproj/Other.strings",
+                },
+            ],
+        )
+
+
+class StringsdictTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = StringsdictDiscovery(
+            self.get_finder(
+                [
+                    "App/Resources/en.lproj/Localizable.stringsdict",
+                    "App/Resources/Base.lproj/Other.stringsdict",
+                    "App/Resources/ru.lproj/Third.stringsdict",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "App/Resources/*.lproj/Localizable.stringsdict",
+                    "file_format": "stringsdict",
+                    "template": "App/Resources/en.lproj/Localizable.stringsdict",
+                },
+                {
+                    "filemask": "App/Resources/*.lproj/Other.stringsdict",
+                    "file_format": "stringsdict",
+                    "template": "App/Resources/Base.lproj/Other.stringsdict",
                 },
             ],
         )

@@ -151,6 +151,26 @@ class OSXDiscovery(EncodingDiscovery):
 
 
 @register_discovery
+class StringsdictDiscovery(BaseDiscovery):
+    """Stringsdoct files discovery."""
+
+    file_format = "stringsdict"
+
+    def get_masks(self, eager: bool = False):
+        """Return all file masks found in the directory.
+
+        It is expected to contain duplicates."""
+        for path in chain(
+            self.finder.filter_files("*.stringsdict", "*/base.lproj"),
+            self.finder.filter_files("*.stringsdict", "*/en.lproj"),
+        ):
+            mask = list(path.parts)
+            mask[-2] = "*.lproj"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
 class JavaDiscovery(EncodingDiscovery):
     """Java string properties files discovery."""
 
