@@ -4,7 +4,7 @@ Changelog
 2.10
 ----
 
-* Not yet released.
+* Released on 9th August 2021.
 * Fixed detection of POT files in top level directory.
 * Added support for detecting stringsdict files.
 
