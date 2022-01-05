@@ -54,6 +54,7 @@ LANGUAGES_BLACKLIST = {
     "cat",
     "cop",
     "cos",
+    "dry",
     "hit",
     "new",
     "sin",
