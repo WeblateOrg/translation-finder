@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Exclude common virtualenv directories.
+* Tested against Python 3.10.
 
 2.10
 ----
