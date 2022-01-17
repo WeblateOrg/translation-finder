@@ -51,6 +51,7 @@ LANGUAGES_BLACKLIST = {
     "fur",
     "nor",
     "bar",
+    "bug",
     "cat",
     "cop",
     "cos",
