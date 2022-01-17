@@ -31,6 +31,8 @@ EXCLUDES = {
     "__pycache__",
     "__MACOSX",
     ".deps",
+    ".venv",
+    ".env",
 }
 
 

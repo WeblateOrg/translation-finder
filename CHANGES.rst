@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Exclude common virtualenv directories.
 
 2.10
 ----
