@@ -4,7 +4,7 @@ Changelog
 2.11
 ----
 
-* Not yet released.
+* Released on 17th January 2022.
 * Exclude common virtualenv directories.
 * Tested against Python 3.10.
 
