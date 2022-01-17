@@ -33,6 +33,7 @@ EXCLUDES = {
     ".deps",
     ".venv",
     ".env",
+    ".github",
 }
 
 
