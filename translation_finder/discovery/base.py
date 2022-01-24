@@ -131,9 +131,10 @@ class BaseDiscovery:
                     continue
                 if self.is_language_code(token):
                     end = pos + 1
-                    if pos + 3 <= len(tokens):
-                        if self.is_language_code("".join(tokens[pos : pos + 3])):
-                            end = pos + 3
+                    if pos + 3 <= len(tokens) and self.is_language_code(
+                        "".join(tokens[pos : pos + 3])
+                    ):
+                        end = pos + 3
                     # Skip possible language codes in middle of string
                     if pos != 0 and end != len(tokens) and tokens[end] != ".":
                         continue
