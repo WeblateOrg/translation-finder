@@ -286,7 +286,6 @@ class EncodingDiscovery(BaseDiscovery):
                 if encoding is None:
                     return
                 encoding = encoding.lower()
-                print(encoding)
                 if encoding in self.encoding_map:
                     result["file_format"] = self.encoding_map[encoding]
                 return
