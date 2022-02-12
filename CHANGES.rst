@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Use charset-normalizer for charset detection.
 
 2.11
 ----

@@ -23,10 +23,10 @@ import re
 from itertools import chain
 from typing import Dict, Optional
 
+from charset_normalizer import detect
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
-from ..chardet import detect_charset
 from ..data import LANGUAGES_BLACKLIST
 from .result import DiscoveryResult
 
@@ -282,7 +282,11 @@ class EncodingDiscovery(BaseDiscovery):
             if not hasattr(path, "open"):
                 continue
             with self.finder.open(path, "rb") as handle:
-                encoding = detect_charset(handle.read())
+                encoding = detect(handle.read())["encoding"]
+                if encoding is None:
+                    return
+                encoding = encoding.lower()
+                print(encoding)
                 if encoding in self.encoding_map:
                     result["file_format"] = self.encoding_map[encoding]
                 return
