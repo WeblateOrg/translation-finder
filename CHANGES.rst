@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Use charset-normalizer for charset detection.
+* Improved performance when scanning huge directories.
 
 2.11
 ----

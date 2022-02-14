@@ -20,6 +20,7 @@
 """Filesystem finder for translations."""
 
 from fnmatch import fnmatch
+from os import scandir
 from pathlib import Path, PurePath
 from typing import Optional
 
@@ -78,19 +79,22 @@ class Finder:
 
         It skips excluded files."""
 
-        for path in root.iterdir():
-            if any(path.match(exclude) for exclude in EXCLUDES):
-                continue
-            if path.is_symlink():
-                continue
-            if path.is_dir():
-                dirs.append(self.process_path(path))
-                try:
-                    self.list_files(path, files, dirs)
-                except OSError:
+        with scandir(root) as matches:
+            for path in matches:
+                if path.is_symlink():
                     continue
-            else:
-                files.append(self.process_path(path))
+                is_dir = path.is_dir()
+                path = Path(path.path)
+                if any(path.match(exclude) for exclude in EXCLUDES):
+                    continue
+                if is_dir:
+                    dirs.append(self.process_path(path))
+                    try:
+                        self.list_files(path, files, dirs)
+                    except OSError:
+                        continue
+                else:
+                    files.append(self.process_path(path))
 
     def has_file(self, name: str):
         """Check whether file exists."""
