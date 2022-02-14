@@ -38,6 +38,15 @@ EXCLUDES = {
 }
 
 
+def lc_convert(relative_path, relative):
+    lower = relative_path.lower()
+    try:
+        directory, filename = lower.rsplit("/", 1)
+    except ValueError:
+        directory, filename = "", lower
+    return directory, filename, relative
+
+
 class Finder:
     """Finder for files which might be considered translations."""
 
@@ -56,10 +65,10 @@ class Finder:
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
         # Needed for filter_files
         self.lc_files = [
-            (relative_path.lower(), relative)
+            lc_convert(relative_path, relative)
             for absolute, relative, relative_path in files
         ]
-        self.lc_files.sort()
+        self.lc_files.sort(key=lambda x: x[:2])
         # Needed for open
         self.absolutes = {
             relative_path: absolute for absolute, relative, relative_path in files
@@ -68,7 +77,7 @@ class Finder:
         self.files = [
             (relative_path, relative) for absolute, relative, relative_path in files
         ]
-        self.files.sort()
+        self.files.sort(key=lambda x: x[0])
 
     def process_path(self, path):
         relative = path.relative_to(self.root)
@@ -112,14 +121,8 @@ class Finder:
 
     def filter_files(self, glob: str, dirglob: Optional[str] = None):
         """Filter lowercase file names against glob."""
-        for name, path in self.lc_files:
-            try:
-                directory, filename = name.rsplit("/", 1)
-            except ValueError:
-                filename = name
-                directory = None
-
-            if dirglob and (directory is None or not fnmatch(directory, dirglob)):
+        for directory, filename, path in self.lc_files:
+            if dirglob and (not directory or not fnmatch(directory, dirglob)):
                 continue
 
             if fnmatch(filename, glob):
