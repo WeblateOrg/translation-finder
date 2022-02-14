@@ -1,4 +1,3 @@
-#
 # Copyright © 2012–2022 Michal Čihař <michal@cihar.com>
 #
 # This file is part of Weblate translation-finder
@@ -21,7 +20,6 @@
 
 import json
 import re
-from itertools import chain
 from typing import Dict
 
 from ruamel.yaml import YAML
@@ -120,7 +118,7 @@ class AndroidDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in self.finder.filter_files("strings*.xml", "*/values"):
+        for path in self.finder.filter_files(r"strings.*\.xml", ".*/values"):
             mask = list(path.parts)
             mask[-2] = "values-*"
 
@@ -140,10 +138,7 @@ class OSXDiscovery(EncodingDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in chain(
-            self.finder.filter_files("*.strings", "*/base.lproj"),
-            self.finder.filter_files("*.strings", "*/en.lproj"),
-        ):
+        for path in self.finder.filter_files(r".*\.strings", r".*/(base|en)\.lproj"):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
 
@@ -160,9 +155,8 @@ class StringsdictDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in chain(
-            self.finder.filter_files("*.stringsdict", "*/base.lproj"),
-            self.finder.filter_files("*.stringsdict", "*/en.lproj"),
+        for path in self.finder.filter_files(
+            r".*\.stringsdict", r".*/(base|en)\.lproj"
         ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
@@ -201,7 +195,7 @@ class RESXDiscovery(BaseDiscovery):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
-        for path in self.finder.filter_files("*.*.res[xw]"):
+        for path in self.finder.filter_files(r".*\..*\.res[xw]"):
             mask = list(path.parts)
             base, code, ext = mask[-1].rsplit(".", 2)
             if not self.is_language_code(code):
@@ -219,13 +213,11 @@ class AppStoreDiscovery(BaseDiscovery):
 
     def filter_files(self):
         """Filters possible file matches."""
-        for path in chain(
-            self.finder.filter_files("short_description.txt"),
-            self.finder.filter_files("full_description.txt"),
-            self.finder.filter_files("title.txt"),
+        for path in self.finder.filter_files(
+            "short_description.txt|full_description.txt|title.txt"
         ):
             yield path.parent
-        for path in self.finder.filter_files("*.txt", "*/changelogs"):
+        for path in self.finder.filter_files(r".*\.txt", ".*/changelogs"):
             yield path.parent.parent
 
     def has_storage(self, name: str):

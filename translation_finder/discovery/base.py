@@ -19,6 +19,7 @@
 #
 """Base discovery code."""
 
+import fnmatch
 import re
 from itertools import chain
 from typing import Dict, Optional
@@ -153,17 +154,26 @@ class BaseDiscovery:
                 basename = basename.replace(match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
+        new_regex = "{}|{}".format(
+            re.escape(new_name), fnmatch.translate(self.new_base_mask)
+        )
+
+        best_result = None
+
         while "/" in path:
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
-            for match in chain(
-                self.finder.filter_files(new_name, path),
-                self.finder.filter_files(new_name, path_wild),
-                self.finder.filter_files(self.new_base_mask, path),
-                self.finder.filter_files(self.new_base_mask, path_wild),
+            for match in self.finder.filter_files(
+                new_regex, f"{re.escape(path)}|{re.escape(path_wild)}"
             ):
-                result["new_base"] = "/".join(match.parts)
-                return
+                if new_name == match.parts[-1].lower():
+                    result["new_base"] = "/".join(match.parts)
+                    return
+                if not best_result:
+                    best_result = "/".join(match.parts)
+
+        if best_result is not None:
+            result["new_base"] = best_result
 
     def has_storage(self, name: str):
         """Check whether finder has a storage."""
@@ -226,7 +236,9 @@ class BaseDiscovery:
             masks = [self.mask]
         else:
             masks = self.mask
-        return chain.from_iterable(self.finder.filter_files(mask) for mask in masks)
+        return self.finder.filter_files(
+            "|".join(fnmatch.translate(mask) for mask in masks)
+        )
 
     def get_masks(self, eager: bool = False):
         """Return all file masks found in the directory.

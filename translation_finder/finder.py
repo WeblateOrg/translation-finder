@@ -19,6 +19,7 @@
 #
 """Filesystem finder for translations."""
 
+import re
 from fnmatch import fnmatch
 from os import scandir
 from pathlib import Path, PurePath
@@ -119,13 +120,16 @@ class Finder:
             if fnmatch(name, mask):
                 yield path
 
-    def filter_files(self, glob: str, dirglob: Optional[str] = None):
+    def filter_files(self, fileglob: str, dirglob: Optional[str] = None):
         """Filter lowercase file names against glob."""
+        fileglob = re.compile(fileglob)
+        if dirglob:
+            dirglob = re.compile(dirglob)
         for directory, filename, path in self.lc_files:
-            if dirglob and (not directory or not fnmatch(directory, dirglob)):
+            if dirglob and not dirglob.fullmatch(directory):
                 continue
 
-            if fnmatch(filename, glob):
+            if fileglob.fullmatch(filename):
                 yield path
 
     def open(self, path, *args, **kwargs):
