@@ -4,7 +4,7 @@ Changelog
 2.12
 ----
 
-* Not yet released.
+* Released on 25th February 2022.
 * Use charset-normalizer for charset detection.
 * Improved performance when scanning huge directories.
 
