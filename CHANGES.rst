@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Dropped support for Python 3.6.
 
 2.12
 ----
