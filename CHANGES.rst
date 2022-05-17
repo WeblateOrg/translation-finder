@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Dropped support for Python 3.6.
 * Improved detection of PWG 5100.13 based strings files.
+* Added support for ResourceDictionary format.
 
 2.12
 ----

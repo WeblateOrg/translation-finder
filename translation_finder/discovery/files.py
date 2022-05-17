@@ -212,6 +212,15 @@ class RESXDiscovery(BaseDiscovery):
 
 
 @register_discovery
+class ResourceDictionaryDiscovery(BaseDiscovery):
+    """ResourceDictionary files discovery."""
+
+    file_format = "resourcedictionary"
+    mask = "*.xaml"
+    new_base_mask = "*.xaml"
+
+
+@register_discovery
 class AppStoreDiscovery(BaseDiscovery):
     """App store metadata."""
 

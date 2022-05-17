@@ -37,6 +37,7 @@ from .discovery.files import (
     PHPDiscovery,
     QtDiscovery,
     RCDiscovery,
+    ResourceDictionaryDiscovery,
     RESXDiscovery,
     StringsdictDiscovery,
     TOMLDiscovery,
@@ -770,6 +771,33 @@ class RESXTest(DiscoveryTestCase):
                 {
                     "file_format": "resx",
                     "filemask": "App/Localization/SettingsStrings.*.resx",
+                },
+            ],
+        )
+
+
+class ResourceDictionaryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = ResourceDictionaryDiscovery(
+            self.get_finder(
+                [
+                    "Languages/de.xaml",
+                    "Languages/en.xaml",
+                    "Languages/pl.xaml",
+                    "Languages/sk.xaml",
+                    "Languages/tr.xaml",
+                    "Languages/zh-cn.xaml",
+                    "Languages/zh-tw.xaml",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "Languages/*.xaml",
+                    "file_format": "resourcedictionary",
+                    "template": "Languages/en.xaml",
                 },
             ],
         )

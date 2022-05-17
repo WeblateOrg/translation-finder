@@ -53,6 +53,7 @@ EXTENSION_MAP = (
     (".yaml", "yaml"),
     (".properties", "properties"),
     (".strings", "strings"),
+    (".xaml", "resourcedictionary"),
 )
 
 TEMPLATE_REPLACEMENTS = (
