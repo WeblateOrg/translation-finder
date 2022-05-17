@@ -144,6 +144,12 @@ class OSXDiscovery(EncodingDiscovery):
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
+        for path in self.finder.filter_files(r"base\.strings"):
+            mask = list(path.parts)
+            mask[-1] = "*.strings"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
 
 @register_discovery
 class StringsdictDiscovery(BaseDiscovery):

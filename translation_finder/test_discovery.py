@@ -608,6 +608,32 @@ class OSXTest(DiscoveryTestCase):
             ],
         )
 
+    def test_pappl(self):
+        discovery = OSXDiscovery(
+            self.get_finder(
+                [
+                    "pappl/strings/de.strings",
+                    "pappl/strings/en.strings",
+                    "pappl/strings/ja.strings",
+                    "pappl/strings/base.strings",
+                    "pappl/strings/es.strings",
+                    "pappl/strings/fr.strings",
+                    "pappl/strings/it.strings",
+                    "pappl/strings/ipp.strings",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "pappl/strings/*.strings",
+                    "file_format": "strings-utf8",
+                    "template": "pappl/strings/base.strings",
+                },
+            ],
+        )
+
 
 class StringsdictTest(DiscoveryTestCase):
     def test_basic(self):
