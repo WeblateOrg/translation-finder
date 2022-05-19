@@ -168,6 +168,17 @@ class APITest(DiscoveryTestCase):
                     "new_base": "laravel/en.php",
                     "template": "laravel/en.php",
                 },
+                {"file_format": "poxliff", "filemask": "xliff/*.poxliff"},
+                {
+                    "file_format": "xliff",
+                    "filemask": "xliff/*.xliff",
+                    "template": "xliff/en.xliff",
+                },
+                {
+                    "file_format": "plainxliff",
+                    "filemask": "xliff/*.xlf",
+                    "template": "xliff/en.xlf",
+                },
             ],
         )
 

@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Added detection of XLIFF format variants.
 
 2.13
 ----

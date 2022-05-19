@@ -81,7 +81,25 @@ class XliffDiscovery(BaseDiscovery):
     """XLIFF files discovery."""
 
     file_format = "xliff"
-    mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff")
+    mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
+
+    def adjust_format(self, result: Dict[str, str]):
+        if "template" in result:
+            base = result["template"]
+        else:
+            base = result["filemask"]
+
+        path = list(self.finder.mask_matches(base))[0]
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "r") as handle:
+            content = handle.read()
+            if 'restype="x-gettext' in content:
+                result["file_format"] = "poxliff"
+            elif "<x " not in content and "<g " not in content:
+                result["file_format"] = "plainxliff"
 
 
 @register_discovery
