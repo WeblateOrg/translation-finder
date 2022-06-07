@@ -68,6 +68,7 @@ LANGUAGES_BLACKLIST = {
     "wol",
     "mac",
     "ter",
+    "lrc",
     "base",
     "source",
     "zen",
