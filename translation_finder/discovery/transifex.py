@@ -20,6 +20,7 @@
 """Transifex configuration discovery."""
 
 from configparser import RawConfigParser
+from typing import Optional
 
 from ..api import register_discovery
 from .base import BaseDiscovery
@@ -85,7 +86,7 @@ class TransifexDiscovery(BaseDiscovery):
 
         return result
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Retuns matches from transifex files."""
         for path in self.finder.filter_files("config", ".tx"):
             config = RawConfigParser()

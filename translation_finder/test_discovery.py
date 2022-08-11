@@ -41,6 +41,7 @@ from .discovery.files import (
     RESXDiscovery,
     StringsdictDiscovery,
     TOMLDiscovery,
+    TXTDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
     YAMLDiscovery,
@@ -1260,7 +1261,7 @@ class PHPDiscoveryTest(DiscoveryTestCase):
         )
 
 
-class TestRCDiscovery(DiscoveryTestCase):
+class RCDiscoveryTest(DiscoveryTestCase):
     def test_basic(self):
         discovery = RCDiscovery(self.get_finder(["test_enu.rc", "other_ENU.rc"]))
         self.assert_discovery(
@@ -1277,6 +1278,52 @@ class TestRCDiscovery(DiscoveryTestCase):
                     "file_format": "rc",
                     "template": "other_ENU.rc",
                     "new_base": "other_ENU.rc",
+                },
+            ],
+        )
+
+
+class TXTDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = TXTDiscovery(
+            self.get_finder(
+                [
+                    "foo/en.txt",
+                    "bar/cs.txt",
+                    "baz/other.txt",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "bar/*.txt",
+                    "file_format": "txt",
+                },
+                {
+                    "filemask": "foo/*.txt",
+                    "template": "foo/en.txt",
+                    "new_base": "foo/en.txt",
+                    "file_format": "txt",
+                },
+            ],
+        )
+
+    def test_hint(self):
+        discovery = TXTDiscovery(
+            self.get_finder(
+                [
+                    "baz/other.txt",
+                ]
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(hint="baz/*.txt"),
+            [
+                {
+                    "filemask": "baz/*.txt",
+                    "file_format": "txt",
                 },
             ],
         )

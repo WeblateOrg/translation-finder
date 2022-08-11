@@ -6,6 +6,8 @@ Changelog
 
 * Not yet released.
 * Added detection of XLIFF format variants.
+* Added support for TXT format.
+* Added support for adding hint via API.
 
 2.13
 ----

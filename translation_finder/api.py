@@ -21,6 +21,7 @@
 
 import sys
 from argparse import ArgumentParser
+from typing import Optional
 
 from .finder import Finder
 
@@ -33,7 +34,13 @@ def register_discovery(cls):
     return cls
 
 
-def discover(root, mock=None, source_language: str = "en", eager: bool = False):
+def discover(
+    root,
+    mock=None,
+    source_language: str = "en",
+    eager: bool = False,
+    hint: Optional[str] = None,
+):
     """
     High level discovery interface.
 
@@ -48,7 +55,7 @@ def discover(root, mock=None, source_language: str = "en", eager: bool = False):
     results = []
     for backend in BACKENDS:
         instance = backend(finder, source_language)
-        results.extend(instance.discover(eager=eager))
+        results.extend(instance.discover(eager=eager, hint=hint))
     results.sort()
     return results
 

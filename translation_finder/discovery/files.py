@@ -20,7 +20,7 @@
 
 import json
 import re
-from typing import Dict
+from typing import Dict, Optional
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -39,7 +39,7 @@ class GettextDiscovery(BaseDiscovery):
     mask = "*.po"
     new_base_mask = "*.pot"
 
-    def discover(self, eager: bool = False):
+    def discover(self, eager: bool = False, hint: Optional[str] = None):
         for result in super().discover(eager=eager):
             if "template" not in result:
                 yield result
@@ -132,7 +132,7 @@ class AndroidDiscovery(BaseDiscovery):
 
     file_format = "aresource"
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -152,7 +152,7 @@ class OSXDiscovery(EncodingDiscovery):
         "utf-16": "strings-utf16",
     }
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -175,7 +175,7 @@ class StringsdictDiscovery(BaseDiscovery):
 
     file_format = "stringsdict"
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -215,7 +215,7 @@ class RESXDiscovery(BaseDiscovery):
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
@@ -226,7 +226,7 @@ class RESXDiscovery(BaseDiscovery):
                 continue
             mask[-1] = f"{base}.*.{ext}"
             yield {"filemask": "/".join(mask)}
-        yield from super().get_masks(eager=eager)
+        yield from super().get_masks(eager=eager, hint=hint)
 
 
 @register_discovery
@@ -439,6 +439,14 @@ class HTMLDiscovery(MonoTemplateDiscovery):
 
     file_format = "html"
     mask = ("*.html", "*.htm")
+
+
+@register_discovery
+class TXTDiscovery(MonoTemplateDiscovery):
+    """TXT files discovery."""
+
+    file_format = "txt"
+    mask = "*.txt"
 
 
 @register_discovery

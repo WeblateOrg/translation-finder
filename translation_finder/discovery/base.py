@@ -218,10 +218,10 @@ class BaseDiscovery:
     def adjust_format(result: Dict[str, str]):
         return
 
-    def discover(self, eager: bool = False):
+    def discover(self, eager: bool = False, hint: Optional[str] = None):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
-        for result in self.get_masks(eager=eager):
+        for result in self.get_masks(eager=eager, hint=hint):
             if result["filemask"] in discovered:
                 continue
             self.fill_in_template(result)
@@ -235,20 +235,26 @@ class BaseDiscovery:
             result.meta["priority"] = self.priority
             yield result
 
+    @property
+    def masks_list(self):
+        if isinstance(self.mask, str):
+            return [self.mask]
+        return self.mask
+
     def filter_files(self):
         """Filters possible file matches."""
-        if isinstance(self.mask, str):
-            masks = [self.mask]
-        else:
-            masks = self.mask
         return self.finder.filter_files(
-            "|".join(fnmatch.translate(mask) for mask in masks)
+            "|".join(fnmatch.translate(mask) for mask in self.masks_list)
         )
 
-    def get_masks(self, eager: bool = False):
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Return all file masks found in the directory.
 
         It is expected to contain duplicates."""
+        if hint:
+            for mask in self.masks_list:
+                if fnmatch.fnmatch(hint, mask):
+                    yield {"filemask": hint}
         for path in self.filter_files():
             parts = list(path.parts)
             if eager:
