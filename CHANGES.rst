@@ -4,7 +4,7 @@ Changelog
 2.14
 ----
 
-* Not yet released.
+* Released on 11th August 2022.
 * Added detection of XLIFF format variants.
 * Added support for TXT format.
 * Added support for adding hint via API.
