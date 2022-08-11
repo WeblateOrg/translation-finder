@@ -54,6 +54,10 @@ EXTENSION_MAP = (
     (".properties", "properties"),
     (".strings", "strings"),
     (".xaml", "resourcedictionary"),
+    (".txt", "txt"),
+    (".html", "html"),
+    (".idml", "idml"),
+    (".rc", "rc"),
 )
 
 TEMPLATE_REPLACEMENTS = (
