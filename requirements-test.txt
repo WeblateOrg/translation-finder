@@ -1,4 +1,4 @@
 -r requirements.txt
 pytest
 pytest-cov
-twine==4.0.1
+twine==4.0.2
