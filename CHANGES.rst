@@ -4,7 +4,7 @@ Changelog
 2.15
 ----
 
-* Not yet released.
+* Released on 13th January 2023.
 * Added support for gotext JSON.
 * Added support for i18next JSON v4.
 * REUSE 3.0 compliance.
