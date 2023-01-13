@@ -64,6 +64,11 @@ class APITest(DiscoveryTestCase):
                     "template": "json/i18next-en.json",
                 },
                 {
+                    "file_format": "i18nextv4",
+                    "filemask": "json/i18nextv4-*.json",
+                    "template": "json/i18nextv4-en.json",
+                },
+                {
                     "file_format": "json-nested",
                     "filemask": "json/nested-*.json",
                     "template": "json/nested-en.json",

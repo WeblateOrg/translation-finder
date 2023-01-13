@@ -1,0 +1,5 @@
+{
+  "hello": "Hello",
+  "apple_one": "I have an apple",
+  "apple_other": "I have {{count}} apples"
+}

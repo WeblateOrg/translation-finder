@@ -261,6 +261,7 @@ class JSONDiscovery(BaseDiscovery):
     def detect_dict(self, data: dict, level=0) -> str:
         all_strings = True
         i18next = False
+        i18nextv4 = False
         if "lang" in data and "messages" in data:
             return "gotext-json"
         for key, value in data.items():
@@ -277,10 +278,18 @@ class JSONDiscovery(BaseDiscovery):
             if not isinstance(value, str):
                 all_strings = False
                 if isinstance(value, dict):
-                    i18next |= self.detect_dict(value, level + 1) == "i18next"
+                    detected = self.detect_dict(value, level + 1)
+                    i18next |= detected == "i18next"
+                    i18nextv4 |= detected == "i18nextv4"
+            elif (
+                key.endswith("_one") or key.endswith("_many") or key.endswith("_other")
+            ):
+                i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
                 i18next = True
 
+        if i18nextv4:
+            return "i18nextv4"
         if i18next:
             return "i18next"
         if all_strings:

@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Added support for gotext JSON.
+* Added support for i18next JSON v4.
 
 2.14
 ----
