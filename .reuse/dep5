@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: translation-finder
+Upstream-Contact: Michal Čihař <michal@weblate.org>
+Source: https://weblate.org/
+
+Files: translation_finder/test_data/*
+Copyright: Michal Čihař <michal@weblate.org>
+License: GPL-3.0-or-later
+
+Files: CHANGES.rst README.rst
+Copyright: Michal Čihař <michal@weblate.org>
+License: GPL-3.0-or-later
+
+Files: .gitignore codecov.yml MANIFEST.in pyproject.toml pytest.ini requirements*.txt setup.cfg
+Copyright: Michal Čihař <michal@weblate.org>
+License: GPL-3.0-or-later

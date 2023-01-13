@@ -1,26 +1,11 @@
+# Copyright © Michal Čihař <michal@weblate.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
-  hooks:
-  - id: trailing-whitespace
-  - id: end-of-file-fixer
-  - id: check-yaml
-  - id: check-toml
-  - id: requirements-txt-fixer
-  - id: check-merge-conflict
-  - id: check-json
-  - id: debug-statements
-  - id: mixed-line-ending
-    args: [--fix=lf]
-  - id: pretty-format-json
-    args: [--no-sort-keys, --autofix, --no-ensure-ascii]
-- repo: https://github.com/adrienverge/yamllint
-  rev: v1.29.0
-  hooks:
-  - id: yamllint
-- repo: https://github.com/pycqa/isort
+- repo: https://github.com/PyCQA/isort
   rev: 5.11.4
   hooks:
   - id: isort
@@ -53,6 +38,25 @@ repos:
     - flake8-self==0.2.2
     - flake8-assertive==2.1.0
     - pep8-naming==0.13.3
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+  - id: check-yaml
+  - id: check-toml
+  - id: requirements-txt-fixer
+  - id: check-merge-conflict
+  - id: check-json
+  - id: mixed-line-ending
+    args: [--fix=lf]
+  - id: debug-statements
+  - id: pretty-format-json
+    args: [--no-sort-keys, --autofix, --no-ensure-ascii]
+- repo: https://github.com/adrienverge/yamllint
+  rev: v1.29.0
+  hooks:
+  - id: yamllint
 - repo: https://github.com/asottile/blacken-docs
   rev: v1.12.1
   hooks:
@@ -74,4 +78,12 @@ repos:
     - mdformat-gfm
     - mdformat-black
     - mdformat-shfmt
+- repo: https://github.com/igorshubovych/markdownlint-cli
+  rev: v0.33.0
+  hooks:
+  - id: markdownlint
+- repo: https://github.com/fsfe/reuse-tool
+  rev: v1.1.0
+  hooks:
+  - id: reuse
 exclude: ^.*\.(properties)|translation_finder/test_data/app/src/res/main/values-it/strings.xml|translation_finder/test_data/app/src/res/main/values/strings.xml|translation_finder/test_data/json/bom-en.json|translation_finder/test_data/yaml/en/corrupt.yml$
