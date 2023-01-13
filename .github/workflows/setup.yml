@@ -20,7 +20,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip wheel
         pip install --upgrade https://github.com/WeblateOrg/language-data/archive/main.zip
-        pip install -r requirements-test.txt
+        pip install -r requirements-dev.txt
     - name: build
       run: python ./setup.py sdist bdist_wheel
     - name: twine
