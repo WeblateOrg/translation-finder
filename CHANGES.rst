@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Added support for gotext JSON.
 
 2.14
 ----

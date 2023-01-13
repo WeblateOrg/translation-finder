@@ -1,0 +1,9 @@
+{
+  "lang": "en",
+  "messages": [
+    {
+      "id": "translation key",
+      "translation": "translated string"
+    }
+  ]
+}

@@ -179,6 +179,11 @@ class APITest(DiscoveryTestCase):
                     "filemask": "xliff/*.xlf",
                     "template": "xliff/en.xlf",
                 },
+                {
+                    "file_format": "gotext-json",
+                    "filemask": "json/gotext-*.json",
+                    "template": "json/gotext-en.json",
+                },
             ],
         )
 

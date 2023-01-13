@@ -272,9 +272,11 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
-    def detect_dict(self, data, level=0):
+    def detect_dict(self, data: dict, level=0) -> str:
         all_strings = True
         i18next = False
+        if "lang" in data and "messages" in data:
+            return "gotext-json"
         for key, value in data.items():
             if (
                 level == 0
@@ -282,18 +284,22 @@ class JSONDiscovery(BaseDiscovery):
                 and "message" in value
                 and "description" in value
             ):
-                return False, False, True
+                return "webextension"
             if not isinstance(key, str):
                 all_strings = False
                 break
             if not isinstance(value, str):
                 all_strings = False
                 if isinstance(value, dict):
-                    i18next |= self.detect_dict(value, level + 1)[1]
+                    i18next |= self.detect_dict(value, level + 1) == "i18next"
             elif key.endswith("_plural") or "{{" in value:
                 i18next = True
 
-        return all_strings, i18next, False
+        if i18next:
+            return "i18next"
+        if all_strings:
+            return "json"
+        return None
 
     def adjust_format(self, result: Dict[str, str]):
         if "template" not in result:
@@ -315,14 +321,10 @@ class JSONDiscovery(BaseDiscovery):
             if not isinstance(data, dict):
                 return
 
-            all_strings, i18next, webext = self.detect_dict(data)
+            detected = self.detect_dict(data)
 
-            if webext:
-                result["file_format"] = "webextension"
-            elif i18next:
-                result["file_format"] = "i18next"
-            elif all_strings:
-                result["file_format"] = "json"
+            if detected is not None:
+                result["file_format"] = detected
 
 
 @register_discovery
