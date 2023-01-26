@@ -11,5 +11,8 @@ test_patterns = [
 name = "python"
 enabled = true
 
+[[analyzers]]
+name = "test-coverage"
+
 [analyzers.meta]
 runtime_version = "3.x.x"
