@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Fixed detection UTF-16 Strings files.
 
 2.15
 ----

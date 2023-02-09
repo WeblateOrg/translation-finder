@@ -135,7 +135,7 @@ class OSXDiscovery(EncodingDiscovery):
 
     file_format = "strings-utf8"
     encoding_map = {
-        "utf-16": "strings-utf16",
+        "utf-16": "strings",
     }
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
