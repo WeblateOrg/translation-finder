@@ -2,14 +2,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-version = 1
 test_patterns = [
   "**/test_*.py"
 ]
+version = 1
 
 [[analyzers]]
-name = "python"
 enabled = true
+name = "python"
 
 [[analyzers]]
 name = "test-coverage"
