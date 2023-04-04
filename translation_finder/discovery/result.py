@@ -9,8 +9,7 @@ class DiscoveryResult(dict):
     """
     Discovery result class.
 
-    This is essentially a dict with meta dict containing additional
-    information.
+    Subclass of a dict with meta dict containing additional information.
     """
 
     def __init__(self, *args, **kwargs):
@@ -26,8 +25,8 @@ class DiscoveryResult(dict):
         return dict(self)
 
     def __lt__(self, other):
-        """This is only method needed for sort."""
-        return self._sort_key < other._sort_key  # noqa:SF01,SLF001
+        """Only method needed for sort."""
+        return self._sort_key < other._sort_key  # noqa: SLF001
 
     def __eq__(self, other):
         return super().__eq__(other) and (

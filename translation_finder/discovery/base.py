@@ -13,7 +13,8 @@ from charset_normalizer import detect
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
-from ..data import LANGUAGES_BLACKLIST
+from translation_finder.data import LANGUAGES_BLACKLIST
+
 from .result import DiscoveryResult
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
@@ -100,9 +101,11 @@ class BaseDiscovery:
         return ""
 
     def get_wildcard(self, part: str):
-        """Generate language wilcard for a path part.
+        """
+        Generate language wilcard for a path part.
 
-        Retruns None if not possible."""
+        Retruns None if not possible.
+        """
         if self.is_language_code(part):
             return "*"
         if "." in part:
@@ -233,9 +236,11 @@ class BaseDiscovery:
         )
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
-        """Return all file masks found in the directory.
+        """
+        Return all file masks found in the directory.
 
-        It is expected to contain duplicates."""
+        It is expected to contain duplicates.
+        """
         if hint:
             for mask in self.masks_list:
                 if fnmatch.fnmatch(hint, mask):

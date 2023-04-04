@@ -11,7 +11,8 @@ from typing import Dict, Optional
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
-from ..api import register_discovery
+from translation_finder.api import register_discovery
+
 from .base import BaseDiscovery, EncodingDiscovery, MonoTemplateDiscovery
 
 LARAVEL_RE = re.compile(r"=>.*\|")
@@ -70,10 +71,7 @@ class XliffDiscovery(BaseDiscovery):
     mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
 
     def adjust_format(self, result: Dict[str, str]):
-        if "template" in result:
-            base = result["template"]
-        else:
-            base = result["filemask"]
+        base = result["template"] if "template" in result else result["filemask"]
 
         path = list(self.finder.mask_matches(base))[0]
 
@@ -119,9 +117,11 @@ class AndroidDiscovery(BaseDiscovery):
     file_format = "aresource"
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
-        """Return all file masks found in the directory.
+        """
+        Return all file masks found in the directory.
 
-        It is expected to contain duplicates."""
+        It is expected to contain duplicates.
+        """
         for path in self.finder.filter_files(r"strings.*\.xml", ".*/values"):
             mask = list(path.parts)
             mask[-2] = "values-*"
@@ -139,9 +139,11 @@ class OSXDiscovery(EncodingDiscovery):
     }
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
-        """Return all file masks found in the directory.
+        """
+        Return all file masks found in the directory.
 
-        It is expected to contain duplicates."""
+        It is expected to contain duplicates.
+        """
         for path in self.finder.filter_files(r".*\.strings", r".*/(base|en)\.lproj"):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
@@ -162,9 +164,11 @@ class StringsdictDiscovery(BaseDiscovery):
     file_format = "stringsdict"
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
-        """Return all file masks found in the directory.
+        """
+        Return all file masks found in the directory.
 
-        It is expected to contain duplicates."""
+        It is expected to contain duplicates.
+        """
         for path in self.finder.filter_files(
             r".*\.stringsdict", r".*/(base|en)\.lproj"
         ):
@@ -202,9 +206,11 @@ class RESXDiscovery(BaseDiscovery):
         yield from super().possible_templates(language, mask)
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
-        """Return all file masks found in the directory.
+        """
+        Return all file masks found in the directory.
 
-        It is expected to contain duplicates."""
+        It is expected to contain duplicates.
+        """
         for path in self.finder.filter_files(r".*\..*\.res[xw]"):
             mask = list(path.parts)
             base, code, ext = mask[-1].rsplit(".", 2)
@@ -281,9 +287,7 @@ class JSONDiscovery(BaseDiscovery):
                     detected = self.detect_dict(value, level + 1)
                     i18next |= detected == "i18next"
                     i18nextv4 |= detected == "i18nextv4"
-            elif (
-                key.endswith("_one") or key.endswith("_many") or key.endswith("_other")
-            ):
+            elif key.endswith(("_one", "_many", "_other")):
                 i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
                 i18next = True

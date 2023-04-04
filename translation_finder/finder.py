@@ -70,10 +70,11 @@ class Finder:
         return (path, relative, relative.as_posix())
 
     def list_files(self, root, files, dirs):
-        """Recursively list files and dirs in a path.
+        """
+        Recursively list files and dirs in a path.
 
-        It skips excluded files."""
-
+        It skips excluded files.
+        """
         with scandir(root) as matches:
             for path in matches:
                 if path.is_symlink():

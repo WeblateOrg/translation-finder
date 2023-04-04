@@ -7,7 +7,8 @@
 from configparser import RawConfigParser
 from typing import Optional
 
-from ..api import register_discovery
+from translation_finder.api import register_discovery
+
 from .base import BaseDiscovery
 
 
