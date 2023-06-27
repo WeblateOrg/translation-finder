@@ -11,6 +11,7 @@ ignore = [
   "D203",  # CONFIG: incompatible with D211
   "D212",  # CONFIG: incompatible with D213
   "D401",  # TODO: many strings need rephrasing
+  "RUF012",  # TODO: Mutable class attributes should be annotated with `typing.ClassVar`
   "PLW2901"  # TODO: overwriting variables inside loop
 ]
 select = [
