@@ -73,7 +73,7 @@ class XliffDiscovery(BaseDiscovery):
     def adjust_format(self, result: Dict[str, str]):
         base = result["template"] if "template" in result else result["filemask"]
 
-        path = list(self.finder.mask_matches(base))[0]
+        path = next(iter(self.finder.mask_matches(base)))
 
         if not hasattr(path, "open"):
             return
@@ -304,7 +304,7 @@ class JSONDiscovery(BaseDiscovery):
         if "template" not in result:
             return
 
-        path = list(self.finder.mask_matches(result["template"]))[0]
+        path = next(iter(self.finder.mask_matches(result["template"])))
 
         if not hasattr(path, "open"):
             return
@@ -352,7 +352,7 @@ class YAMLDiscovery(BaseDiscovery):
         if "template" not in result:
             return
 
-        path = list(self.finder.mask_matches(result["template"]))[0]
+        path = next(iter(self.finder.mask_matches(result["template"])))
 
         if not hasattr(path, "open"):
             return
@@ -364,7 +364,7 @@ class YAMLDiscovery(BaseDiscovery):
             except (YAMLError, YAMLFutureWarning):
                 return
             if isinstance(data, dict) and len(data) == 1:
-                key = list(data.keys())[0]
+                key = next(iter(data.keys()))
                 if "filemask" in result:
                     if result["filemask"].replace("*", key) == result["template"]:
                         result["file_format"] = "ruby-yaml"
@@ -415,7 +415,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
         if "template" not in result:
             return
 
-        path = list(self.finder.mask_matches(result["template"]))[0]
+        path = next(iter(self.finder.mask_matches(result["template"])))
 
         if not hasattr(path, "open"):
             return
