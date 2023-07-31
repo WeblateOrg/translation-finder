@@ -147,9 +147,7 @@ class BaseDiscovery:
                 basename = basename.replace(match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
-        new_regex = "{}|{}".format(
-            re.escape(new_name), fnmatch.translate(self.new_base_mask)
-        )
+        new_regex = f"{re.escape(new_name)}|{fnmatch.translate(self.new_base_mask)}"
 
         best_result = None
 
