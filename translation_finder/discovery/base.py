@@ -7,7 +7,7 @@
 import fnmatch
 import re
 from itertools import chain
-from typing import Dict, Optional
+from typing import Optional
 
 from charset_normalizer import detect
 from weblate_language_data.country_codes import COUNTRIES
@@ -137,7 +137,7 @@ class BaseDiscovery:
                     )
         return None
 
-    def fill_in_new_base(self, result: Dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]):
         if not self.new_base_mask:
             return
         path = result["filemask"]
@@ -184,7 +184,7 @@ class BaseDiscovery:
                 yield mask.replace(match, replacement)
 
     def fill_in_template(
-        self, result: Dict[str, str], source_language: Optional[str] = None
+        self, result: dict[str, str], source_language: Optional[str] = None
     ):
         if "template" not in result:
             if source_language is None:
@@ -196,12 +196,12 @@ class BaseDiscovery:
                     result["template"] = template
                     break
 
-    def fill_in_file_format(self, result: Dict[str, str]):
+    def fill_in_file_format(self, result: dict[str, str]):
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
     @staticmethod
-    def adjust_format(result: Dict[str, str]):
+    def adjust_format(result: dict[str, str]):
         return
 
     def discover(self, eager: bool = False, hint: Optional[str] = None):
@@ -273,7 +273,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
     uses_template = True
 
-    def fill_in_new_base(self, result: Dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]):
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
 
@@ -283,7 +283,7 @@ class EncodingDiscovery(BaseDiscovery):
 
     encoding_map = {}
 
-    def adjust_format(self, result: Dict[str, str]):
+    def adjust_format(self, result: dict[str, str]):
         encoding = None
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:

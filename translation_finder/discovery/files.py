@@ -6,7 +6,7 @@
 
 import json
 import re
-from typing import Dict, Optional
+from typing import Optional
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -70,7 +70,7 @@ class XliffDiscovery(BaseDiscovery):
     file_format = "xliff"
     mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
 
-    def adjust_format(self, result: Dict[str, str]):
+    def adjust_format(self, result: dict[str, str]):
         base = result["template"] if "template" in result else result["filemask"]
 
         path = next(iter(self.finder.mask_matches(base)))
@@ -300,7 +300,7 @@ class JSONDiscovery(BaseDiscovery):
             return "json"
         return None
 
-    def adjust_format(self, result: Dict[str, str]):
+    def adjust_format(self, result: dict[str, str]):
         if "template" not in result:
             return
 
@@ -348,7 +348,7 @@ class YAMLDiscovery(BaseDiscovery):
     file_format = "yaml"
     mask = ("*.yml", "*.yaml")
 
-    def adjust_format(self, result: Dict[str, str]):
+    def adjust_format(self, result: dict[str, str]):
         if "template" not in result:
             return
 
@@ -411,7 +411,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
     file_format = "php"
     mask = "*.php"
 
-    def adjust_format(self, result: Dict[str, str]):
+    def adjust_format(self, result: dict[str, str]):
         if "template" not in result:
             return
 
@@ -507,7 +507,7 @@ class ARBDiscovery(BaseDiscovery):
     file_format = "arb"
     mask = "*.arb"
 
-    def fill_in_new_base(self, result: Dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]):
         super().fill_in_new_base(result)
         if "intermediate" not in result:
             # Flutter intermediate files

@@ -1,5 +1,5 @@
 [tool.black]
-target-version = ['py37']
+target-version = ['py39']
 
 [tool.isort]
 profile = "black"
@@ -48,7 +48,7 @@ select = [
   "SLF",
   "N"
 ]
-target-version = "py37"
+target-version = "py39"
 
 [tool.ruff.mccabe]
 max-complexity = 16
