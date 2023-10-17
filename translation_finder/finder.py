@@ -102,6 +102,8 @@ class Finder:
 
     def mask_matches(self, mask: str):
         """Return all mask matches."""
+        # Avoid dealing [ as a special char
+        mask = mask.replace("[", "[[]").replace("?", "[?]")
         for name, path in self.files:
             if fnmatch(name, mask):
                 yield path

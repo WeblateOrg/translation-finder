@@ -895,6 +895,27 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_shell_chars(self):
+        discovery = JSONDiscovery(
+            self.get_finder(
+                [
+                    "src/app/[locale]/_translations/en.json",
+                    "src/app/[locale]/_translations/de.json",
+                    "src/app/[locale]/_translations/cs.json",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "src/app/[locale]/_translations/*.json",
+                    "file_format": "json-nested",
+                    "template": "src/app/[locale]/_translations/en.json",
+                },
+            ],
+        )
+
     def test_json_data(self):
         """
         Test discovery on huge list of JSON files.
