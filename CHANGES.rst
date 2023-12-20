@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Fixed detection UTF-16 Strings files.
 * Fixed detection of files with some special chars.
+* Added support for Mobile Kotlin resources.
 
 2.15
 ----

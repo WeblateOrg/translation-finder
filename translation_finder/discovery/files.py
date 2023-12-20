@@ -130,6 +130,27 @@ class AndroidDiscovery(BaseDiscovery):
 
 
 @register_discovery
+class MOKODiscovery(BaseDiscovery):
+    """Mobile Kotlin resources discovery."""
+
+    file_format = "moko-resource"
+
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+        """
+        Return all file masks found in the directory.
+
+        It is expected to contain duplicates.
+        """
+        for path in self.finder.filter_files(
+            r"(strings|plurals)\.xml", ".*/resources/mr/base"
+        ):
+            mask = list(path.parts)
+            mask[-2] = "*"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
 class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 

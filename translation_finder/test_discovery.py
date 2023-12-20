@@ -8,6 +8,7 @@ from unittest import TestCase
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
+    MOKODiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
     CSVDiscovery,
@@ -563,6 +564,36 @@ class AndroidTest(DiscoveryTestCase):
                     "file_format": "aresource",
                     "template": "app/src/res/main/values/strings.xml",
                 }
+            ],
+        )
+
+
+class MOKOTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = MOKODiscovery(
+            self.get_finder(
+                [
+                    "app/src/res/main/values/strings.xml",
+                    "app/src/res/main/values-it/strings.xml",
+                    "app/src/res/main/values-it/strings-other.xml",
+                    "src/commonMain/resources/MR/base/strings.xml",
+                    "src/commonMain/resources/MR/base/plurals.xml",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "src/commonMain/resources/MR/*/plurals.xml",
+                    "template": "src/commonMain/resources/MR/base/plurals.xml",
+                    "file_format": "moko-resource",
+                },
+                {
+                    "filemask": "src/commonMain/resources/MR/*/strings.xml",
+                    "template": "src/commonMain/resources/MR/base/strings.xml",
+                    "file_format": "moko-resource",
+                },
             ],
         )
 
