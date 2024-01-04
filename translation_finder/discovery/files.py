@@ -558,3 +558,23 @@ class TBXDiscovery(BaseDiscovery):
 
     file_format = "tbx"
     mask = "*.tbx"
+
+
+@register_discovery
+class FormatJSDiscovery(BaseDiscovery):
+    """Format.JS JSON files discovery."""
+
+    file_format = "formatjs"
+
+    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+        """
+        Return all file masks found in the directory.
+
+        It is expected to contain duplicates.
+        """
+        for path in self.finder.filter_files(r"en.json", ".*/extracted"):
+            mask = list(path.parts)
+            mask[-1] = "*.json"
+            mask[-2] = "lang"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}

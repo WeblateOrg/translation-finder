@@ -11,6 +11,7 @@ from .discovery.files import (
     MOKODiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
+    FormatJSDiscovery,
     CSVDiscovery,
     FluentDiscovery,
     GettextDiscovery,
@@ -1361,5 +1362,46 @@ class TXTDiscoveryTest(DiscoveryTestCase):
                     "filemask": "baz/*.txt",
                     "file_format": "txt",
                 },
+            ],
+        )
+
+
+class FormatJSDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self):
+        discovery = FormatJSDiscovery(
+            self.get_finder(
+                [
+                    "src/lang/cs.json",
+                    "src/extracted/en.json",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "src/lang/*.json",
+                    "template": "src/extracted/en.json",
+                    "file_format": "formatjs",
+                }
+            ],
+        )
+
+    def test_nontranslated(self):
+        discovery = FormatJSDiscovery(
+            self.get_finder(
+                [
+                    "src/extracted/en.json",
+                ]
+            )
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "src/lang/*.json",
+                    "template": "src/extracted/en.json",
+                    "file_format": "formatjs",
+                }
             ],
         )

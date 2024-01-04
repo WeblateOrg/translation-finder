@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Added support for Format.JS files.
 
 2.16
 ----
