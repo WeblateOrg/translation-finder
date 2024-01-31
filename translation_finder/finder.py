@@ -120,5 +120,5 @@ class Finder:
             if fileglob.fullmatch(filename):
                 yield path
 
-    def open(self, path, *args, **kwargs):  # noqa: A003
+    def open(self, path, *args, **kwargs):
         return self.absolutes[path.as_posix()].open(*args, **kwargs)
