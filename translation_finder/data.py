@@ -4,7 +4,6 @@
 
 """Finder data."""
 
-
 LANGUAGES_BLACKLIST = {
     # Clash with file formats
     "po",
