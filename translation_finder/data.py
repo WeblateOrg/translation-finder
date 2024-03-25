@@ -56,4 +56,5 @@ LANGUAGES_BLACKLIST = {
     "base",
     "source",
     "zen",
+    "src",
 }
