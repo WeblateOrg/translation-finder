@@ -13,7 +13,6 @@ ignore = [
   "RUF012",  # TODO: Mutable class attributes should be annotated with `typing.ClassVar`
   "PLW2901"  # TODO: overwriting variables inside loop
 ]
-output-format = "github"
 select = [
   "E",
   "F",
