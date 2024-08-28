@@ -26,7 +26,7 @@ jobs:
         pip install --upgrade https://github.com/WeblateOrg/language-data/archive/main.zip
         pip install -r requirements-dev.txt
     - name: build
-      run: python ./setup.py sdist bdist_wheel
+      run: python -m build
     - name: twine
       run: twine check dist/*
     - name: Publish package
