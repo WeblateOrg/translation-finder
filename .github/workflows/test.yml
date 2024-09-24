@@ -46,7 +46,7 @@ jobs:
         allow-prereleases: true
     - uses: astral-sh/setup-uv@v3
     - name: Install pip dependencies
-      run: uv pip install https://github.com/WeblateOrg/language-data/archive/main.zip -r requirements-test.txt
+      run: uv pip install --system https://github.com/WeblateOrg/language-data/archive/main.zip -r requirements-test.txt
     - name: Test
       run: |
         py.test --cov=translation_finder translation_finder README.rst
