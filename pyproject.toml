@@ -1,10 +1,112 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=61.2"
+]
+
+[project]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Internationalization",
+  "Topic :: Software Development :: Localization",
+  "Topic :: Utilities"
+]
+dependencies = [
+  "charset-normalizer>2.0,<4.0",
+  "ruamel.yaml",
+  "weblate-language-data>=2021.2"
+]
+description = "A translation file finder used in Weblate."
+keywords = [
+  "i18n",
+  "l10n",
+  "gettext",
+  "weblate",
+  "translate"
+]
+name = "translation-finder"
+requires-python = ">=3.9"
+version = "2.17"
+
+[[project.authors]]
+email = "michal@cihar.com"
+name = "Michal Čihař"
+
+[project.license]
+text = "GPL-3.0-or-later"
+
+[project.optional-dependencies]
+dev = [
+  "translation-finder[lint,test]"
+]
+lint = [
+  "pre-commit==4.0.1"
+]
+test = [
+  "pytest",
+  "pytest-cov"
+]
+
+[project.readme]
+content-type = "text/x-rst"
+file = "README.rst"
+
+[project.scripts]
+weblate-discover = "translation_finder.api:cli"
+
+[project.urls]
+Documentation = "https://docs.weblate.org/"
+Download = "https://github.com/WeblateOrg/translation-finder"
+Funding = "https://weblate.org/donate/"
+Homepage = "https://weblate.org/"
+"Issue Tracker" = "https://github.com/WeblateOrg/translation-finder/issues"
+"Source Code" = "https://github.com/WeblateOrg/translation-finder"
+Twitter = "https://twitter.com/WeblateOrg"
+
 [tool.black]
 target-version = ['py39']
+
+[tool.check-manifest]
+ignore = [
+  "LICENSES/*",
+  "json/*",
+  ".reuse/dep5",
+  "scripts/*",
+  "*.toml",
+  "*.yml",
+  "*.yaml",
+  "*.json",
+  ".editorconfig",
+  ".weblate",
+  "weblate-discovery",
+  # Symlink causes issues
+  "translation_finder/test_data/linked",
+  "translation_finder/test_data/linked/*"
+]
+
+[tool.check-wheel-contents]
+ignore = [
+  "W002"  # Duplicate test files
+]
 
 [tool.isort]
 profile = "black"
 
-[tool.ruff]
+[tool.pytest.ini_options]
+doctest_optionflags = "NORMALIZE_WHITESPACE ALLOW_UNICODE"
+
+[tool.ruff.lint]
 ignore = [
   "D10",  # TODO: we are missing many docstrings
   "D203",  # CONFIG: incompatible with D211
@@ -47,7 +149,22 @@ select = [
   "SLF",
   "N"
 ]
-target-version = "py39"
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 16
+
+[tool.setuptools]
+include-package-data = true
+license-files = [
+  "LICENSE"
+]
+packages = [
+  "translation_finder",
+  "translation_finder.discovery"
+]
+platforms = [
+  "any"
+]
+
+[tool.setuptools.package-dir]
+translation_finder = "translation_finder"

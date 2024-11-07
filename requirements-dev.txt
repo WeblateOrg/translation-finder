@@ -1,3 +1,0 @@
--r requirements-lint.txt
--r requirements-test.txt
-build==1.2.2.post1
