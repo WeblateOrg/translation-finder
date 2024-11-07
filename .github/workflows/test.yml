@@ -34,11 +34,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Cache pip
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -46,7 +41,7 @@ jobs:
         allow-prereleases: true
     - uses: astral-sh/setup-uv@v3
     - name: Install pip dependencies
-      run: uv pip install --system https://github.com/WeblateOrg/language-data/archive/main.zip -r requirements-test.txt
+      run: uv pip install --system https://github.com/WeblateOrg/language-data/archive/main.zip -e .[dev]
     - name: Test
       run: |
         py.test --cov=translation_finder translation_finder README.rst
