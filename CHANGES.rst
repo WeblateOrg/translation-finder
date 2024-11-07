@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.18
+----
+
+* Not yet released.
+
 2.17
 ----
 
