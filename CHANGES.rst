@@ -4,7 +4,7 @@ Changelog
 2.17
 ----
 
-* Not yet released.
+* Released on 7th November 2024.
 * Added support for Format.JS files.
 * Offer bilingual configuration for CSV.
 
