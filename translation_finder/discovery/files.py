@@ -27,7 +27,7 @@ class GettextDiscovery(BaseDiscovery):
     new_base_mask = "*.pot"
 
     def discover(self, eager: bool = False, hint: Optional[str] = None):
-        for result in super().discover(eager=eager):
+        for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
                 continue
@@ -100,6 +100,16 @@ class CSVDiscovery(MonoTemplateDiscovery):
 
     file_format = "csv"
     mask = "*.csv"
+
+    def discover(self, eager: bool = False, hint: Optional[str] = None):
+        for result in super().discover(eager=eager, hint=hint):
+            if "template" not in result:
+                yield result
+                continue
+            bilingual = result.copy()
+            del bilingual["template"]
+            yield bilingual
+            yield result
 
 
 @register_discovery

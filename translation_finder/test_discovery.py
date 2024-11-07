@@ -1275,6 +1275,11 @@ class CSVDiscoveryTest(DiscoveryTestCase):
                 {
                     "filemask": "csv/*.csv",
                     "file_format": "csv",
+                    "new_base": "csv/en.csv",
+                },
+                {
+                    "filemask": "csv/*.csv",
+                    "file_format": "csv",
                     "template": "csv/en.csv",
                     "new_base": "csv/en.csv",
                 },

@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Added support for Format.JS files.
+* Offer bilingual configuration for CSV.
 
 2.16
 ----
