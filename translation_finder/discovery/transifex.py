@@ -4,7 +4,7 @@
 
 """Transifex configuration discovery."""
 
-from configparser import RawConfigParser
+import configparser
 from typing import Optional
 
 from translation_finder.api import register_discovery
@@ -74,10 +74,14 @@ class TransifexDiscovery(BaseDiscovery):
 
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """Retuns matches from transifex files."""
-        for path in self.finder.filter_files("config", ".tx"):
-            config = RawConfigParser()
+        for path in self.finder.filter_files("config", "(?:.*/|^).tx"):
+            config = configparser.RawConfigParser()
             with self.finder.open(path) as handle:
-                config.read_file(handle)
+                try:
+                    config.read_file(handle)
+                except configparser.Error:
+                    # Skip invalid files
+                    continue
             for section in config.sections():
                 result = self.extract_section(config, section)
                 if result:

@@ -1,0 +1,14 @@
+[main]
+host = https://www.transifex.com
+
+[translation]
+file_filter = locales/<lang>.po
+source_file = locales/messages.pot
+source_lang = en
+type = PO
+
+[translation]
+file_filter = locales/<lang>.po
+source_file = locales/messages.pot
+source_lang = en
+type = PO
