@@ -6,6 +6,7 @@ Changelog
 
 * Not yet released.
 * Fixed crash on corrupted Transifex configuration.
+* Improved app store metadata detection.
 
 2.17
 ----

@@ -270,7 +270,7 @@ class AppStoreDiscovery(BaseDiscovery):
     def filter_files(self):
         """Filters possible file matches."""
         for path in self.finder.filter_files(
-            "short_description.txt|full_description.txt|title.txt"
+            "short_description.txt|full_description.txt|title.txt|description.txt|name.txt"
         ):
             yield path.parent
         for path in self.finder.filter_files(r".*\.txt", ".*/changelogs"):
