@@ -54,7 +54,9 @@ class TransifexDiscovery(BaseDiscovery):
         except KeyError:
             return ""
 
-    def extract_section(self, config: RawConfigParser, section: str) -> ResultDict | None:
+    def extract_section(
+        self, config: RawConfigParser, section: str
+    ) -> ResultDict | None:
         if section == "main" or not config.has_option(section, "file_filter"):
             return None
         result: ResultDict = {
