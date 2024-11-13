@@ -25,7 +25,7 @@ classifiers = [
 dependencies = [
   "charset-normalizer>2.0,<4.0",
   "ruamel.yaml",
-  "weblate-language-data>=2021.2"
+  "weblate-language-data>=2024.14"
 ]
 description = "A translation file finder used in Weblate."
 keywords = [
@@ -48,7 +48,7 @@ text = "GPL-3.0-or-later"
 
 [project.optional-dependencies]
 dev = [
-  "translation-finder[lint,test]"
+  "translation-finder[lint,test,types]"
 ]
 lint = [
   "pre-commit==4.0.1"
@@ -56,6 +56,9 @@ lint = [
 test = [
   "pytest",
   "pytest-cov"
+]
+types = [
+  "mypy==1.13.0"
 ]
 
 [project.readme]

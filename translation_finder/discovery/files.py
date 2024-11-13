@@ -19,6 +19,7 @@ from .base import (
     EncodingDiscovery,
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
+    ResultDict,
 )
 
 LARAVEL_RE = re.compile(r"=>.*\|")
@@ -76,7 +77,7 @@ class XliffDiscovery(BaseDiscovery):
     file_format = "xliff"
     mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
 
-    def adjust_format(self, result: dict[str, str]) -> None:
+    def adjust_format(self, result: ResultDict) -> None:
         base = result["template"] if "template" in result else result["filemask"]
 
         path = next(iter(self.finder.mask_matches(base)))
@@ -233,7 +234,7 @@ class JavaDiscovery(EncodingDiscovery):
         "utf-8": "properties-utf8",
         "utf-16": "properties-utf16",
     }
-    mask = ["*_*.properties", "*.properties"]
+    mask = ("*_*.properties", "*.properties")
 
     def possible_templates(self, language: str, mask: str):
         yield mask.replace("_*", "")
@@ -303,7 +304,7 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
-    def detect_dict(self, data: dict, level=0) -> str:
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:
         all_strings = True
         i18next = False
         i18nextv4 = False
@@ -339,7 +340,7 @@ class JSONDiscovery(BaseDiscovery):
             return "json"
         return None
 
-    def adjust_format(self, result: dict[str, str]) -> None:
+    def adjust_format(self, result: ResultDict) -> None:
         if "template" not in result:
             return
 
@@ -372,7 +373,7 @@ class FluentDiscovery(BaseDiscovery):
     file_format = "fluent"
     mask = "*.ftl"
 
-    def get_language_aliases(self, language: str):
+    def get_language_aliases(self, language: str) -> list[str]:
         """Language code aliases."""
         result = super().get_language_aliases(language)
         if language == "en":
@@ -387,7 +388,7 @@ class YAMLDiscovery(BaseDiscovery):
     file_format = "yaml"
     mask = ("*.yml", "*.yaml")
 
-    def adjust_format(self, result: dict[str, str]) -> None:
+    def adjust_format(self, result: ResultDict) -> None:
         if "template" not in result:
             return
 
@@ -450,7 +451,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
     file_format = "php"
     mask = "*.php"
 
-    def adjust_format(self, result: dict[str, str]) -> None:
+    def adjust_format(self, result: ResultDict) -> None:
         if "template" not in result:
             return
 
@@ -546,7 +547,7 @@ class ARBDiscovery(BaseDiscovery):
     file_format = "arb"
     mask = "*.arb"
 
-    def fill_in_new_base(self, result: dict[str, str]) -> None:
+    def fill_in_new_base(self, result: ResultDict) -> None:
         super().fill_in_new_base(result)
         if "intermediate" not in result:
             # Flutter intermediate files
@@ -562,8 +563,7 @@ class RCDiscovery(MonoTemplateDiscovery):
     file_format = "rc"
     mask = ("*.rc",)
 
-    @staticmethod
-    def get_language_aliases(language: str):
+    def get_language_aliases(self, language: str) -> list[str]:
         """Language code aliases."""
         if language == "en":
             return [language, "enu", "ENU"]

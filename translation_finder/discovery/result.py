@@ -4,7 +4,15 @@
 
 """Discovery result class."""
 
+from __future__ import annotations
+
 from collections import UserDict
+from typing import TypedDict
+
+
+class ResultMeta(TypedDict, total=False):
+    priority: int
+    file_format: str
 
 
 class DiscoveryResult(UserDict):
@@ -16,7 +24,7 @@ class DiscoveryResult(UserDict):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.meta = {}
+        self.meta: ResultMeta = {}
 
     @property
     def _sort_key(self):

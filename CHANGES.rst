@@ -9,6 +9,7 @@ Changelog
 * Improved app store metadata detection.
 * Improved template detection for text files.
 * Improved detection of iOS translation files.
+* Added type annotations.
 
 2.17
 ----

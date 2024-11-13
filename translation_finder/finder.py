@@ -11,6 +11,10 @@ import re
 from fnmatch import fnmatch
 from os import scandir
 from pathlib import Path, PurePath
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 EXCLUDES = {
     ".git",
@@ -35,16 +39,22 @@ def lc_convert(relative_path, relative):
     return directory, filename, relative
 
 
+PathListItem = tuple[PurePath, PurePath, str]
+PathListType = list[PathListItem]
+
+
 class Finder:
     """Finder for files which might be considered translations."""
 
-    def __init__(self, root, mock=None) -> None:
+    def __init__(
+        self, root, mock: tuple[PathListType, PathListType] | None = None
+    ) -> None:
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
         if mock is None:
-            files = []
-            dirs = []
+            files: PathListType = []
+            dirs: PathListType = []
             self.list_files(root, files, dirs)
         else:
             files, dirs = mock
@@ -71,18 +81,20 @@ class Finder:
         relative = path.relative_to(self.root)
         return (path, relative, relative.as_posix())
 
-    def list_files(self, root, files, dirs) -> None:
+    def list_files(
+        self, root: PurePath, files: PathListType, dirs: PathListType
+    ) -> None:
         """
         Recursively list files and dirs in a path.
 
         It skips excluded files.
         """
         with scandir(root) as matches:
-            for path in matches:
-                if path.is_symlink():
+            for match in matches:
+                if match.is_symlink():
                     continue
-                is_dir = path.is_dir()
-                path = Path(path.path)
+                is_dir = match.is_dir()
+                path = Path(match.path)
                 if any(path.match(exclude) for exclude in EXCLUDES):
                     continue
                 if is_dir:
@@ -102,7 +114,7 @@ class Finder:
         """Check whether dir exists."""
         return name in self.dirnames
 
-    def mask_matches(self, mask: str):
+    def mask_matches(self, mask: str) -> Generator[PurePath]:
         """Return all mask matches."""
         # Avoid dealing [ as a special char
         mask = mask.replace("[", "[[]").replace("?", "[?]")
@@ -110,16 +122,17 @@ class Finder:
             if fnmatch(name, mask):
                 yield path
 
-    def filter_files(self, fileglob: str, dirglob: str | None = None):
+    def filter_files(
+        self, fileglob: str, dirglob: str | None = None
+    ) -> Generator[PurePath]:
         """Filter lowercase file names against glob."""
-        fileglob = re.compile(fileglob)
-        if dirglob:
-            dirglob = re.compile(dirglob)
+        fileglob_re = re.compile(fileglob)
+        dirglob_re = re.compile(dirglob) if dirglob else None
         for directory, filename, path in self.lc_files:
-            if dirglob and not dirglob.fullmatch(directory):
+            if dirglob_re and not dirglob_re.fullmatch(directory):
                 continue
 
-            if fileglob.fullmatch(filename):
+            if fileglob_re.fullmatch(filename):
                 yield path
 
     def open(self, path, *args, **kwargs):
