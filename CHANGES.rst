@@ -7,6 +7,7 @@ Changelog
 * Not yet released.
 * Fixed crash on corrupted Transifex configuration.
 * Improved app store metadata detection.
+* Improved template detection for text files.
 
 2.17
 ----

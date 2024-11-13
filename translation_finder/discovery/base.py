@@ -300,3 +300,12 @@ class EncodingDiscovery(BaseDiscovery):
                 if encoding in self.encoding_map:
                     result["file_format"] = self.encoding_map[encoding]
                 return
+
+
+class EnglishVariantsDiscovery(BaseDiscovery):
+    def get_language_aliases(self, language: str):
+        """Language code aliases."""
+        result = super().get_language_aliases(language)
+        if language == "en":
+            result.extend(["en-US", "en-GB", "en-AU"])
+        return result

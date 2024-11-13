@@ -13,7 +13,12 @@ from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
 from translation_finder.api import register_discovery
 
-from .base import BaseDiscovery, EncodingDiscovery, MonoTemplateDiscovery
+from .base import (
+    BaseDiscovery,
+    EncodingDiscovery,
+    MonoTemplateDiscovery,
+    EnglishVariantsDiscovery,
+)
 
 LARAVEL_RE = re.compile(r"=>.*\|")
 
@@ -262,7 +267,7 @@ class ResourceDictionaryDiscovery(BaseDiscovery):
 
 
 @register_discovery
-class AppStoreDiscovery(BaseDiscovery):
+class AppStoreDiscovery(EnglishVariantsDiscovery):
     """App store metadata."""
 
     file_format = "appstore"
@@ -279,13 +284,6 @@ class AppStoreDiscovery(BaseDiscovery):
     def has_storage(self, name: str):
         """Check whether finder has a storage."""
         return self.finder.has_dir(name)
-
-    def get_language_aliases(self, language: str):
-        """Language code aliases."""
-        result = super().get_language_aliases(language)
-        if language == "en":
-            result.extend(["en-US", "en-GB", "en-AU"])
-        return result
 
 
 @register_discovery
@@ -474,7 +472,7 @@ class HTMLDiscovery(MonoTemplateDiscovery):
 
 
 @register_discovery
-class TXTDiscovery(MonoTemplateDiscovery):
+class TXTDiscovery(MonoTemplateDiscovery, EnglishVariantsDiscovery):
     """TXT files discovery."""
 
     file_format = "txt"
