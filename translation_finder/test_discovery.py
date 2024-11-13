@@ -6,9 +6,10 @@ from __future__ import annotations
 
 from operator import itemgetter
 from pathlib import Path, PurePath
+from typing import TYPE_CHECKING
 from unittest import TestCase
 
-from .discovery.base import DiscoveryResult
+from .discovery.base import DiscoveryResult, ResultDict
 from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
@@ -38,6 +39,9 @@ from .discovery.files import (
 from .discovery.transifex import TransifexDiscovery
 from .finder import Finder
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 TEST_DATA = Path(__file__).parent / "test_data"
 
 
@@ -60,13 +64,17 @@ class DiscoveryTestCase(TestCase):
     def get_real_finder():
         return Finder(TEST_DATA)
 
-    def assert_discovery(self, first, second) -> None:
+    def assert_discovery(
+        self, actual: Iterable[DiscoveryResult], expected: list[ResultDict]
+    ) -> None:
+        actual_list = sorted(actual, key=itemgetter("filemask"))
+        expected_list = sorted(expected, key=itemgetter("filemask"))
         self.assertEqual(
-            sorted(first, key=itemgetter("filemask")),
-            sorted(second, key=itemgetter("filemask")),
+            len(actual_list), len(expected_list), "Mismatched count of results"
         )
-        for value in first:
+        for i, value in enumerate(actual_list):
             self.assertIsInstance(value, DiscoveryResult)
+            self.assertEqual(value.data, expected_list[i])
 
 
 class GetttetTest(DiscoveryTestCase):

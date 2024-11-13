@@ -188,7 +188,7 @@ class OSXDiscovery(EncodingDiscovery):
 
     file_format = "strings-utf8"
     encoding_map = {
-        "utf-16": "strings",
+        "utf_16": "strings",
     }
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
@@ -249,8 +249,8 @@ class JavaDiscovery(EncodingDiscovery):
 
     file_format = "properties"
     encoding_map = {
-        "utf-8": "properties-utf8",
-        "utf-16": "properties-utf16",
+        "utf_8": "properties-utf8",
+        "utf_16": "properties-utf16",
     }
     mask = ("*_*.properties", "*.properties")
 
