@@ -14,7 +14,7 @@ class ResultMeta(TypedDict, total=False):
     priority: int
     file_format: str
     discovery: str
-    origin: str
+    origin: str | None
 
 
 class ResultDict(TypedDict, total=False):

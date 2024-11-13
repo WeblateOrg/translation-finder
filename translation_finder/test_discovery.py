@@ -4,8 +4,8 @@
 
 from __future__ import annotations
 
-import os.path
 from operator import itemgetter
+from pathlib import Path, PurePath
 from unittest import TestCase
 
 from .discovery.base import DiscoveryResult
@@ -36,9 +36,9 @@ from .discovery.files import (
     YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
-from .finder import Finder, PurePath
+from .finder import Finder
 
-TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
+TEST_DATA = Path(__file__).parent / "test_data"
 
 
 class DiscoveryTestCase(TestCase):
@@ -315,8 +315,8 @@ class GetttetTest(DiscoveryTestCase):
         )
 
     def test_po_many(self) -> None:
-        with open(os.path.join(TEST_DATA, "calibre.txt"), encoding="utf-8") as handle:
-            filenames = handle.read().splitlines()
+        test_file = TEST_DATA / "calibre.txt"
+        filenames = test_file.read_text(encoding="utf-8").splitlines()
         discovery = GettextDiscovery(self.get_finder(filenames))
         self.assert_discovery(
             discovery.discover(),
@@ -959,8 +959,8 @@ class JSONDiscoveryTest(DiscoveryTestCase):
         Based on Cataclysm-DDA, see
         https://github.com/WeblateOrg/translation-finder/issues/54
         """
-        with open(os.path.join(TEST_DATA, "catalysm.txt"), encoding="utf-8") as handle:
-            filenames = handle.read().splitlines()
+        test_file = TEST_DATA / "catalysm.txt"
+        filenames = test_file.read_text(encoding="utf-8").splitlines()
         discovery = JSONDiscovery(self.get_finder(filenames))
         # This has many false positives, but most of them come from
         # filename starting with language code what is something we generally want

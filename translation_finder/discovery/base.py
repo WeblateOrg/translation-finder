@@ -12,7 +12,7 @@ from itertools import chain
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
 
-from charset_normalizer import from_path
+from charset_normalizer import from_fp
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
@@ -69,7 +69,7 @@ class BaseDiscovery:
     file_format = ""
     mask: str | tuple[str, ...] = "*.*"
     new_base_mask: str | None = None
-    origin: str
+    origin: str | None = None
     priority = 1000
     uses_template = False
 
@@ -311,7 +311,8 @@ class EncodingDiscovery(BaseDiscovery):
             if not isinstance(path, Path):
                 # PurePath only
                 continue
-            detection_result = from_path(path).best()
+            with self.finder.open(path, "rb") as handle:
+                detection_result = from_fp(handle).best()
             if detection_result is None:
                 continue
 
