@@ -29,6 +29,7 @@ LANGUAGES_BLACKLIST = {
     "pi",
     "fa",
     "ss",
+    "sc",
     "arg",
     "ext",
     "div",
