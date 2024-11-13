@@ -6,11 +6,18 @@
 
 from __future__ import annotations
 
-import configparser
+from configparser import Error as ConfigParserError
+from configparser import RawConfigParser
+from typing import TYPE_CHECKING
 
 from translation_finder.api import register_discovery
 
 from .base import BaseDiscovery
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from .result import ResultDict
 
 
 @register_discovery
@@ -40,17 +47,17 @@ class TransifexDiscovery(BaseDiscovery):
         "YML": "ruby-yaml",
     }
 
-    def extract_format(self, transifex: str):
+    def extract_format(self, transifex: str) -> str:
         transifex = transifex.upper()
         try:
             return self.typemap[transifex]
         except KeyError:
             return ""
 
-    def extract_section(self, config, section: str):
+    def extract_section(self, config: RawConfigParser, section: str) -> ResultDict | None:
         if section == "main" or not config.has_option(section, "file_filter"):
             return None
-        result = {
+        result: ResultDict = {
             "name": section,
             "filemask": config.get(section, "file_filter").replace("<lang>", "*"),
             "file_format": "",
@@ -73,14 +80,16 @@ class TransifexDiscovery(BaseDiscovery):
 
         return result
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """Retuns matches from transifex files."""
         for path in self.finder.filter_files("config", "(?:.*/|^).tx"):
-            config = configparser.RawConfigParser()
+            config = RawConfigParser()
             with self.finder.open(path) as handle:
                 try:
                     config.read_file(handle)
-                except configparser.Error:
+                except ConfigParserError:
                     # Skip invalid files
                     continue
             for section in config.sections():

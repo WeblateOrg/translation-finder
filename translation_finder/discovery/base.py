@@ -9,8 +9,8 @@ from __future__ import annotations
 import fnmatch
 import re
 from itertools import chain
-from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from pathlib import Path, PurePath
+from typing import TYPE_CHECKING
 
 from charset_normalizer import from_path
 from weblate_language_data.country_codes import COUNTRIES
@@ -18,9 +18,11 @@ from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
 
-from .result import DiscoveryResult
+from .result import DiscoveryResult, ResultDict
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from translation_finder.finder import Finder
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
@@ -61,14 +63,6 @@ TEMPLATE_REPLACEMENTS = (
 )
 
 
-class ResultDict(TypedDict, total=False):
-    filemask: str
-    template: str
-    file_format: str
-    intermediate: str
-    new_base: str
-
-
 class BaseDiscovery:
     """Abstract base class for discovery."""
 
@@ -84,7 +78,7 @@ class BaseDiscovery:
         self.source_language: str = source_language
 
     @staticmethod
-    def is_country_code(code):
+    def is_country_code(code: str) -> bool:
         code = code.lower()
         return code in COUNTRIES or code in LOCALES
 
@@ -107,14 +101,14 @@ class BaseDiscovery:
         return False
 
     @staticmethod
-    def detect_format(filemask: str):
+    def detect_format(filemask: str) -> str:
         filemask = filemask.lower()
         for end, result in EXTENSION_MAP:
             if filemask.endswith(end):
                 return result
         return ""
 
-    def get_wildcard(self, part: str):
+    def get_wildcard(self, part: str) -> str | None:
         """
         Generate language wilcard for a path part.
 
@@ -183,7 +177,7 @@ class BaseDiscovery:
         if best_result is not None:
             result["new_base"] = best_result
 
-    def has_storage(self, name: str):
+    def has_storage(self, name: str) -> bool:
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
@@ -191,7 +185,7 @@ class BaseDiscovery:
         """Language code aliases."""
         return [language]
 
-    def possible_templates(self, language: str, mask: str):
+    def possible_templates(self, language: str, mask: str) -> Generator[str]:
         """Yield possible template filenames."""
         for alias in self.get_language_aliases(language):
             yield mask.replace("*", alias)
@@ -222,7 +216,9 @@ class BaseDiscovery:
     def adjust_format(self, result: ResultDict) -> None:
         return
 
-    def discover(self, eager: bool = False, hint: str | None = None):
+    def discover(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[DiscoveryResult]:
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
         for result in self.get_masks(eager=eager, hint=hint):
@@ -233,25 +229,27 @@ class BaseDiscovery:
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
             discovered.add(result["filemask"])
-            result = DiscoveryResult(result)
-            result.meta["discovery"] = self.__class__.__name__
-            result.meta["origin"] = self.origin
-            result.meta["priority"] = self.priority
-            yield result
+            discovery_result = DiscoveryResult(result)
+            discovery_result.meta["discovery"] = self.__class__.__name__
+            discovery_result.meta["origin"] = self.origin
+            discovery_result.meta["priority"] = self.priority
+            yield discovery_result
 
     @property
-    def masks_list(self):
+    def masks_list(self) -> tuple[str, ...]:
         if isinstance(self.mask, str):
-            return [self.mask]
+            return (self.mask,)
         return self.mask
 
-    def filter_files(self):
+    def filter_files(self) -> Generator[PurePath]:
         """Filters possible file matches."""
         return self.finder.filter_files(
             "|".join(fnmatch.translate(mask) for mask in self.masks_list),
         )
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -265,7 +263,7 @@ class BaseDiscovery:
             parts = list(path.parts)
             if eager:
                 parts[-1] = "*.{}".format(parts[-1].rsplit(".", 1)[1])
-                result = {"filemask": "/".join(parts)}
+                result: ResultDict = {"filemask": "/".join(parts)}
                 if self.uses_template:
                     result["new_base"] = result["template"] = "/".join(path.parts)
                 yield result
@@ -276,14 +274,16 @@ class BaseDiscovery:
                     continue
                 wildcard = self.get_wildcard(part)
                 if wildcard:
-                    mask = parts.copy()
+                    mask_parts = parts.copy()
                     match = re.compile(f"(^|[._-]){re.escape(part)}($|[._-])")
-                    for i, current in enumerate(mask):
+                    for i, current in enumerate(mask_parts):
                         if match.findall(current):
                             skip.add(i)
-                            mask[i] = match.sub(f"\\g<1>{wildcard}\\g<2>", current)
-                    mask[pos] = wildcard
-                    yield {"filemask": "/".join(mask)}
+                            mask_parts[i] = match.sub(
+                                f"\\g<1>{wildcard}\\g<2>", current
+                            )
+                    mask_parts[pos] = wildcard
+                    yield {"filemask": "/".join(mask_parts)}
 
 
 class MonoTemplateDiscovery(BaseDiscovery):

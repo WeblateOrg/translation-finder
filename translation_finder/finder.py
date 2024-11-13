@@ -11,10 +11,13 @@ import re
 from fnmatch import fnmatch
 from os import scandir
 from pathlib import Path, PurePath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from io import FileIO, TextIOWrapper
+
+    from _typeshed import OpenBinaryMode, OpenTextMode
 
 EXCLUDES = {
     ".git",
@@ -30,7 +33,7 @@ EXCLUDES = {
 }
 
 
-def lc_convert(relative_path, relative):
+def lc_convert(relative_path: str, relative: PurePath) -> tuple[str, str, PurePath]:
     lower = relative_path.lower()
     try:
         directory, filename = lower.rsplit("/", 1)
@@ -41,13 +44,16 @@ def lc_convert(relative_path, relative):
 
 PathListItem = tuple[PurePath, PurePath, str]
 PathListType = list[PathListItem]
+PathMockType = tuple[PathListType, PathListType]
 
 
 class Finder:
     """Finder for files which might be considered translations."""
 
     def __init__(
-        self, root, mock: tuple[PathListType, PathListType] | None = None
+        self,
+        root: PurePath | str,
+        mock: PathMockType | None = None,
     ) -> None:
         if not isinstance(root, PurePath):
             root = Path(root)
@@ -77,7 +83,7 @@ class Finder:
         ]
         self.files.sort(key=operator.itemgetter(0))
 
-    def process_path(self, path):
+    def process_path(self, path: PurePath) -> tuple[PurePath, PurePath, str]:
         relative = path.relative_to(self.root)
         return (path, relative, relative.as_posix())
 
@@ -106,11 +112,11 @@ class Finder:
                 else:
                     files.append(self.process_path(path))
 
-    def has_file(self, name: str):
+    def has_file(self, name: str) -> bool:
         """Check whether file exists."""
         return name in self.filenames
 
-    def has_dir(self, name: str):
+    def has_dir(self, name: str) -> bool:
         """Check whether dir exists."""
         return name in self.dirnames
 
@@ -135,5 +141,13 @@ class Finder:
             if fileglob_re.fullmatch(filename):
                 yield path
 
-    def open(self, path, *args, **kwargs):
-        return self.absolutes[path.as_posix()].open(*args, **kwargs)
+    @overload
+    def open(self, path: PurePath, mode: OpenTextMode = "r") -> TextIOWrapper: ...
+    @overload
+    def open(self, path: PurePath, mode: OpenBinaryMode) -> FileIO: ...
+    def open(self, path, mode="r"):
+        path_obj = self.absolutes[path.as_posix()]
+        if not isinstance(path_obj, Path):
+            msg = "Not a real file"
+            raise TypeError(msg)
+        return path_obj.open(mode=mode)

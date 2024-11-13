@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import TYPE_CHECKING
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -19,8 +20,13 @@ from .base import (
     EncodingDiscovery,
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
-    ResultDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import PurePath
+
+    from .result import DiscoveryResult, ResultDict
 
 LARAVEL_RE = re.compile(r"=>.*\|")
 
@@ -33,7 +39,9 @@ class GettextDiscovery(BaseDiscovery):
     mask = "*.po"
     new_base_mask = "*.pot"
 
-    def discover(self, eager: bool = False, hint: str | None = None):
+    def discover(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[DiscoveryResult]:
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -45,7 +53,7 @@ class GettextDiscovery(BaseDiscovery):
             mono["file_format"] = "po-mono"
             yield mono
 
-    def fill_in_new_base(self, result) -> None:
+    def fill_in_new_base(self, result: ResultDict) -> None:
         super().fill_in_new_base(result)
         if "new_base" not in result:
             pot_names = [
@@ -108,7 +116,9 @@ class CSVDiscovery(MonoTemplateDiscovery):
     file_format = "csv"
     mask = "*.csv"
 
-    def discover(self, eager: bool = False, hint: str | None = None):
+    def discover(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[DiscoveryResult]:
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -133,7 +143,9 @@ class AndroidDiscovery(BaseDiscovery):
 
     file_format = "aresource"
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -152,7 +164,9 @@ class MOKODiscovery(BaseDiscovery):
 
     file_format = "moko-resource"
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -177,11 +191,13 @@ class OSXDiscovery(EncodingDiscovery):
         "utf-16": "strings",
     }
 
-    def possible_templates(self, language: str, mask: str):
+    def possible_templates(self, language: str, mask: str) -> Generator[str]:
         yield mask.replace("*", "Base")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -209,7 +225,9 @@ class StringsdictDiscovery(BaseDiscovery):
 
     file_format = "stringsdict"
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -236,7 +254,7 @@ class JavaDiscovery(EncodingDiscovery):
     }
     mask = ("*_*.properties", "*.properties")
 
-    def possible_templates(self, language: str, mask: str):
+    def possible_templates(self, language: str, mask: str) -> Generator[str]:
         yield mask.replace("_*", "")
         yield from super().possible_templates(language, mask)
 
@@ -248,11 +266,13 @@ class RESXDiscovery(BaseDiscovery):
     file_format = "resx"
     mask = "resources.res[xw]"
 
-    def possible_templates(self, language: str, mask: str):
+    def possible_templates(self, language: str, mask: str) -> Generator[str]:
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 
@@ -283,7 +303,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
 
     file_format = "appstore"
 
-    def filter_files(self):
+    def filter_files(self) -> Generator[PurePath]:
         """Filters possible file matches."""
         for path in self.finder.filter_files(
             "short_description.txt|full_description.txt|title.txt|description.txt|name.txt",
@@ -292,7 +312,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
         for path in self.finder.filter_files(r".*\.txt", ".*/changelogs"):
             yield path.parent.parent
 
-    def has_storage(self, name: str):
+    def has_storage(self, name: str) -> bool:
         """Check whether finder has a storage."""
         return self.finder.has_dir(name)
 
@@ -584,7 +604,9 @@ class FormatJSDiscovery(BaseDiscovery):
 
     file_format = "formatjs"
 
-    def get_masks(self, eager: bool = False, hint: str | None = None):
+    def get_masks(
+        self, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
 

@@ -129,14 +129,6 @@ ignore = [
   "ARG004",  # TODO
   "PTH",  # TODO: Not using pathlib
   "ARG002",  # TODO: Unused method argument (mostly for API compatibility)
-  "ANN001",  # TODO: Missing type annotation for function argument
-  "ANN002",  # TODO: Missing type annotation for `*args`
-  "ANN003",  # TODO: Missing type annotation for `**kwargs`
-  "ANN201",  # TODO: Missing return type annotation for public function
-  "ANN202",  # TODO:  Missing return type annotation for private function
-  "ANN204",  # TODO: Missing return type annotation for special method
-  "ANN205",  # TODO: Missing return type annotation for staticmethod
-  "ANN206",  # TODO: Missing return type annotation for classmethod
   "DOC",  # TODO: Ignore all pydoclint rules for now
   "PLR6301",  # TODO: Method could be a function, class method, or static method
   "RUF012",  # TODO: Mutable class attributes should be annotated with `typing.ClassVar`
