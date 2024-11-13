@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Fixed crash on corrupted Transifex configuration.
 
 2.17
 ----
