@@ -4,7 +4,7 @@ Changelog
 2.18
 ----
 
-* Not yet released.
+* Released on 13th November 2024.
 * Fixed crash on corrupted Transifex configuration.
 * Improved app store metadata detection.
 * Improved template detection for text files.
