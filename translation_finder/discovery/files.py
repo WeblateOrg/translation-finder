@@ -174,13 +174,19 @@ class OSXDiscovery(EncodingDiscovery):
         "utf-16": "strings",
     }
 
+    def possible_templates(self, language: str, mask: str):
+        yield mask.replace("*", "Base")
+        yield from super().possible_templates(language, mask)
+
     def get_masks(self, eager: bool = False, hint: Optional[str] = None):
         """
         Return all file masks found in the directory.
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(r".*\.strings", r".*/(base|en)\.lproj"):
+        for path in self.finder.filter_files(
+            r".*\.strings", r".*/(base|en(-[a-z]{2})?)\.lproj"
+        ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
 

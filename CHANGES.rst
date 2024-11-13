@@ -8,6 +8,7 @@ Changelog
 * Fixed crash on corrupted Transifex configuration.
 * Improved app store metadata detection.
 * Improved template detection for text files.
+* Improved detection of iOS translation files.
 
 2.17
 ----
