@@ -10,7 +10,7 @@ from .api import discover
 from .discovery.result import DiscoveryResult
 from .finder import Finder
 
-__all__ = ("Finder", "discover", "DiscoveryResult")
+__all__ = ("DiscoveryResult", "Finder", "discover")
 
 # Make sure all discovery modules are imported
 import_module("translation_finder.discovery.transifex")

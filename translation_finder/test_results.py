@@ -9,7 +9,7 @@ from .discovery.result import DiscoveryResult
 
 
 class ResultTest(TestCase):
-    def test_lt(self):
+    def test_lt(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
         r2 = DiscoveryResult({"file_format": "b"})
@@ -18,12 +18,12 @@ class ResultTest(TestCase):
         r2.meta["priority"] = 10
         self.assertLess(r1, r2)
 
-    def test_repr(self):
+    def test_repr(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
         self.assertEqual(f"{r1!r}", "{'file_format': 'a'} [meta:{'priority': 10}]")
 
-    def test_pickle(self):
+    def test_pickle(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
         r2 = loads(dumps(r1))

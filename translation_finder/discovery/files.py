@@ -4,9 +4,10 @@
 
 """Individual discovery rules for translation formats."""
 
+from __future__ import annotations
+
 import json
 import re
-from typing import Optional
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -16,8 +17,8 @@ from translation_finder.api import register_discovery
 from .base import (
     BaseDiscovery,
     EncodingDiscovery,
-    MonoTemplateDiscovery,
     EnglishVariantsDiscovery,
+    MonoTemplateDiscovery,
 )
 
 LARAVEL_RE = re.compile(r"=>.*\|")
@@ -31,7 +32,7 @@ class GettextDiscovery(BaseDiscovery):
     mask = "*.po"
     new_base_mask = "*.pot"
 
-    def discover(self, eager: bool = False, hint: Optional[str] = None):
+    def discover(self, eager: bool = False, hint: str | None = None):
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -43,7 +44,7 @@ class GettextDiscovery(BaseDiscovery):
             mono["file_format"] = "po-mono"
             yield mono
 
-    def fill_in_new_base(self, result):
+    def fill_in_new_base(self, result) -> None:
         super().fill_in_new_base(result)
         if "new_base" not in result:
             pot_names = [
@@ -75,7 +76,7 @@ class XliffDiscovery(BaseDiscovery):
     file_format = "xliff"
     mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
 
-    def adjust_format(self, result: dict[str, str]):
+    def adjust_format(self, result: dict[str, str]) -> None:
         base = result["template"] if "template" in result else result["filemask"]
 
         path = next(iter(self.finder.mask_matches(base)))
@@ -106,7 +107,7 @@ class CSVDiscovery(MonoTemplateDiscovery):
     file_format = "csv"
     mask = "*.csv"
 
-    def discover(self, eager: bool = False, hint: Optional[str] = None):
+    def discover(self, eager: bool = False, hint: str | None = None):
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -131,7 +132,7 @@ class AndroidDiscovery(BaseDiscovery):
 
     file_format = "aresource"
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
@@ -150,14 +151,15 @@ class MOKODiscovery(BaseDiscovery):
 
     file_format = "moko-resource"
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
         It is expected to contain duplicates.
         """
         for path in self.finder.filter_files(
-            r"(strings|plurals)\.xml", ".*/resources/mr/base"
+            r"(strings|plurals)\.xml",
+            ".*/resources/mr/base",
         ):
             mask = list(path.parts)
             mask[-2] = "*"
@@ -178,14 +180,15 @@ class OSXDiscovery(EncodingDiscovery):
         yield mask.replace("*", "Base")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
         It is expected to contain duplicates.
         """
         for path in self.finder.filter_files(
-            r".*\.strings", r".*/(base|en(-[a-z]{2})?)\.lproj"
+            r".*\.strings",
+            r".*/(base|en(-[a-z]{2})?)\.lproj",
         ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
@@ -205,14 +208,15 @@ class StringsdictDiscovery(BaseDiscovery):
 
     file_format = "stringsdict"
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
         It is expected to contain duplicates.
         """
         for path in self.finder.filter_files(
-            r".*\.stringsdict", r".*/(base|en)\.lproj"
+            r".*\.stringsdict",
+            r".*/(base|en)\.lproj",
         ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
@@ -247,7 +251,7 @@ class RESXDiscovery(BaseDiscovery):
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
@@ -281,7 +285,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
     def filter_files(self):
         """Filters possible file matches."""
         for path in self.finder.filter_files(
-            "short_description.txt|full_description.txt|title.txt|description.txt|name.txt"
+            "short_description.txt|full_description.txt|title.txt|description.txt|name.txt",
         ):
             yield path.parent
         for path in self.finder.filter_files(r".*\.txt", ".*/changelogs"):
@@ -335,7 +339,7 @@ class JSONDiscovery(BaseDiscovery):
             return "json"
         return None
 
-    def adjust_format(self, result: dict[str, str]):
+    def adjust_format(self, result: dict[str, str]) -> None:
         if "template" not in result:
             return
 
@@ -383,7 +387,7 @@ class YAMLDiscovery(BaseDiscovery):
     file_format = "yaml"
     mask = ("*.yml", "*.yaml")
 
-    def adjust_format(self, result: dict[str, str]):
+    def adjust_format(self, result: dict[str, str]) -> None:
         if "template" not in result:
             return
 
@@ -446,7 +450,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
     file_format = "php"
     mask = "*.php"
 
-    def adjust_format(self, result: dict[str, str]):
+    def adjust_format(self, result: dict[str, str]) -> None:
         if "template" not in result:
             return
 
@@ -542,7 +546,7 @@ class ARBDiscovery(BaseDiscovery):
     file_format = "arb"
     mask = "*.arb"
 
-    def fill_in_new_base(self, result: dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]) -> None:
         super().fill_in_new_base(result)
         if "intermediate" not in result:
             # Flutter intermediate files
@@ -580,7 +584,7 @@ class FormatJSDiscovery(BaseDiscovery):
 
     file_format = "formatjs"
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 

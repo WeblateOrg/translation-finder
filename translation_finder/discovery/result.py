@@ -4,15 +4,17 @@
 
 """Discovery result class."""
 
+from collections import UserDict
 
-class DiscoveryResult(dict):
+
+class DiscoveryResult(UserDict):
     """
     Discovery result class.
 
     Subclass of a dict with meta dict containing additional information.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.meta = {}
 
@@ -36,7 +38,7 @@ class DiscoveryResult(dict):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.match!r} [meta:{self.meta!r}]"
 
     def copy(self):

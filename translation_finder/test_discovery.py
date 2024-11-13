@@ -2,23 +2,26 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from __future__ import annotations
+
 import os.path
+from operator import itemgetter
 from unittest import TestCase
 
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
-    MOKODiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
-    FormatJSDiscovery,
     CSVDiscovery,
     FluentDiscovery,
+    FormatJSDiscovery,
     GettextDiscovery,
     HTMLDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
+    MOKODiscovery,
     OSXDiscovery,
     PHPDiscovery,
     QtDiscovery,
@@ -57,11 +60,11 @@ class DiscoveryTestCase(TestCase):
     def get_real_finder():
         return Finder(TEST_DATA)
 
-    def assert_discovery(self, first, second):
-        def sort_key(item):
-            return item["filemask"]
-
-        self.assertEqual(sorted(first, key=sort_key), sorted(second, key=sort_key))
+    def assert_discovery(self, first, second) -> None:
+        self.assertEqual(
+            sorted(first, key=itemgetter("filemask")),
+            sorted(second, key=itemgetter("filemask")),
+        )
         for value in first:
             self.assertIsInstance(value, DiscoveryResult)
 
@@ -69,7 +72,7 @@ class DiscoveryTestCase(TestCase):
 class GetttetTest(DiscoveryTestCase):
     maxDiff = None
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -95,8 +98,8 @@ class GetttetTest(DiscoveryTestCase):
                     "pot/rawhide/pages/welcome/Welcome.pot",
                     "de/LC_MESSAGES/pot_not_honored.po",
                     "pot_not_honored.pot",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -140,7 +143,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_duplicate_code(self):
+    def test_duplicate_code(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -149,8 +152,8 @@ class GetttetTest(DiscoveryTestCase):
                     "locales/de/other/de/messages.po",
                     "help/ar/ar.po",
                     "po/cs/docs.po",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -165,7 +168,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_double(self):
+    def test_double(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -173,8 +176,8 @@ class GetttetTest(DiscoveryTestCase):
                     "locale/baz-de-DE.po",
                     "locale/foo-de_DE.po",
                     "locale/foa_de_DE.po",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -186,7 +189,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_uppercase(self):
+    def test_uppercase(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -202,8 +205,8 @@ class GetttetTest(DiscoveryTestCase):
                     "sources/localization/fr/Xenko.Core.Assets.Editor.fr.po",
                     "sources/localization/Xenko.GameStudio.pot",
                     "sources/localization/Xenko.Assets.Presentation.pot",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -231,9 +234,9 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_mono(self):
+    def test_mono(self) -> None:
         discovery = GettextDiscovery(
-            self.get_finder(["locale/en/strings.po", "locale/de/strings.po"])
+            self.get_finder(["locale/en/strings.po", "locale/de/strings.po"]),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -247,7 +250,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_mono_language(self):
+    def test_mono_language(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(["locale/cs_CZ/strings.po", "locale/de/strings.po"]),
             "cs_CZ",
@@ -264,15 +267,16 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_filename(self):
+    def test_filename(self) -> None:
         discovery = GettextDiscovery(
-            self.get_finder(["locales/cs.po", "locales/de.po"])
+            self.get_finder(["locales/cs.po", "locales/de.po"]),
         )
         self.assert_discovery(
-            discovery.discover(), [{"filemask": "locales/*.po", "file_format": "po"}]
+            discovery.discover(),
+            [{"filemask": "locales/*.po", "file_format": "po"}],
         )
 
-    def test_root(self):
+    def test_root(self) -> None:
         discovery = GettextDiscovery(self.get_finder(["en.po", "de.po"]))
         self.assert_discovery(
             discovery.discover(),
@@ -282,7 +286,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_new_base(self):
+    def test_new_base(self) -> None:
         discovery = GettextDiscovery(self.get_finder(["foo.fr.po", "foo.po"]))
         self.assert_discovery(
             discovery.discover(),
@@ -297,7 +301,7 @@ class GetttetTest(DiscoveryTestCase):
             ],
         )
 
-    def test_po_pot(self):
+    def test_po_pot(self) -> None:
         discovery = GettextDiscovery(self.get_finder(["po/jasp_nl.po", "po/jasp.po"]))
         self.assert_discovery(
             discovery.discover(),
@@ -306,12 +310,12 @@ class GetttetTest(DiscoveryTestCase):
                     "filemask": "po/jasp_*.po",
                     "file_format": "po",
                     "new_base": "po/jasp.po",
-                }
+                },
             ],
         )
 
-    def test_po_many(self):
-        with open(os.path.join(TEST_DATA, "calibre.txt")) as handle:
+    def test_po_many(self) -> None:
+        with open(os.path.join(TEST_DATA, "calibre.txt"), encoding="utf-8") as handle:
             filenames = handle.read().splitlines()
         discovery = GettextDiscovery(self.get_finder(filenames))
         self.assert_discovery(
@@ -482,7 +486,7 @@ class GetttetTest(DiscoveryTestCase):
 
 
 class QtTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = QtDiscovery(
             self.get_finder(
                 [
@@ -492,8 +496,8 @@ class QtTest(DiscoveryTestCase):
                     "lrc/translations/lrc_id.ts",
                     "quickevent/app/quickevent/quickevent.cs_CZ.ts",
                     "libqf/libqfqmlwidgets/libqfqmlwidgets.pl_PL.ts",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -517,7 +521,7 @@ class QtTest(DiscoveryTestCase):
             ],
         )
 
-    def test_po_mono_template(self):
+    def test_po_mono_template(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
                 [
@@ -525,8 +529,8 @@ class QtTest(DiscoveryTestCase):
                     "PoFiles/templates/MdeMeta.pot",
                     "PoFiles/en/MdeMeta.po",
                     "PoFiles/de/MdeMeta.po",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -547,15 +551,15 @@ class QtTest(DiscoveryTestCase):
 
 
 class AndroidTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = AndroidDiscovery(
             self.get_finder(
                 [
                     "app/src/res/main/values/strings.xml",
                     "app/src/res/main/values-it/strings.xml",
                     "app/src/res/main/values-it/strings-other.xml",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -564,13 +568,13 @@ class AndroidTest(DiscoveryTestCase):
                     "filemask": "app/src/res/main/values-*/strings.xml",
                     "file_format": "aresource",
                     "template": "app/src/res/main/values/strings.xml",
-                }
+                },
             ],
         )
 
 
 class MOKOTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = MOKODiscovery(
             self.get_finder(
                 [
@@ -579,8 +583,8 @@ class MOKOTest(DiscoveryTestCase):
                     "app/src/res/main/values-it/strings-other.xml",
                     "src/commonMain/resources/MR/base/strings.xml",
                     "src/commonMain/resources/MR/base/plurals.xml",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -600,15 +604,15 @@ class MOKOTest(DiscoveryTestCase):
 
 
 class OSXTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = OSXDiscovery(
             self.get_finder(
                 [
                     "App/Resources/en.lproj/Localizable.strings",
                     "App/Resources/Base.lproj/Other.strings",
                     "App/Resources/ru.lproj/Third.strings",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -626,7 +630,7 @@ class OSXTest(DiscoveryTestCase):
             ],
         )
 
-    def test_pappl(self):
+    def test_pappl(self) -> None:
         discovery = OSXDiscovery(
             self.get_finder(
                 [
@@ -638,8 +642,8 @@ class OSXTest(DiscoveryTestCase):
                     "pappl/strings/fr.strings",
                     "pappl/strings/it.strings",
                     "pappl/strings/ipp.strings",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -654,15 +658,15 @@ class OSXTest(DiscoveryTestCase):
 
 
 class StringsdictTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = StringsdictDiscovery(
             self.get_finder(
                 [
                     "App/Resources/en.lproj/Localizable.stringsdict",
                     "App/Resources/Base.lproj/Other.stringsdict",
                     "App/Resources/ru.lproj/Third.stringsdict",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -682,7 +686,7 @@ class StringsdictTest(DiscoveryTestCase):
 
 
 class JavaTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = JavaDiscovery(
             self.get_finder(
                 [
@@ -699,8 +703,8 @@ class JavaTest(DiscoveryTestCase):
                     "length_1_de.properties",
                     "foo_en.properties",
                     "foo_de.properties",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -725,7 +729,7 @@ class JavaTest(DiscoveryTestCase):
 
 
 class JoomlaTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = JoomlaDiscovery(
             self.get_finder(
                 [
@@ -735,8 +739,8 @@ class JoomlaTest(DiscoveryTestCase):
                     "public/lang/rm.ini",
                     "public/lang/ca.ini",
                     "public/lang/en.ini",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -745,13 +749,13 @@ class JoomlaTest(DiscoveryTestCase):
                     "filemask": "public/lang/*.ini",
                     "file_format": "joomla",
                     "template": "public/lang/en.ini",
-                }
+                },
             ],
         )
 
 
 class RESXTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = RESXDiscovery(
             self.get_finder(
                 [
@@ -764,8 +768,8 @@ class RESXTest(DiscoveryTestCase):
                     "App/Localization/SettingsStrings.fr.resx",
                     "App/Localization/ar/Resources.resw",
                     "App/Localization/en/Resources.resw",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -794,7 +798,7 @@ class RESXTest(DiscoveryTestCase):
 
 
 class ResourceDictionaryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = ResourceDictionaryDiscovery(
             self.get_finder(
                 [
@@ -805,8 +809,8 @@ class ResourceDictionaryTest(DiscoveryTestCase):
                     "Languages/tr.xaml",
                     "Languages/zh-cn.xaml",
                     "Languages/zh-tw.xaml",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -821,9 +825,9 @@ class ResourceDictionaryTest(DiscoveryTestCase):
 
 
 class XliffTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = XliffDiscovery(
-            self.get_finder(["locales/cs.xliff", "locales/en.xliff"])
+            self.get_finder(["locales/cs.xliff", "locales/en.xliff"]),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -832,11 +836,11 @@ class XliffTest(DiscoveryTestCase):
                     "filemask": "locales/*.xliff",
                     "file_format": "xliff",
                     "template": "locales/en.xliff",
-                }
+                },
             ],
         )
 
-    def test_short(self):
+    def test_short(self) -> None:
         discovery = XliffDiscovery(
             self.get_finder(
                 [
@@ -846,8 +850,8 @@ class XliffTest(DiscoveryTestCase):
                     "otherlocales/cs/help.xlf",
                     "length_1.properties.xlf",
                     "length_1_de.properties.xlf",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -865,9 +869,9 @@ class XliffTest(DiscoveryTestCase):
 
 
 class WebExtensionTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = WebExtensionDiscovery(
-            self.get_finder(["_locales/cs/messages.json", "_locales/en/messages.json"])
+            self.get_finder(["_locales/cs/messages.json", "_locales/en/messages.json"]),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -876,13 +880,13 @@ class WebExtensionTest(DiscoveryTestCase):
                     "filemask": "_locales/*/messages.json",
                     "file_format": "webextension",
                     "template": "_locales/en/messages.json",
-                }
+                },
             ],
         )
 
 
 class JSONDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = JSONDiscovery(
             self.get_finder(
                 [
@@ -898,8 +902,8 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                     "Source/JavaScriptCore/inspector/protocol/Console.json",
                     "data/cs/strings.json",
                     "data/strings.json",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -927,15 +931,15 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
-    def test_shell_chars(self):
+    def test_shell_chars(self) -> None:
         discovery = JSONDiscovery(
             self.get_finder(
                 [
                     "src/app/[locale]/_translations/en.json",
                     "src/app/[locale]/_translations/de.json",
                     "src/app/[locale]/_translations/cs.json",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -948,14 +952,14 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
-    def test_json_data(self):
+    def test_json_data(self) -> None:
         """
         Test discovery on huge list of JSON files.
 
         Based on Cataclysm-DDA, see
         https://github.com/WeblateOrg/translation-finder/issues/54
         """
-        with open(os.path.join(TEST_DATA, "catalysm.txt")) as handle:
+        with open(os.path.join(TEST_DATA, "catalysm.txt"), encoding="utf-8") as handle:
             filenames = handle.read().splitlines()
         discovery = JSONDiscovery(self.get_finder(filenames))
         # This has many false positives, but most of them come from
@@ -1082,7 +1086,7 @@ class JSONDiscoveryTest(DiscoveryTestCase):
 
 
 class TransifexTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = TransifexDiscovery(self.get_real_finder())
         results = list(discovery.discover())
         self.assert_discovery(
@@ -1119,7 +1123,7 @@ class TransifexTest(DiscoveryTestCase):
 
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = AppStoreDiscovery(
             self.get_finder(
                 [
@@ -1129,7 +1133,7 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
                     "short_description.txt",
                 ],
                 ["metadata/en-AU", "metadata/en-US", "private/metadata/en-AU"],
-            )
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1149,14 +1153,14 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
 
 
 class FluentDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = FluentDiscovery(
             self.get_finder(
                 [
                     "browser/locales/en-US/browser/component/file.ftl",
                     "browser/locales/cs-CS/browser/component/file.ftl",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1165,17 +1169,17 @@ class FluentDiscoveryTest(DiscoveryTestCase):
                     "filemask": "browser/locales/*/browser/component/file.ftl",
                     "file_format": "fluent",
                     "template": "browser/locales/en-US/browser/component/file.ftl",
-                }
+                },
             ],
         )
 
 
 class YAMLDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = YAMLDiscovery(
             self.get_finder(
-                ["translations/en/messages.en.yml", "translations/de/messages.de.yml"]
-            )
+                ["translations/en/messages.en.yml", "translations/de/messages.de.yml"],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1184,29 +1188,32 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                     "filemask": "translations/*/messages.*.yml",
                     "file_format": "yaml",
                     "template": "translations/en/messages.en.yml",
-                }
+                },
             ],
         )
 
-    def test_workflows(self):
+    def test_workflows(self) -> None:
         discovery = YAMLDiscovery(
             self.get_finder(
                 [
                     ".github/workflows/json.yml",
                     ".github/workflows/pr-validator.yml",
                     ".github/workflows/ccpp.yml",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(discovery.discover(), [])
 
 
 class TOMLDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = TOMLDiscovery(
             self.get_finder(
-                ["translations/en/messages.en.toml", "translations/de/messages.de.toml"]
-            )
+                [
+                    "translations/en/messages.en.toml",
+                    "translations/de/messages.de.toml",
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1215,13 +1222,13 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                     "filemask": "translations/*/messages.*.toml",
                     "file_format": "toml",
                     "template": "translations/en/messages.en.toml",
-                }
+                },
             ],
         )
 
 
 class ARBDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = ARBDiscovery(
             self.get_finder(
                 [
@@ -1229,8 +1236,8 @@ class ARBDiscoveryTest(DiscoveryTestCase):
                     "lib/l10n/intl_messages.arb",
                     "lib/l10n/intl_cs.arb",
                     "res/values/strings_en.arb",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1251,7 +1258,7 @@ class ARBDiscoveryTest(DiscoveryTestCase):
 
 
 class HTMLDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = HTMLDiscovery(self.get_finder(["docs/en.html", "docs/cs.html"]))
         self.assert_discovery(
             discovery.discover(),
@@ -1267,7 +1274,7 @@ class HTMLDiscoveryTest(DiscoveryTestCase):
 
 
 class CSVDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = CSVDiscovery(self.get_finder(["csv/en.csv", "csv/cs.csv"]))
         self.assert_discovery(
             discovery.discover(),
@@ -1288,7 +1295,7 @@ class CSVDiscoveryTest(DiscoveryTestCase):
 
 
 class PHPDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = PHPDiscovery(self.get_finder(["test/en.php"]))
         self.assert_discovery(
             discovery.discover(),
@@ -1304,7 +1311,7 @@ class PHPDiscoveryTest(DiscoveryTestCase):
 
 
 class RCDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = RCDiscovery(self.get_finder(["test_enu.rc", "other_ENU.rc"]))
         self.assert_discovery(
             discovery.discover(),
@@ -1326,15 +1333,15 @@ class RCDiscoveryTest(DiscoveryTestCase):
 
 
 class TXTDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = TXTDiscovery(
             self.get_finder(
                 [
                     "foo/en.txt",
                     "bar/cs.txt",
                     "baz/other.txt",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1352,12 +1359,12 @@ class TXTDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
-    def test_hint(self):
+    def test_hint(self) -> None:
         discovery = TXTDiscovery(
             self.get_finder(
                 [
                     "baz/other.txt",
-                ]
+                ],
             ),
         )
         self.assert_discovery(
@@ -1372,14 +1379,14 @@ class TXTDiscoveryTest(DiscoveryTestCase):
 
 
 class FormatJSDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         discovery = FormatJSDiscovery(
             self.get_finder(
                 [
                     "src/lang/cs.json",
                     "src/extracted/en.json",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1388,17 +1395,17 @@ class FormatJSDiscoveryTest(DiscoveryTestCase):
                     "filemask": "src/lang/*.json",
                     "template": "src/extracted/en.json",
                     "file_format": "formatjs",
-                }
+                },
             ],
         )
 
-    def test_nontranslated(self):
+    def test_nontranslated(self) -> None:
         discovery = FormatJSDiscovery(
             self.get_finder(
                 [
                     "src/extracted/en.json",
-                ]
-            )
+                ],
+            ),
         )
         self.assert_discovery(
             discovery.discover(),
@@ -1407,6 +1414,6 @@ class FormatJSDiscoveryTest(DiscoveryTestCase):
                     "filemask": "src/lang/*.json",
                     "template": "src/extracted/en.json",
                     "file_format": "formatjs",
-                }
+                },
             ],
         )

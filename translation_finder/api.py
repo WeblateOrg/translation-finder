@@ -4,9 +4,10 @@
 
 """Highlevel API for translation-finder."""
 
+from __future__ import annotations
+
 import sys
 from argparse import ArgumentParser
-from typing import Optional
 
 from .finder import Finder
 
@@ -24,7 +25,7 @@ def discover(
     mock=None,
     source_language: str = "en",
     eager: bool = False,
-    hint: Optional[str] = None,
+    hint: str | None = None,
 ):
     """
     High level discovery interface.
@@ -45,14 +46,14 @@ def discover(
     return results
 
 
-def cli(stdout=None, args=None):
+def cli(stdout=None, args=None) -> int:
     """Execution entry point."""
     stdout = stdout if stdout is not None else sys.stdout
 
     parser = ArgumentParser(
         description="Weblate translation discovery utility.",
         epilog="This utility is developed at <{}>.".format(
-            "https://github.com/WeblateOrg/translation-finder"
+            "https://github.com/WeblateOrg/translation-finder",
         ),
     )
     parser.add_argument("--source-language", help="Source language code", default="en")
@@ -68,12 +69,14 @@ def cli(stdout=None, args=None):
 
     for pos, match in enumerate(
         discover(
-            params.directory, source_language=params.source_language, eager=params.eager
-        )
+            params.directory,
+            source_language=params.source_language,
+            eager=params.eager,
+        ),
     ):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
         print(f"== Match {pos + 1}{origin} ==", file=stdout)
         for key, value in sorted(match.items()):
             print(f"{key:15}: {value}", file=stdout)
-        print("", file=stdout)
+        print(file=stdout)
     return 0

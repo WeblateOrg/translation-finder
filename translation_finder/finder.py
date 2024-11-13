@@ -4,11 +4,13 @@
 
 """Filesystem finder for translations."""
 
+from __future__ import annotations
+
+import operator
 import re
 from fnmatch import fnmatch
 from os import scandir
 from pathlib import Path, PurePath
-from typing import Optional
 
 EXCLUDES = {
     ".git",
@@ -36,7 +38,7 @@ def lc_convert(relative_path, relative):
 class Finder:
     """Finder for files which might be considered translations."""
 
-    def __init__(self, root, mock=None):
+    def __init__(self, root, mock=None) -> None:
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
@@ -54,7 +56,7 @@ class Finder:
             lc_convert(relative_path, relative)
             for absolute, relative, relative_path in files
         ]
-        self.lc_files.sort(key=lambda x: x[:2])
+        self.lc_files.sort(key=operator.itemgetter(slice(2)))
         # Needed for open
         self.absolutes = {
             relative_path: absolute for absolute, relative, relative_path in files
@@ -63,13 +65,13 @@ class Finder:
         self.files = [
             (relative_path, relative) for absolute, relative, relative_path in files
         ]
-        self.files.sort(key=lambda x: x[0])
+        self.files.sort(key=operator.itemgetter(0))
 
     def process_path(self, path):
         relative = path.relative_to(self.root)
         return (path, relative, relative.as_posix())
 
-    def list_files(self, root, files, dirs):
+    def list_files(self, root, files, dirs) -> None:
         """
         Recursively list files and dirs in a path.
 
@@ -108,7 +110,7 @@ class Finder:
             if fnmatch(name, mask):
                 yield path
 
-    def filter_files(self, fileglob: str, dirglob: Optional[str] = None):
+    def filter_files(self, fileglob: str, dirglob: str | None = None):
         """Filter lowercase file names against glob."""
         fileglob = re.compile(fileglob)
         if dirglob:

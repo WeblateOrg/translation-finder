@@ -15,7 +15,7 @@ TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
 class APITest(DiscoveryTestCase):
     maxDiff = None
 
-    def test_discover(self):
+    def test_discover(self) -> None:
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assert_discovery(
             discover(
@@ -25,7 +25,7 @@ class APITest(DiscoveryTestCase):
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
-    def test_discover_files(self):
+    def test_discover_files(self) -> None:
         self.assert_discovery(
             discover(TEST_DATA),
             [
@@ -176,12 +176,12 @@ class APITest(DiscoveryTestCase):
             ],
         )
 
-    def test_cli(self):
+    def test_cli(self) -> None:
         output = StringIO()
         cli(args=[TEST_DATA], stdout=output)
         self.assertIn("Match 2", output.getvalue())
 
-    def test_no_match(self):
+    def test_no_match(self) -> None:
         paths = ["files/document.odt"]
         self.assert_discovery(
             discover(
@@ -195,6 +195,6 @@ class APITest(DiscoveryTestCase):
                     "new_base": "files/document.odt",
                     "template": "files/document.odt",
                     "file_format": "odf",
-                }
+                },
             ],
         )

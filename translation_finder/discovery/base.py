@@ -4,10 +4,11 @@
 
 """Base discovery code."""
 
+from __future__ import annotations
+
 import fnmatch
 import re
 from itertools import chain
-from typing import Optional
 
 from charset_normalizer import detect
 from weblate_language_data.country_codes import COUNTRIES
@@ -65,7 +66,7 @@ class BaseDiscovery:
     priority = 1000
     uses_template = False
 
-    def __init__(self, finder, source_language="en"):
+    def __init__(self, finder, source_language="en") -> None:
         self.finder = finder
         self.source_language = source_language
 
@@ -75,7 +76,7 @@ class BaseDiscovery:
         return code in COUNTRIES or code in LOCALES
 
     @classmethod
-    def is_language_code(cls, code: str):
+    def is_language_code(cls, code: str) -> bool:
         """Analysis whether passed parameter looks like language code."""
         code = code.lower().replace("-", "_")
         if code in LANGUAGES and code not in LANGUAGES_BLACKLIST:
@@ -121,23 +122,25 @@ class BaseDiscovery:
             # Handle prefix-<language>.extension or prefix_<language>.extension
             tokens = TOKEN_SPLIT.split(base)
             for pos, token in enumerate(tokens):
-                if token in ("-", "_", "."):
+                if token in {"-", "_", "."}:
                     continue
                 if self.is_language_code(token):
                     end = pos + 1
                     if pos + 3 <= len(tokens) and self.is_language_code(
-                        "".join(tokens[pos : pos + 3])
+                        "".join(tokens[pos : pos + 3]),
                     ):
                         end = pos + 3
                     # Skip possible language codes in middle of string
                     if pos != 0 and end != len(tokens) and tokens[end] != ".":
                         continue
                     return "{}*{}.{}".format(
-                        "".join(tokens[:pos]), "".join(tokens[end:]), ext
+                        "".join(tokens[:pos]),
+                        "".join(tokens[end:]),
+                        ext,
                     )
         return None
 
-    def fill_in_new_base(self, result: dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]) -> None:
         if not self.new_base_mask:
             return
         path = result["filemask"]
@@ -155,7 +158,8 @@ class BaseDiscovery:
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
             for match in self.finder.filter_files(
-                new_regex, f"{re.escape(path)}|{re.escape(path_wild)}"
+                new_regex,
+                f"{re.escape(path)}|{re.escape(path_wild)}",
             ):
                 if new_name == match.parts[-1].lower():
                     result["new_base"] = "/".join(match.parts)
@@ -184,27 +188,30 @@ class BaseDiscovery:
                 yield mask.replace(match, replacement)
 
     def fill_in_template(
-        self, result: dict[str, str], source_language: Optional[str] = None
-    ):
+        self,
+        result: dict[str, str],
+        source_language: str | None = None,
+    ) -> None:
         if "template" not in result:
             if source_language is None:
                 source_language = self.source_language
             for template in self.possible_templates(
-                source_language, result["filemask"]
+                source_language,
+                result["filemask"],
             ):
                 if self.has_storage(template):
                     result["template"] = template
                     break
 
-    def fill_in_file_format(self, result: dict[str, str]):
+    def fill_in_file_format(self, result: dict[str, str]) -> None:
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
     @staticmethod
-    def adjust_format(result: dict[str, str]):
+    def adjust_format(result: dict[str, str]) -> None:
         return
 
-    def discover(self, eager: bool = False, hint: Optional[str] = None):
+    def discover(self, eager: bool = False, hint: str | None = None):
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
         for result in self.get_masks(eager=eager, hint=hint):
@@ -230,10 +237,10 @@ class BaseDiscovery:
     def filter_files(self):
         """Filters possible file matches."""
         return self.finder.filter_files(
-            "|".join(fnmatch.translate(mask) for mask in self.masks_list)
+            "|".join(fnmatch.translate(mask) for mask in self.masks_list),
         )
 
-    def get_masks(self, eager: bool = False, hint: Optional[str] = None):
+    def get_masks(self, eager: bool = False, hint: str | None = None):
         """
         Return all file masks found in the directory.
 
@@ -258,7 +265,7 @@ class BaseDiscovery:
                     continue
                 wildcard = self.get_wildcard(part)
                 if wildcard:
-                    mask = parts[:]
+                    mask = parts.copy()
                     match = re.compile(f"(^|[._-]){re.escape(part)}($|[._-])")
                     for i, current in enumerate(mask):
                         if match.findall(current):
@@ -273,7 +280,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
     uses_template = True
 
-    def fill_in_new_base(self, result: dict[str, str]):
+    def fill_in_new_base(self, result: dict[str, str]) -> None:
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
 
@@ -283,7 +290,7 @@ class EncodingDiscovery(BaseDiscovery):
 
     encoding_map = {}
 
-    def adjust_format(self, result: dict[str, str]):
+    def adjust_format(self, result: dict[str, str]) -> None:
         encoding = None
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:
