@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Not yet released.
+* Fixed crasn on corrupt YAML files.
 
 2.18
 ----

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from typing import TYPE_CHECKING
 
 from ruamel.yaml import YAML
@@ -422,6 +423,11 @@ class YAMLDiscovery(BaseDiscovery):
             try:
                 data = yaml.load(handle)
             except (YAMLError, YAMLFutureWarning):
+                return
+            except Exception as error:  # noqa: BLE001
+                # Weird errors can happen when parsing YAML, handle them gracefully, but
+                # emit a warning
+                warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
                 return
             if isinstance(data, dict) and len(data) == 1:
                 key = next(iter(data.keys()))
