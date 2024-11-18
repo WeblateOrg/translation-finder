@@ -4,7 +4,7 @@ Changelog
 2.19
 ----
 
-* Not yet released.
+* Released on 18th November 2024.
 * Fixed crasn on corrupt YAML files.
 
 2.18
