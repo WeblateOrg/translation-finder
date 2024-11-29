@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import sys
 from argparse import ArgumentParser
-from io import TextIOWrapper
 from typing import TYPE_CHECKING, cast
 
 from .finder import Finder, PathMockType
 
 if TYPE_CHECKING:
+    from io import TextIOWrapper
     from pathlib import PurePath
 
     from translation_finder.discovery.base import BaseDiscovery
@@ -56,7 +56,7 @@ def discover(
 
 def cli(stdout: TextIOWrapper | None = None, args: list[str] | None = None) -> int:
     """Execution entry point."""
-    stdout = stdout if stdout is not None else cast(TextIOWrapper, sys.stdout)
+    stdout = stdout if stdout is not None else cast("TextIOWrapper", sys.stdout)
 
     parser = ArgumentParser(
         description="Weblate translation discovery utility.",
