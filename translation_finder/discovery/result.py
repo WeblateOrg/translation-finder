@@ -45,7 +45,7 @@ class DiscoveryResult(UserDict):
 
     @property
     def match(self) -> ResultDict:
-        return cast(ResultDict, dict(self.data))
+        return cast("ResultDict", dict(self.data))
 
     def __lt__(self, other: DiscoveryResult) -> bool:
         """Only method needed for sort."""
