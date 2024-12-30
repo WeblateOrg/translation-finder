@@ -58,7 +58,7 @@ test = [
   "pytest-cov"
 ]
 types = [
-  "mypy==1.14.0"
+  "mypy==1.14.1"
 ]
 
 [project.readme]
