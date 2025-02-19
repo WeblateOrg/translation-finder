@@ -33,13 +33,13 @@ jobs:
     name: ${{ matrix.os }}, Python ${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
-    - uses: astral-sh/setup-uv@v5
+    - uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5
     - name: Install pip dependencies
       run: uv pip install --system https://github.com/WeblateOrg/language-data/archive/main.zip -e .[dev]
     - name: Test
@@ -48,7 +48,7 @@ jobs:
     - name: Coverage
       run: |
         coverage xml
-    - uses: codecov/codecov-action@v5
+    - uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5
       with:
         token: ${{secrets.CODECOV_TOKEN}}
         flags: unittests
