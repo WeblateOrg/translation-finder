@@ -5,12 +5,13 @@ Changelog
 ----
 
 * Not yet released.
+* Added support for Markdown files.
 
 2.19
 ----
 
 * Released on 18th November 2024.
-* Fixed crasn on corrupt YAML files.
+* Fixed crash on corrupt YAML files.
 
 2.18
 ----

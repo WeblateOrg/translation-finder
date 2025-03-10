@@ -605,6 +605,14 @@ class TBXDiscovery(BaseDiscovery):
 
 
 @register_discovery
+class MarkdownDiscovery(MonoTemplateDiscovery):
+    """Markdown files discovery."""
+
+    file_format = "markdown"
+    mask = ("*.md", "*.markdown")
+
+
+@register_discovery
 class FormatJSDiscovery(BaseDiscovery):
     """Format.JS JSON files discovery."""
 
