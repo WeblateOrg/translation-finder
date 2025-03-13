@@ -37,7 +37,7 @@ keywords = [
 ]
 name = "translation-finder"
 requires-python = ">=3.9"
-version = "2.20"
+version = "2.21"
 
 [[project.authors]]
 email = "michal@cihar.com"
