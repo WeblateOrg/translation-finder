@@ -4,7 +4,7 @@ Changelog
 2.20
 ----
 
-* Not yet released.
+* Released on 13th March 2025.
 * Added support for Markdown files.
 
 2.19
