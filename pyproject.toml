@@ -51,7 +51,7 @@ dev = [
   "translation-finder[lint,test,types]"
 ]
 lint = [
-  "pre-commit==4.1.0"
+  "pre-commit==4.2.0"
 ]
 test = [
   "pytest",
