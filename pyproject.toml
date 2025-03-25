@@ -1,14 +1,13 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
-  "setuptools>=61.2"
+  "setuptools>=78.0.2"
 ]
 
 [project]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
@@ -35,7 +34,8 @@ keywords = [
   "weblate",
   "translate"
 ]
-license = {text = "GPL-3.0-or-later"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 name = "translation-finder"
 requires-python = ">=3.9"
 version = "2.21"
