@@ -143,8 +143,6 @@ max-complexity = 16
 
 [tool.setuptools]
 include-package-data = true
-license-files = [
-]
 packages = [
   "translation_finder",
   "translation_finder.discovery"
