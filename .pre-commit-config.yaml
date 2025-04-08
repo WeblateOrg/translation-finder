@@ -29,10 +29,6 @@ repos:
   - id: ruff
     args: [--fix, --exit-non-zero-on-fix]
   - id: ruff-format
-- repo: https://github.com/asottile/blacken-docs
-  rev: 1.19.1
-  hooks:
-  - id: blacken-docs
 - repo: meta
   hooks:
   - id: check-hooks-apply
@@ -65,6 +61,10 @@ repos:
   rev: v1.7.7
   hooks:
   - id: actionlint
+- repo: https://github.com/adamchainz/blacken-docs
+  rev: 1.19.1
+  hooks:
+  - id: blacken-docs
 exclude: ^.*\.(properties)|translation_finder/test_data/app/src/res/main/values-it/strings.xml|translation_finder/test_data/app/src/res/main/values/strings.xml|translation_finder/test_data/json/bom-en.json|translation_finder/test_data/yaml/en/corrupt.yml$
 ci:
   autoupdate_schedule: quarterly

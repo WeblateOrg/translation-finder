@@ -101,6 +101,9 @@ ignore = [
 [tool.pytest.ini_options]
 doctest_optionflags = "NORMALIZE_WHITESPACE ALLOW_UNICODE"
 
+[tool.ruff.format]
+docstring-code-format = true
+
 [tool.ruff.lint]
 extend-safe-fixes = [
   "D",
