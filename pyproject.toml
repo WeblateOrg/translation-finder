@@ -41,7 +41,7 @@ requires-python = ">=3.9"
 version = "2.21"
 
 [[project.authors]]
-email = "michal@cihar.com"
+email = "michal@weblate.org"
 name = "Michal Čihař"
 
 [project.optional-dependencies]
