@@ -41,7 +41,7 @@ class GettextDiscovery(BaseDiscovery):
     new_base_mask = "*.pot"
 
     def discover(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
@@ -118,7 +118,7 @@ class CSVDiscovery(MonoTemplateDiscovery):
     mask = "*.csv"
 
     def discover(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
@@ -145,7 +145,7 @@ class AndroidDiscovery(BaseDiscovery):
     file_format = "aresource"
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
@@ -166,7 +166,7 @@ class MOKODiscovery(BaseDiscovery):
     file_format = "moko-resource"
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
@@ -197,7 +197,7 @@ class OSXDiscovery(EncodingDiscovery):
         yield from super().possible_templates(language, mask)
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
@@ -227,7 +227,7 @@ class StringsdictDiscovery(BaseDiscovery):
     file_format = "stringsdict"
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
@@ -272,7 +272,7 @@ class RESXDiscovery(BaseDiscovery):
         yield from super().possible_templates(language, mask)
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.
@@ -619,7 +619,7 @@ class FormatJSDiscovery(BaseDiscovery):
     file_format = "formatjs"
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.

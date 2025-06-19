@@ -217,7 +217,7 @@ class BaseDiscovery:
         return
 
     def discover(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         """Retun list of translation configurations matching this discovery."""
         discovered = set()
@@ -248,7 +248,7 @@ class BaseDiscovery:
         )
 
     def get_masks(
-        self, eager: bool = False, hint: str | None = None
+        self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """
         Return all file masks found in the directory.

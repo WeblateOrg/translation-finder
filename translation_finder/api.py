@@ -29,6 +29,7 @@ def register_discovery(cls: type[BaseDiscovery]) -> type[BaseDiscovery]:
 
 def discover(
     root: PurePath | str,
+    *,
     mock: PathMockType | None = None,
     source_language: str = "en",
     eager: bool = False,

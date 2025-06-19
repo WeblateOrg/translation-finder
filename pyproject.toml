@@ -146,8 +146,6 @@ ignore = [
   "D212",  # CONFIG: incompatible with D213
   "D401",  # TODO: many strings need rephrasing
   'ISC001',  # CONFIG: formatter
-  "FBT001",  # TODO
-  "FBT002",  # TODO
   "PLW1641",  # TODO
   "ARG004",  # TODO
   "PTH",  # TODO: Not using pathlib
