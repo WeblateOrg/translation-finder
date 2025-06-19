@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.22
+----
+
+* Released on 19th June 2025.
+* Added ``--hint`` to the command line interface.
+* Fixed false matches for appstore metadata with hint.
+
 2.21
 ----
 
