@@ -26,6 +26,7 @@ EXCLUDES = {
     "*.swp",
     "__pycache__",
     "__MACOSX",
+    ".DS_Store",
     ".deps",
     ".venv",
     ".env",
