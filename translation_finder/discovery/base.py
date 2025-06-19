@@ -242,7 +242,7 @@ class BaseDiscovery:
         return self.mask
 
     def filter_files(self) -> Generator[PurePath]:
-        """Filters possible file matches."""
+        """Filter possible file matches."""
         return self.finder.filter_files(
             "|".join(fnmatch.translate(mask) for mask in self.masks_list),
         )

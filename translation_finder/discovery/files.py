@@ -305,7 +305,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
     file_format = "appstore"
 
     def filter_files(self) -> Generator[PurePath]:
-        """Filters possible file matches."""
+        """Filter possible file matches."""
         for path in self.finder.filter_files(
             "short_description.txt|full_description.txt|title.txt|description.txt|name.txt",
         ):
