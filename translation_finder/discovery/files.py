@@ -303,6 +303,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
     """App store metadata."""
 
     file_format = "appstore"
+    mask = ""
 
     def filter_files(self) -> Generator[PurePath]:
         """Filter possible file matches."""

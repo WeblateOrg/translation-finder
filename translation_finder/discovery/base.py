@@ -238,6 +238,8 @@ class BaseDiscovery:
     @property
     def masks_list(self) -> tuple[str, ...]:
         if isinstance(self.mask, str):
+            if not self.mask:
+                return ()
             return (self.mask,)
         return self.mask
 

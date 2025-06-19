@@ -1159,6 +1159,15 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_hint(self) -> None:
+        discovery = AppStoreDiscovery(
+            self.get_finder(["create-component/en.html"], ["create-component"]),
+        )
+        self.assert_discovery(
+            discovery.discover(hint="create-component/*.html"),
+            [],
+        )
+
 
 class FluentDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
