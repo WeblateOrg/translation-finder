@@ -4,7 +4,10 @@ Changelog
 2.21
 ----
 
-* Not yet released.
+* Released on 19th June 2025.
+* Ignore some metadata dirs.
+* Several API cleanups.
+* Fixed package publishing.
 
 2.20
 ----
