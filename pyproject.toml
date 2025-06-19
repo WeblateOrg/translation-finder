@@ -145,8 +145,6 @@ ignore = [
   "D203",  # CONFIG: incompatible with D211
   "D212",  # CONFIG: incompatible with D213
   'ISC001',  # CONFIG: formatter
-  "PLW1641",  # TODO
-  "ARG004",  # TODO
   "PTH",  # TODO: Not using pathlib
   "ARG002",  # TODO: Unused method argument (mostly for API compatibility)
   "DOC",  # CONFIG: Using type annotations instead
