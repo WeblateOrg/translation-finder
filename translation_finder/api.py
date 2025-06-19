@@ -71,6 +71,7 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
         default=False,
         action="store_true",
     )
+    parser.add_argument("--hint", help="File mask hint for the discovery", default=None)
     parser.add_argument("directory", help="Directory where to perform discovery")
 
     params = parser.parse_args(args)
@@ -80,6 +81,7 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
             params.directory,
             source_language=params.source_language,
             eager=params.eager,
+            hint=params.hint,
         ),
     ):
         origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
