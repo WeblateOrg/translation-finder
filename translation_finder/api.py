@@ -22,7 +22,7 @@ BACKENDS = []
 
 
 def register_discovery(cls: type[BaseDiscovery]) -> type[BaseDiscovery]:
-    """Registers a discovery class."""
+    """Register a discovery class."""
     BACKENDS.append(cls)
     return cls
 
@@ -54,7 +54,7 @@ def discover(
 
 
 def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
-    """Execution entry point."""
+    """Command line execution entry point."""
     stdout = stdout if stdout is not None else sys.stdout
 
     parser = ArgumentParser(
