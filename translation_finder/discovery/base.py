@@ -10,7 +10,7 @@ import fnmatch
 import re
 from itertools import chain
 from pathlib import Path, PurePath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from charset_normalizer import from_fp
 from weblate_language_data.country_codes import COUNTRIES
@@ -66,12 +66,12 @@ TEMPLATE_REPLACEMENTS = (
 class BaseDiscovery:
     """Abstract base class for discovery."""
 
-    file_format = ""
-    mask: str | tuple[str, ...] = "*.*"
-    new_base_mask: str | None = None
-    origin: str | None = None
-    priority = 1000
-    uses_template = False
+    file_format: ClassVar[str] = ""
+    mask: ClassVar[str | tuple[str, ...]] = "*.*"
+    new_base_mask: ClassVar[str | None] = None
+    origin: ClassVar[str | None] = None
+    priority: ClassVar[int] = 1000
+    uses_template: ClassVar[bool] = False
 
     def __init__(self, finder: Finder, source_language: str = "en") -> None:
         self.finder: Finder = finder
@@ -299,7 +299,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 class EncodingDiscovery(BaseDiscovery):
     """Base class for formats needing encoding detection."""
 
-    encoding_map: dict[str, str] = {}
+    encoding_map: ClassVar[dict[str, str]] = {}
 
     def adjust_format(self, result: ResultDict) -> None:
         encoding: str | None = None

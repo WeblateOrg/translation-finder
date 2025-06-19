@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from configparser import Error as ConfigParserError
 from configparser import RawConfigParser
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from translation_finder.api import register_discovery
 
@@ -27,7 +27,7 @@ class TransifexDiscovery(BaseDiscovery):
     origin = "Transifex"
     priority = 500
 
-    typemap = {
+    typemap: ClassVar[dict[str, str]] = {
         "ANDROID": "aresource",
         "STRINGS": "strings",
         "CHROME": "webextension",

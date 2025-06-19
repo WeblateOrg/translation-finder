@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -187,8 +187,8 @@ class MOKODiscovery(BaseDiscovery):
 class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
-    file_format = "strings-utf8"
-    encoding_map = {
+    file_format: ClassVar[str] = "strings-utf8"
+    encoding_map: ClassVar[dict[str, str]] = {
         "utf_16": "strings",
     }
 
@@ -249,7 +249,7 @@ class JavaDiscovery(EncodingDiscovery):
     """Java string properties files discovery."""
 
     file_format = "properties"
-    encoding_map = {
+    encoding_map: ClassVar[dict[str, str]] = {
         "utf_8": "properties-utf8",
         "utf_16": "properties-utf16",
     }
