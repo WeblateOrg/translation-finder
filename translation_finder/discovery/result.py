@@ -35,6 +35,9 @@ class DiscoveryResult(UserDict):
 
     data: ResultDict  # type: ignore[assignment]
 
+    # Make it explicitely unhashable
+    __hash__ = None
+
     def __init__(self, data: ResultDict) -> None:
         super().__init__(data)
         self.meta: ResultMeta = {}
