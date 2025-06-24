@@ -11,6 +11,6 @@ Files: CHANGES.rst README.rst
 Copyright: Michal Čihař <michal@weblate.org>
 License: GPL-3.0-or-later
 
-Files: .gitignore codecov.yml MANIFEST.in pyproject.toml pytest.ini requirements*.txt setup.cfg
+Files: .gitignore codecov.yml MANIFEST.in pyproject.toml pytest.ini requirements*.txt setup.cfg .well-known/*
 Copyright: Michal Čihař <michal@weblate.org>
 License: GPL-3.0-or-later

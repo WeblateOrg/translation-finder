@@ -80,6 +80,7 @@ ignore = [
   "LICENSES/*",
   "json/*",
   ".reuse/dep5",
+  ".well-known/*",
   "scripts/*",
   "*.toml",
   "*.yml",
