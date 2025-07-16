@@ -73,3 +73,5 @@ repos:
 exclude: ^.*\.(properties)|translation_finder/test_data/app/src/res/main/values-it/strings.xml|translation_finder/test_data/app/src/res/main/values/strings.xml|translation_finder/test_data/json/bom-en.json|translation_finder/test_data/yaml/en/corrupt.yml$
 ci:
   autoupdate_schedule: quarterly
+  skip:
+  - gitleaks-docker
