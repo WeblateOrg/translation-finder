@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.23
+----
+
+* Automatically detect FormatJS files.
+
 2.22
 ----
 
