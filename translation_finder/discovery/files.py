@@ -326,20 +326,18 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912
         all_strings = True
         i18next = False
         i18nextv4 = False
         if "lang" in data and "messages" in data:
             return "gotext-json"
         for key, value in data.items():
-            if (
-                level == 0
-                and isinstance(value, dict)
-                and "message" in value
-                and "description" in value
-            ):
-                return "webextension"
+            if level == 0 and isinstance(value, dict):
+                if "message" in value and "description" in value:
+                    return "webextension"
+                if "defaultMessage" in value and "description" in value:
+                    return "formatjs"
             if not isinstance(key, str):
                 all_strings = False
                 break
