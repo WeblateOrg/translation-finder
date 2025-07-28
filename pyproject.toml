@@ -52,8 +52,9 @@ lint = [
   "pre-commit==4.2.0"
 ]
 test = [
-  "pytest",
-  "pytest-cov"
+  "pytest==8.4.1",
+  "pytest-cov==6.2.1",
+  "pytest-github-actions-annotate-failures==0.3.0"
 ]
 types = [
   "mypy==1.17.0"
