@@ -152,11 +152,27 @@ class AndroidDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(r"strings.*\.xml", ".*/values"):
+        for path in self.finder.filter_files(
+            r"(strings.*|.*strings)\.xml", ".*/values"
+        ):
             mask = list(path.parts)
             mask[-2] = "values-*"
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+    def adjust_format(self, result: ResultDict) -> None:
+        if "template" not in result:
+            return
+
+        path = next(iter(self.finder.mask_matches(result["template"])))
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "r") as handle:
+            content = handle.read()
+            if "<plural " in content:
+                result["file_format"] = "moko-resource"
 
 
 @register_discovery
