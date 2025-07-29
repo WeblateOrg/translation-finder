@@ -5,6 +5,7 @@ Changelog
 ----
 
 * Automatically detect FormatJS files.
+* Improved detection of Android strings.
 
 2.22
 ----

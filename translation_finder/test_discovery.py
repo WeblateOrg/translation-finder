@@ -580,6 +580,31 @@ class AndroidTest(DiscoveryTestCase):
             ],
         )
 
+    def test_names(self) -> None:
+        discovery = AndroidDiscovery(
+            self.get_finder(
+                [
+                    "app/src/res/main/values/strings-one.xml",
+                    "app/src/res/main/values/foo_strings.xml",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "app/src/res/main/values-*/foo_strings.xml",
+                    "template": "app/src/res/main/values/foo_strings.xml",
+                    "file_format": "aresource",
+                },
+                {
+                    "filemask": "app/src/res/main/values-*/strings-one.xml",
+                    "template": "app/src/res/main/values/strings-one.xml",
+                    "file_format": "aresource",
+                },
+            ],
+        )
+
 
 class MOKOTest(DiscoveryTestCase):
     def test_basic(self) -> None:
