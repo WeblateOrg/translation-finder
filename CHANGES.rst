@@ -4,6 +4,7 @@ Changelog
 2.23
 ----
 
+* Released on 31st July 2025.
 * Automatically detect FormatJS files.
 * Improved detection of Android strings.
 
