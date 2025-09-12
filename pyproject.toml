@@ -57,7 +57,7 @@ test = [
   "pytest-github-actions-annotate-failures==0.3.0"
 ]
 types = [
-  "mypy==1.17.1"
+  "mypy==1.18.1"
 ]
 
 [project.readme]
