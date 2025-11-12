@@ -47,7 +47,7 @@ jobs:
         allow-prereleases: true
     - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
       with:
-        version: 0.9.8
+        version: 0.9.9
     - name: Install pip dependencies
       run: uv pip install --system https://github.com/WeblateOrg/language-data/archive/main.zip -e .[dev]
     - name: Test
