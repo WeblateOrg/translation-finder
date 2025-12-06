@@ -20,7 +20,7 @@ jobs:
         python-version: '3.14'
     - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
-        version: 0.9.15
+        version: 0.9.16
     - name: build
       run: uv build
     - name: twine
@@ -51,7 +51,7 @@ jobs:
     steps:
     - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       with:
-        version: 0.9.15
+        version: 0.9.16
     - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: dist
