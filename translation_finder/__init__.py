@@ -13,5 +13,5 @@ from .finder import Finder
 __all__ = ("DiscoveryResult", "Finder", "discover")
 
 # Make sure all discovery modules are imported
-import_module("translation_finder.discovery.transifex")
-import_module("translation_finder.discovery.files")
+import_module("translation_finder.discovery.transifex")  # noqa: RUF067
+import_module("translation_finder.discovery.files")  # noqa: RUF067
