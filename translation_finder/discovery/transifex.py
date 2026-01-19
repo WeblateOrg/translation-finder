@@ -61,7 +61,9 @@ class TransifexDiscovery(BaseDiscovery):
             return None
         result: ResultDict = {
             "name": section,
-            "filemask": config.get(section, "file_filter").replace("<lang>", "*"),
+            "filemask": config.get(section, "file_filter")
+            .replace("<lang>", "*")
+            .replace("\\", "/"),
             "file_format": "",
         }
 
@@ -74,7 +76,7 @@ class TransifexDiscovery(BaseDiscovery):
             return None
 
         if config.has_option(section, "source_file"):
-            template = config.get(section, "source_file")
+            template = config.get(section, "source_file").replace("\\", "/")
             if template.lower().endswith(".pot"):
                 result["new_base"] = template
             else:

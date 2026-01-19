@@ -1,0 +1,14 @@
+[main]
+host = https://www.transifex.com
+
+[hexchat.main]
+file_filter = po\<lang>.po
+source_file = po\hexchat.pot
+source_lang = en
+type = PO
+
+[windows_android]
+file_filter = app\src\res\main\values-<lang>\strings.xml
+source_file = app\src\res\main\values\strings.xml
+source_lang = en
+type = ANDROID

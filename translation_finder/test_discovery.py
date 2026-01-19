@@ -1154,6 +1154,30 @@ class TransifexTest(DiscoveryTestCase):
         self.assertEqual(results[0].meta["discovery"], "TransifexDiscovery")
         self.assertEqual(results[0].meta["origin"], "Transifex")
 
+    def test_windows_paths(self) -> None:
+        """Test that Windows-style paths are normalized to Unix-style paths."""
+        discovery = TransifexDiscovery(
+            Finder(TEST_DATA / "windows_paths")
+        )
+        results = list(discovery.discover())
+        self.assert_discovery(
+            results,
+            [
+                {
+                    "filemask": "po/*.po",
+                    "file_format": "po",
+                    "new_base": "po/hexchat.pot",
+                    "name": "hexchat.main",
+                },
+                {
+                    "file_format": "aresource",
+                    "filemask": "app/src/res/main/values-*/strings.xml",
+                    "name": "windows_android",
+                    "template": "app/src/res/main/values/strings.xml",
+                },
+            ],
+        )
+
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
