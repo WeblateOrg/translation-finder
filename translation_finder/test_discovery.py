@@ -1156,9 +1156,7 @@ class TransifexTest(DiscoveryTestCase):
 
     def test_windows_paths(self) -> None:
         """Test that Windows-style paths are normalized to Unix-style paths."""
-        discovery = TransifexDiscovery(
-            Finder(TEST_DATA / "windows_paths")
-        )
+        discovery = TransifexDiscovery(Finder(TEST_DATA / "windows_paths"))
         results = list(discovery.discover())
         self.assert_discovery(
             results,
