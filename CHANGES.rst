@@ -4,6 +4,8 @@ Changelog
 2.24
 ----
 
+* Fixed handling of Windows-style paths in Transifex configuration files.
+
 2.23
 ----
 
