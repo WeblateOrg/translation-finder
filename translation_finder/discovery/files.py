@@ -351,9 +351,11 @@ class JSONDiscovery(BaseDiscovery):
     @staticmethod
     def is_go_i18n_v2_dict(data: dict) -> bool:
         """Check if dict matches go-i18n-v2 format pattern."""
-        return "hash" in data and ("message" in data or "one" in data or "other" in data)
+        return "hash" in data and (
+            "message" in data or "one" in data or "other" in data
+        )
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912, C901
         all_strings = True
         i18next = False
         i18nextv4 = False
@@ -363,11 +365,14 @@ class JSONDiscovery(BaseDiscovery):
         if level == 0 and self.is_go_i18n_v2_dict(data):
             return "go-i18n-json-v2"
         # Nextcloud JSON format detection
-        if "translations" in data and isinstance(data["translations"], list):
-            if len(data["translations"]) > 0:
-                first = data["translations"][0]
-                if isinstance(first, dict) and "key" in first:
-                    return "nextcloud-json"
+        if (
+            "translations" in data
+            and isinstance(data["translations"], list)
+            and len(data["translations"]) > 0
+        ):
+            first = data["translations"][0]
+            if isinstance(first, dict) and "key" in first:
+                return "nextcloud-json"
         # RESJSON format detection
         if "_strings" in data or "_locales" in data:
             return "resjson"
@@ -617,10 +622,10 @@ class TOMLDiscovery(BaseDiscovery):
 
         with self.finder.open(path, "rb") as handle:
             try:
-                import tomllib
+                import tomllib  # noqa: PLC0415
             except ImportError:
                 try:
-                    import tomli as tomllib  # type: ignore[import-not-found]
+                    import tomli as tomllib  # type: ignore[import-not-found,no-redef]  # noqa: PLC0415
                 except ImportError:
                     return
             try:
@@ -628,9 +633,13 @@ class TOMLDiscovery(BaseDiscovery):
             except Exception:  # noqa: BLE001
                 return
             # go-i18n-toml detection - has array items with 'id' field
-            if isinstance(data, list) and len(data) > 0:
-                if isinstance(data[0], dict) and "id" in data[0]:
-                    result["file_format"] = "go-i18n-toml"
+            if (
+                isinstance(data, list)
+                and len(data) > 0
+                and isinstance(data[0], dict)
+                and "id" in data[0]
+            ):
+                result["file_format"] = "go-i18n-toml"
 
 
 @register_discovery

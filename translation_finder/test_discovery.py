@@ -1586,9 +1586,11 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
         finder = self.get_real_finder()
         discovery = JSONDiscovery(finder)
         results = list(discovery.discover())
-        
+
         # Find the go-i18n-v2 result
-        go_v2_results = [r for r in results if "go-i18n-v2-en.json" in r.get("template", "")]
+        go_v2_results = [
+            r for r in results if "go-i18n-v2-en.json" in r.get("template", "")
+        ]
         self.assertTrue(len(go_v2_results) > 0, "Should detect go-i18n-v2 format")
         if go_v2_results:
             self.assertEqual(go_v2_results[0]["file_format"], "go-i18n-json-v2")
@@ -1598,10 +1600,14 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
         finder = self.get_real_finder()
         discovery = JSONDiscovery(finder)
         results = list(discovery.discover())
-        
+
         # Find the nextcloud result
-        nextcloud_results = [r for r in results if "nextcloud-en.json" in r.get("template", "")]
-        self.assertTrue(len(nextcloud_results) > 0, "Should detect nextcloud-json format")
+        nextcloud_results = [
+            r for r in results if "nextcloud-en.json" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(nextcloud_results) > 0, "Should detect nextcloud-json format"
+        )
         if nextcloud_results:
             self.assertEqual(nextcloud_results[0]["file_format"], "nextcloud-json")
 
@@ -1610,9 +1616,11 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
         finder = self.get_real_finder()
         discovery = JSONDiscovery(finder)
         results = list(discovery.discover())
-        
+
         # Find the resjson result
-        resjson_results = [r for r in results if "resjson-en.json" in r.get("template", "")]
+        resjson_results = [
+            r for r in results if "resjson-en.json" in r.get("template", "")
+        ]
         self.assertTrue(len(resjson_results) > 0, "Should detect resjson format")
         if resjson_results:
             self.assertEqual(resjson_results[0]["file_format"], "resjson")
@@ -1624,7 +1632,7 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
         finder = self.get_real_finder()
         discovery = XliffDiscovery(finder)
         results = list(discovery.discover())
-        
+
         # Find the XLIFF 2.0 results
         xliff2_results = [r for r in results if r.get("filemask") == "xliff2/*.xliff"]
         self.assertTrue(len(xliff2_results) > 0, "Should detect XLIFF 2.0 format")
@@ -1636,9 +1644,16 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
         finder = self.get_real_finder()
         discovery = XliffDiscovery(finder)
         results = list(discovery.discover())
-        
+
         # Find the XLIFF 2.0 placeables results
-        xliff2_placeables_results = [r for r in results if r.get("filemask") == "xliff2/*-placeables.xliff"]
-        self.assertTrue(len(xliff2_placeables_results) > 0, "Should detect XLIFF 2.0 placeables format")
+        xliff2_placeables_results = [
+            r for r in results if r.get("filemask") == "xliff2/*-placeables.xliff"
+        ]
+        self.assertTrue(
+            len(xliff2_placeables_results) > 0,
+            "Should detect XLIFF 2.0 placeables format",
+        )
         if xliff2_placeables_results:
-            self.assertEqual(xliff2_placeables_results[0]["file_format"], "xliff2-placeables")
+            self.assertEqual(
+                xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
+            )
