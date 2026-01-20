@@ -77,7 +77,7 @@ class DiscoveryTestCase(TestCase):
             self.assertEqual(value.data, expected_list[i])
 
 
-class GetttetTest(DiscoveryTestCase):
+class GettextTest(DiscoveryTestCase):
     maxDiff = None
 
     def test_basic(self) -> None:
