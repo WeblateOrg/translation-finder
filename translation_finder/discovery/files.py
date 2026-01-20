@@ -720,33 +720,6 @@ class CatkeysDiscovery(BaseDiscovery):
 
 
 @register_discovery
-class GWTDiscovery(EncodingDiscovery):
-    """GWT properties files discovery."""
-
-    file_format = "gwt"
-    encoding_map: ClassVar[dict[str, str]] = {
-        "iso_8859_1": "gwt-iso",
-    }
-    mask = "*.properties"
-
-
-@register_discovery
-class XWikiDiscovery(BaseDiscovery):
-    """XWiki properties files discovery."""
-
-    file_format = "xwiki-java-properties"
-    mask = "*.properties"
-
-
-@register_discovery
-class Mi18nDiscovery(BaseDiscovery):
-    """@draggable/i18n lang files discovery."""
-
-    file_format = "mi18n-lang"
-    mask = "*.lang"
-
-
-@register_discovery
 class CMPDiscovery(BaseDiscovery):
     """Compose Multiplatform Resource files discovery."""
 

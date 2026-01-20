@@ -22,12 +22,10 @@ from .discovery.files import (
     FluentDiscovery,
     FormatJSDiscovery,
     GettextDiscovery,
-    GWTDiscovery,
     HTMLDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
-    Mi18nDiscovery,
     MOKODiscovery,
     OSXDiscovery,
     PHPDiscovery,
@@ -40,7 +38,6 @@ from .discovery.files import (
     TXTDiscovery,
     WebExtensionDiscovery,
     XliffDiscovery,
-    XWikiDiscovery,
     YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
@@ -1560,73 +1557,6 @@ class FlatXMLDiscoveryTest(DiscoveryTestCase):
         )
 
 
-class GWTDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self) -> None:
-        discovery = GWTDiscovery(
-            self.get_finder(
-                [
-                    "locale/messages_cs.properties",
-                    "locale/messages_en.properties",
-                    "locale/messages_de.properties",
-                ],
-            ),
-        )
-        self.assert_discovery(
-            discovery.discover(),
-            [
-                {
-                    "filemask": "locale/messages_*.properties",
-                    "template": "locale/messages_en.properties",
-                    "file_format": "gwt",
-                },
-            ],
-        )
-
-
-class XWikiDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self) -> None:
-        discovery = XWikiDiscovery(
-            self.get_finder(
-                [
-                    "translations/Main.WebHome_cs.properties",
-                    "translations/Main.WebHome_en.properties",
-                    "translations/Main.WebHome_de.properties",
-                ],
-            ),
-        )
-        self.assert_discovery(
-            discovery.discover(),
-            [
-                {
-                    "filemask": "translations/Main.WebHome_*.properties",
-                    "template": "translations/Main.WebHome_en.properties",
-                    "file_format": "xwiki-java-properties",
-                },
-            ],
-        )
-
-
-class Mi18nDiscoveryTest(DiscoveryTestCase):
-    def test_basic(self) -> None:
-        discovery = Mi18nDiscovery(
-            self.get_finder(
-                [
-                    "locales/cs.lang",
-                    "locales/en.lang",
-                    "locales/de.lang",
-                ],
-            ),
-        )
-        self.assert_discovery(
-            discovery.discover(),
-            [
-                {
-                    "filemask": "locales/*.lang",
-                    "template": "locales/en.lang",
-                    "file_format": "mi18n-lang",
-                },
-            ],
-        )
 
 
 class CMPDiscoveryTest(DiscoveryTestCase):
