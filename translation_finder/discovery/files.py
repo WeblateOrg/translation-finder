@@ -348,14 +348,19 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
+    @staticmethod
+    def is_go_i18n_v2_dict(data: dict) -> bool:
+        """Check if dict matches go-i18n-v2 format pattern."""
+        return "hash" in data and ("message" in data or "one" in data or "other" in data)
+
     def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912
         all_strings = True
         i18next = False
         i18nextv4 = False
         if "lang" in data and "messages" in data:
             return "gotext-json"
-        # go-i18n-v2 detection at top level - has 'hash' and message keys
-        if level == 0 and "hash" in data and ("message" in data or "one" in data or "other" in data):
+        # go-i18n-v2 detection at top level
+        if level == 0 and self.is_go_i18n_v2_dict(data):
             return "go-i18n-json-v2"
         # Nextcloud JSON format detection
         if "translations" in data and isinstance(data["translations"], list):
@@ -373,7 +378,7 @@ class JSONDiscovery(BaseDiscovery):
                 if "defaultMessage" in value and "description" in value:
                     return "formatjs"
                 # go-i18n-v2 detection in nested objects
-                if "hash" in value and ("message" in value or "one" in value or "other" in value):
+                if self.is_go_i18n_v2_dict(value):
                     return "go-i18n-json-v2"
             if not isinstance(key, str):
                 all_strings = False
@@ -623,8 +628,9 @@ class TOMLDiscovery(BaseDiscovery):
             except Exception:  # noqa: BLE001
                 return
             # go-i18n-toml detection - has array items with 'id' field
-            if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
-                result["file_format"] = "go-i18n-toml"
+            if isinstance(data, list) and len(data) > 0:
+                if isinstance(data[0], dict) and "id" in data[0]:
+                    result["file_format"] = "go-i18n-toml"
 
 
 @register_discovery

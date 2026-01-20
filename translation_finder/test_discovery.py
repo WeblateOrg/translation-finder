@@ -1557,8 +1557,6 @@ class FlatXMLDiscoveryTest(DiscoveryTestCase):
         )
 
 
-
-
 class CMPDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
         discovery = CMPDiscovery(
