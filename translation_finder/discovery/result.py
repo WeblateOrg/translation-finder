@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from collections import UserDict
+from functools import total_ordering
 from typing import TypedDict, cast
 
 
@@ -26,6 +27,7 @@ class ResultDict(TypedDict, total=False):
     new_base: str
 
 
+@total_ordering
 class DiscoveryResult(UserDict):  # noqa: PLW1641
     """
     Discovery result class.
@@ -47,17 +49,16 @@ class DiscoveryResult(UserDict):  # noqa: PLW1641
     def match(self) -> ResultDict:
         return cast("ResultDict", dict(self.data))
 
-    def __lt__(self, other: DiscoveryResult) -> bool:
+    def __lt__(self, other: object) -> bool:
         """Only method needed for sort."""
+        if not isinstance(other, DiscoveryResult):
+            return NotImplemented
         return self._sort_key < other._sort_key
 
     def __eq__(self, other: object) -> bool:
         return super().__eq__(other) and (
             self.meta == other.meta if isinstance(other, DiscoveryResult) else True
         )
-
-    def __ne__(self, other: object) -> bool:
-        return not self.__eq__(other)
 
     def __repr__(self) -> str:
         return f"{self.match!r} [meta:{self.meta!r}]"
