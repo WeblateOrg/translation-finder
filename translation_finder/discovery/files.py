@@ -96,7 +96,13 @@ class XliffDiscovery(BaseDiscovery):
 
         with self.finder.open(path, "r") as handle:
             content = handle.read()
-            if 'restype="x-gettext' in content:
+            # Check for XLIFF 2.0 first
+            if 'version="2.0"' in content or 'version="2.1"' in content:
+                if "<pc" in content or "<sc" in content or "<ec" in content:
+                    result["file_format"] = "xliff2-placeables"
+                else:
+                    result["file_format"] = "xliff2"
+            elif 'restype="x-gettext' in content:
                 result["file_format"] = "poxliff"
             elif "<x " not in content and "<g " not in content:
                 result["file_format"] = "plainxliff"
@@ -348,12 +354,27 @@ class JSONDiscovery(BaseDiscovery):
         i18nextv4 = False
         if "lang" in data and "messages" in data:
             return "gotext-json"
+        # go-i18n-v2 detection at top level - has 'hash' and message keys
+        if level == 0 and "hash" in data and ("message" in data or "one" in data or "other" in data):
+            return "go-i18n-json-v2"
+        # Nextcloud JSON format detection
+        if "translations" in data and isinstance(data["translations"], list):
+            if len(data["translations"]) > 0:
+                first = data["translations"][0]
+                if isinstance(first, dict) and "key" in first:
+                    return "nextcloud-json"
+        # RESJSON format detection
+        if "_strings" in data or "_locales" in data:
+            return "resjson"
         for key, value in data.items():
             if level == 0 and isinstance(value, dict):
                 if "message" in value and "description" in value:
                     return "webextension"
                 if "defaultMessage" in value and "description" in value:
                     return "formatjs"
+                # go-i18n-v2 detection in nested objects
+                if "hash" in value and ("message" in value or "one" in value or "other" in value):
+                    return "go-i18n-json-v2"
             if not isinstance(key, str):
                 all_strings = False
                 break
@@ -580,6 +601,31 @@ class TOMLDiscovery(BaseDiscovery):
     file_format = "toml"
     mask = "*.toml"
 
+    def adjust_format(self, result: ResultDict) -> None:
+        if "template" not in result:
+            return
+
+        path = next(iter(self.finder.mask_matches(result["template"])))
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "rb") as handle:
+            try:
+                import tomllib
+            except ImportError:
+                try:
+                    import tomli as tomllib  # type: ignore[import-not-found]
+                except ImportError:
+                    return
+            try:
+                data = tomllib.load(handle)
+            except Exception:  # noqa: BLE001
+                return
+            # go-i18n-toml detection - has array items with 'id' field
+            if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
+                result["file_format"] = "go-i18n-toml"
+
 
 @register_discovery
 class ARBDiscovery(BaseDiscovery):
@@ -645,5 +691,79 @@ class FormatJSDiscovery(BaseDiscovery):
             mask = list(path.parts)
             mask[-1] = "*.json"
             mask[-2] = "lang"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
+class DTDDiscovery(BaseDiscovery):
+    """DTD files discovery."""
+
+    file_format = "dtd"
+    mask = "*.dtd"
+
+
+@register_discovery
+class FlatXMLDiscovery(MonoTemplateDiscovery):
+    """Flat XML files discovery."""
+
+    file_format = "flatxml"
+    mask = "*.xml"
+
+
+@register_discovery
+class CatkeysDiscovery(BaseDiscovery):
+    """Haiku catkeys files discovery."""
+
+    file_format = "catkeys"
+    mask = "*.catkeys"
+
+
+@register_discovery
+class GWTDiscovery(EncodingDiscovery):
+    """GWT properties files discovery."""
+
+    file_format = "gwt"
+    encoding_map: ClassVar[dict[str, str]] = {
+        "iso_8859_1": "gwt-iso",
+    }
+    mask = "*.properties"
+
+
+@register_discovery
+class XWikiDiscovery(BaseDiscovery):
+    """XWiki properties files discovery."""
+
+    file_format = "xwiki-java-properties"
+    mask = "*.properties"
+
+
+@register_discovery
+class Mi18nDiscovery(BaseDiscovery):
+    """@draggable/i18n lang files discovery."""
+
+    file_format = "mi18n-lang"
+    mask = "*.lang"
+
+
+@register_discovery
+class CMPDiscovery(BaseDiscovery):
+    """Compose Multiplatform Resource files discovery."""
+
+    file_format = "cmp-resource"
+
+    def get_masks(
+        self, *, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
+        """
+        Return all file masks found in the directory.
+
+        It is expected to contain duplicates.
+        """
+        for path in self.finder.filter_files(
+            r"(strings.*|.*strings)\.xml", ".*/values"
+        ):
+            mask = list(path.parts)
+            mask[-2] = "values-*"
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
