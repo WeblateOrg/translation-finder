@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import warnings
 from typing import TYPE_CHECKING, ClassVar
 
@@ -22,6 +23,11 @@ from .base import (
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
 )
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -621,13 +627,6 @@ class TOMLDiscovery(BaseDiscovery):
             return
 
         with self.finder.open(path, "rb") as handle:
-            try:
-                import tomllib  # noqa: PLC0415
-            except ImportError:
-                try:
-                    import tomli as tomllib  # type: ignore[import-not-found,no-redef]  # noqa: PLC0415
-                except ImportError:
-                    return
             try:
                 data = tomllib.load(handle)
             except Exception:  # noqa: BLE001
