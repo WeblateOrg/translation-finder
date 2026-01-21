@@ -368,12 +368,12 @@ class JSONDiscovery(BaseDiscovery):
             "message" in data or "one" in data or "other" in data
         )
 
-    def _detect_top_level_format(self, data: dict, level: int) -> str | None:
+    def _detect_top_level_format(self, data: dict) -> str | None:
         """Detect formats that are only determined from the top-level object."""
         if "lang" in data and "messages" in data:
             return "gotext-json"
         # go-i18n-v2 detection at top level
-        if level == 0 and self.is_go_i18n_v2_dict(data):
+        if self.is_go_i18n_v2_dict(data):
             return "go-i18n-json-v2"
         # Nextcloud JSON format detection
         if (
@@ -389,26 +389,30 @@ class JSONDiscovery(BaseDiscovery):
             return "resjson"
         return None
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0912, PLR0911
-        """Detect JSON variant based on JSON content."""
-        top_level_format = self._detect_top_level_format(data, level)
-        if top_level_format is not None:
-            return top_level_format
+    def _detect_first_level_format(self, value: dict) -> str | None:
+        if "message" in value and "description" in value:
+            return "webextension"
+        if "defaultMessage" in value and "description" in value:
+            return "formatjs"
+        # go-i18n-v2 detection in nested objects
+        if self.is_go_i18n_v2_dict(value):
+            return "go-i18n-json-v2"
+        return None
 
-        # Single loop to detect nested formats and i18next patterns
+    def _detect_nested_format(self, data: dict, level: int) -> str | None:
         all_strings = True
         i18next = False
         i18nextv4 = False
+
+        # Single loop to detect nested formats and i18next patterns
         for key, value in data.items():
             # Check for nested formats at level 0
-            if level == 0 and isinstance(value, dict):
-                if "message" in value and "description" in value:
-                    return "webextension"
-                if "defaultMessage" in value and "description" in value:
-                    return "formatjs"
-                # go-i18n-v2 detection in nested objects
-                if self.is_go_i18n_v2_dict(value):
-                    return "go-i18n-json-v2"
+            if (
+                level == 0
+                and isinstance(value, dict)
+                and (detected := self._detect_first_level_format(value))
+            ):
+                return detected
 
             # Check for i18next patterns
             if not isinstance(key, str):
@@ -417,14 +421,14 @@ class JSONDiscovery(BaseDiscovery):
             if not isinstance(value, str):
                 all_strings = False
                 if isinstance(value, dict):
-                    detected = self.detect_dict(value, level + 1)
+                    detected = self._detect_nested_format(value, level + 1)
                     i18next |= detected == "i18next"
                     i18nextv4 |= detected == "i18nextv4"
+                    # "json" is intentionally ignored here as the format is already nested at this level
             elif key.endswith(("_one", "_many", "_other")):
                 i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
                 i18next = True
-
         if i18nextv4:
             return "i18nextv4"
         if i18next:
@@ -432,6 +436,14 @@ class JSONDiscovery(BaseDiscovery):
         if all_strings:
             return "json"
         return None
+
+    def detect_dict(self, data: dict) -> str | None:
+        """Detect JSON variant based on JSON content."""
+        top_level_format = self._detect_top_level_format(data)
+        if top_level_format is not None:
+            return top_level_format
+
+        return self._detect_nested_format(data, 0)
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
