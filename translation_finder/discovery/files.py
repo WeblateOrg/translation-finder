@@ -428,8 +428,9 @@ class JSONDiscovery(BaseDiscovery):
             elif key.endswith(("_one", "_many", "_other")):
                 i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
-        return all_strings, i18next, i18nextv4
                 i18next = True
+        return all_strings, i18next, i18nextv4
+
     def detect_dict(self, data: dict, level: int = 0) -> str | None:
         """Detect JSON variant based on JSON content."""
         top_level_format = self._detect_top_level_format(data, level)
