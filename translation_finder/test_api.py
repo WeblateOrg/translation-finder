@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """High level API tests."""
 
-import os.path
+import pathlib
 from io import StringIO
 
 from .api import cli, discover
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
 
-TEST_DATA = os.path.join(os.path.dirname(__file__), "test_data")
+TEST_DATA = pathlib.Path(__file__).parent / "test_data"
 
 
 class APITest(DiscoveryTestCase):
@@ -230,7 +230,7 @@ class APITest(DiscoveryTestCase):
 
     def test_cli(self) -> None:
         output = StringIO()
-        cli(args=[TEST_DATA], stdout=output)
+        cli(args=[TEST_DATA.as_posix()], stdout=output)
         self.assertIn("Match 2", output.getvalue())
 
     def test_no_match(self) -> None:
