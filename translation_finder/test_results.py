@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 # ruff: noqa: S403,S301
-"""Discovery result tests including piclking."""
+"""Discovery result tests including pickling."""
 
 from pickle import dumps, loads  # nosec
 from unittest import TestCase
