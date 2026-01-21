@@ -18,3 +18,7 @@ class FinderTest(TestCase):
         finder = Finder(pathlib.Path(__file__).parent)
         result = list(finder.filter_files("test_finder.py"))
         self.assertEqual(len(result), 1)
+        # Verify that the returned file is the expected test file
+        self.assertIsInstance(result[0], pathlib.Path)
+        expected_path = pathlib.Path(__file__).parent / "test_finder.py"
+        self.assertEqual(result[0], expected_path)
