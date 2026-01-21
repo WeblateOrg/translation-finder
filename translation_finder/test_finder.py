@@ -1,6 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""File finder tests."""
 
 import os.path
 from unittest import TestCase

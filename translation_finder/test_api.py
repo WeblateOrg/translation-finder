@@ -1,6 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""High level API tests."""
 
 import os.path
 from io import StringIO

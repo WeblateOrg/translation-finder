@@ -1,6 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""Translation discovery tests."""
 
 from __future__ import annotations
 
@@ -58,7 +59,7 @@ class DiscoveryTestCase(TestCase):
     maxDiff = None
 
     @staticmethod
-    def get_finder(paths, dirs=None):
+    def get_finder(paths: list[str], dirs: list[str] | None = None) -> Finder:
         if dirs is None:
             dirs = []
         return Finder(
@@ -70,7 +71,7 @@ class DiscoveryTestCase(TestCase):
         )
 
     @staticmethod
-    def get_real_finder():
+    def get_real_finder() -> Finder:
         return Finder(TEST_DATA)
 
     def assert_discovery(

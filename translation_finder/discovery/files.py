@@ -49,6 +49,7 @@ class GettextDiscovery(BaseDiscovery):
     def discover(
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
+        """Yield translation configurations matching this discovery."""
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -61,6 +62,7 @@ class GettextDiscovery(BaseDiscovery):
             yield mono
 
     def fill_in_new_base(self, result: ResultDict) -> None:
+        """Extend the result for new_base and intermediate parameters."""
         super().fill_in_new_base(result)
         if "new_base" not in result:
             pot_names = [
@@ -93,6 +95,7 @@ class XliffDiscovery(BaseDiscovery):
     mask = ("*.xliff", "*.xlf", "*.sdlxliff", "*.mxliff", "*.poxliff")
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         base = result["template"] if "template" in result else result["filemask"]
 
         path = next(iter(self.finder.mask_matches(base)))
@@ -132,6 +135,7 @@ class CSVDiscovery(MonoTemplateDiscovery):
     def discover(
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
+        """Yield translation configurations matching this discovery."""
         for result in super().discover(eager=eager, hint=hint):
             if "template" not in result:
                 yield result
@@ -177,6 +181,7 @@ class AndroidDiscovery(BaseDiscovery):
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         if "template" not in result:
             return
 
@@ -225,6 +230,7 @@ class OSXDiscovery(EncodingDiscovery):
     }
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
+        """Yield possible template filenames."""
         yield mask.replace("*", "Base")
         yield from super().possible_templates(language, mask)
 
@@ -288,6 +294,7 @@ class JavaDiscovery(EncodingDiscovery):
     mask = ("*_*.properties", "*.properties")
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
+        """Yield possible template filenames."""
         yield mask.replace("_*", "")
         yield from super().possible_templates(language, mask)
 
@@ -300,6 +307,7 @@ class RESXDiscovery(BaseDiscovery):
     mask = "resources.res[xw]"
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
+        """Yield possible template filenames."""
         yield mask.replace(".*", "")
         yield from super().possible_templates(language, mask)
 
@@ -366,6 +374,7 @@ class JSONDiscovery(BaseDiscovery):
         )
 
     def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912, C901
+        """Detect JSON variant based on JSON content."""
         all_strings = True
         i18next = False
         i18nextv4 = False
@@ -418,6 +427,7 @@ class JSONDiscovery(BaseDiscovery):
         return None
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         if "template" not in result:
             return
 
@@ -466,6 +476,7 @@ class YAMLDiscovery(BaseDiscovery):
     mask = ("*.yml", "*.yaml")
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         if "template" not in result:
             return
 
@@ -534,6 +545,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
     mask = "*.php"
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         if "template" not in result:
             return
 
@@ -622,6 +634,7 @@ class TOMLDiscovery(BaseDiscovery):
     mask = "*.toml"
 
     def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
         if "template" not in result:
             return
 
@@ -654,6 +667,7 @@ class ARBDiscovery(BaseDiscovery):
     mask = "*.arb"
 
     def fill_in_new_base(self, result: ResultDict) -> None:
+        """Extend the result for new_base and intermediate parameters."""
         super().fill_in_new_base(result)
         if "intermediate" not in result:
             # Flutter intermediate files

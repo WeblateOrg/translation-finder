@@ -1,6 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""Discovery result tests."""
 
 from pickle import dumps, loads  # nosec
 from unittest import TestCase

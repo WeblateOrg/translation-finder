@@ -132,7 +132,6 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 extend-safe-fixes = [
-  "ANN",
   "D",
   "TCH",
   "FLY",
@@ -143,10 +142,9 @@ extend-safe-fixes = [
 ]
 future-annotations = true
 ignore = [
-  "CPY001",  # TODO: copyright notices
   "COM",  # CONFIG: No trailing commas
   "PT",  # CONFIG: Not using pytest
-  "D10",  # TODO: we are missing many docstrings
+  "D107",  # CONFIG: skipping __init__ docs for now
   "D203",  # CONFIG: incompatible with D211
   "D212",  # CONFIG: incompatible with D213
   'ISC001',  # CONFIG: formatter
@@ -159,11 +157,16 @@ ignore = [
 preview = true
 select = ["ALL"]
 
+[tool.ruff.lint.flake8-copyright]
+min-file-size = 2
+# Copyright without a year, see https://github.com/astral-sh/ruff/issues/10062
+notice-rgx = "(?i)Copyright\\s+©\\s+"
+
 [tool.ruff.lint.mccabe]
 max-complexity = 16
 
 [tool.ruff.lint.per-file-ignores]
-"translation_finder/test_*.py" = ["S301", "S403", "ANN"]
+"translation_finder/test_*.py" = ["S301", "S403", "D101", "D102"]
 
 [tool.setuptools]
 include-package-data = true
