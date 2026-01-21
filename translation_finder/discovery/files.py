@@ -641,7 +641,7 @@ class TOMLDiscovery(BaseDiscovery):
         with self.finder.open(path, "rb") as handle:
             try:
                 data = tomllib.load(handle)
-            except Exception:  # noqa: BLE001
+            except (tomllib.TOMLDecodeError, OSError):
                 return
             # go-i18n-toml detection - has messages array with 'id' field
             messages = data.get("messages") if isinstance(data, dict) else None
