@@ -1,0 +1,7 @@
+[general]
+key1 = "value1"
+key2 = "value2"
+
+[strings]
+description = "A description"
+title = "My Title"

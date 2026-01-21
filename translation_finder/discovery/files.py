@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import warnings
 from typing import TYPE_CHECKING, ClassVar
 
@@ -22,6 +23,11 @@ from .base import (
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
 )
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -96,7 +102,13 @@ class XliffDiscovery(BaseDiscovery):
 
         with self.finder.open(path, "r") as handle:
             content = handle.read()
-            if 'restype="x-gettext' in content:
+            # Check for XLIFF 2.0 first
+            if 'version="2.0"' in content or 'version="2.1"' in content:
+                if "<pc" in content or "<sc" in content or "<ec" in content:
+                    result["file_format"] = "xliff2-placeables"
+                else:
+                    result["file_format"] = "xliff2"
+            elif 'restype="x-gettext' in content:
                 result["file_format"] = "poxliff"
             elif "<x " not in content and "<g " not in content:
                 result["file_format"] = "plainxliff"
@@ -155,6 +167,10 @@ class AndroidDiscovery(BaseDiscovery):
         for path in self.finder.filter_files(
             r"(strings.*|.*strings)\.xml", ".*/values"
         ):
+            # Skip Compose Multiplatform resources
+            if "composeResources" in path.as_posix():
+                continue
+
             mask = list(path.parts)
             mask[-2] = "values-*"
 
@@ -342,18 +358,43 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912
+    @staticmethod
+    def is_go_i18n_v2_dict(data: dict) -> bool:
+        """Check if dict matches go-i18n-v2 format pattern."""
+        return "hash" in data and (
+            "message" in data or "one" in data or "other" in data
+        )
+
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912, C901
         all_strings = True
         i18next = False
         i18nextv4 = False
         if "lang" in data and "messages" in data:
             return "gotext-json"
+        # go-i18n-v2 detection at top level
+        if level == 0 and self.is_go_i18n_v2_dict(data):
+            return "go-i18n-json-v2"
+        # Nextcloud JSON format detection
+        if (
+            "translations" in data
+            and isinstance(data["translations"], list)
+            and len(data["translations"]) > 0
+        ):
+            first = data["translations"][0]
+            if isinstance(first, dict) and "key" in first:
+                return "nextcloud-json"
+        # RESJSON format detection
+        if "_strings" in data or "_locales" in data:
+            return "resjson"
         for key, value in data.items():
             if level == 0 and isinstance(value, dict):
                 if "message" in value and "description" in value:
                     return "webextension"
                 if "defaultMessage" in value and "description" in value:
                     return "formatjs"
+                # go-i18n-v2 detection in nested objects
+                if self.is_go_i18n_v2_dict(value):
+                    return "go-i18n-json-v2"
             if not isinstance(key, str):
                 all_strings = False
                 break
@@ -580,6 +621,30 @@ class TOMLDiscovery(BaseDiscovery):
     file_format = "toml"
     mask = "*.toml"
 
+    def adjust_format(self, result: ResultDict) -> None:
+        if "template" not in result:
+            return
+
+        path = next(iter(self.finder.mask_matches(result["template"])))
+
+        if not hasattr(path, "open"):
+            return
+
+        with self.finder.open(path, "rb") as handle:
+            try:
+                data = tomllib.load(handle)
+            except Exception:  # noqa: BLE001
+                return
+            # go-i18n-toml detection - has messages array with 'id' field
+            messages = data.get("messages") if isinstance(data, dict) else None
+            if (
+                isinstance(messages, list)
+                and len(messages) > 0
+                and isinstance(messages[0], dict)
+                and "id" in messages[0]
+            ):
+                result["file_format"] = "go-i18n-toml"
+
 
 @register_discovery
 class ARBDiscovery(BaseDiscovery):
@@ -647,3 +712,62 @@ class FormatJSDiscovery(BaseDiscovery):
             mask[-2] = "lang"
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
+class DTDDiscovery(BaseDiscovery):
+    """DTD files discovery."""
+
+    file_format = "dtd"
+    mask = "*.dtd"
+
+
+@register_discovery
+class FlatXMLDiscovery(MonoTemplateDiscovery):
+    """Flat XML files discovery."""
+
+    file_format = "flatxml"
+    mask = "*.xml"
+
+
+@register_discovery
+class CatkeysDiscovery(BaseDiscovery):
+    """Haiku catkeys files discovery."""
+
+    file_format = "catkeys"
+    mask = "*.catkeys"
+
+
+@register_discovery
+class CMPDiscovery(BaseDiscovery):
+    """Compose Multiplatform Resource files discovery."""
+
+    file_format = "cmp-resource"
+
+    def get_masks(
+        self, *, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
+        """
+        Return all file masks found in the directory.
+
+        It is expected to contain duplicates.
+        """
+        for path in self.finder.filter_files(
+            r"(strings.*|.*strings)\.xml", ".*/values"
+        ):
+            # Only match files in composeResources directories
+            if "composeResources" not in path.as_posix():
+                continue
+
+            mask = list(path.parts)
+            mask[-2] = "values-*"
+
+            yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
+class Mi18nDiscovery(BaseDiscovery):
+    """@draggable/i18n lang files discovery."""
+
+    file_format = "mi18n-lang"
+    mask = "*.lang"

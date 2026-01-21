@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 from operator import itemgetter
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
@@ -14,7 +16,11 @@ from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
+    CatkeysDiscovery,
+    CMPDiscovery,
     CSVDiscovery,
+    DTDDiscovery,
+    FlatXMLDiscovery,
     FluentDiscovery,
     FormatJSDiscovery,
     GettextDiscovery,
@@ -22,6 +28,7 @@ from .discovery.files import (
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
+    Mi18nDiscovery,
     MOKODiscovery,
     OSXDiscovery,
     PHPDiscovery,
@@ -1480,4 +1487,396 @@ class FormatJSDiscoveryTest(DiscoveryTestCase):
                     "file_format": "formatjs",
                 },
             ],
+        )
+
+
+class DTDDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = DTDDiscovery(
+            self.get_finder(
+                [
+                    "locale/cs.dtd",
+                    "locale/en.dtd",
+                    "locale/de.dtd",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locale/*.dtd",
+                    "template": "locale/en.dtd",
+                    "file_format": "dtd",
+                },
+            ],
+        )
+
+
+class CatkeysDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = CatkeysDiscovery(
+            self.get_finder(
+                [
+                    "locales/cs.catkeys",
+                    "locales/en.catkeys",
+                    "locales/de.catkeys",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.catkeys",
+                    "template": "locales/en.catkeys",
+                    "file_format": "catkeys",
+                },
+            ],
+        )
+
+
+class FlatXMLDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = FlatXMLDiscovery(
+            self.get_finder(
+                [
+                    "strings/cs.xml",
+                    "strings/en.xml",
+                    "strings/de.xml",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "strings/*.xml",
+                    "template": "strings/en.xml",
+                    "new_base": "strings/en.xml",
+                    "file_format": "flatxml",
+                },
+            ],
+        )
+
+
+class CMPDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = CMPDiscovery(
+            self.get_finder(
+                [
+                    "common/src/commonMain/composeResources/values/strings.xml",
+                    "common/src/commonMain/composeResources/values-cs/strings.xml",
+                    "common/src/commonMain/composeResources/values-de/strings.xml",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "common/src/commonMain/composeResources/values-*/strings.xml",
+                    "template": "common/src/commonMain/composeResources/values/strings.xml",
+                    "file_format": "cmp-resource",
+                },
+            ],
+        )
+
+
+class Mi18nDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = Mi18nDiscovery(
+            self.get_finder(
+                [
+                    "locales/cs.lang",
+                    "locales/en.lang",
+                    "locales/de.lang",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.lang",
+                    "template": "locales/en.lang",
+                    "file_format": "mi18n-lang",
+                },
+            ],
+        )
+
+
+class JSONFormatVariantsTest(DiscoveryTestCase):
+    def test_go_i18n_v2(self) -> None:
+        """Test go-i18n-json-v2 format detection."""
+        finder = self.get_real_finder()
+        discovery = JSONDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the go-i18n-v2 result
+        go_v2_results = [
+            r for r in results if "go-i18n-v2-en.json" in r.get("template", "")
+        ]
+        self.assertTrue(len(go_v2_results) > 0, "Should detect go-i18n-v2 format")
+        if go_v2_results:
+            self.assertEqual(go_v2_results[0]["file_format"], "go-i18n-json-v2")
+
+    def test_go_i18n_v2_content_detection(self) -> None:
+        """Test go-i18n-json-v2 format content-based detection."""
+        # Test with hash and message
+        test_json_message = {
+            "hash": "sha1-abc123",
+            "message": "Hello world",
+        }
+        # Test with hash and plurals
+        test_json_plurals = {
+            "hash": "sha1-def456",
+            "one": "One item",
+            "other": "{{.count}} items",
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            # Create test files
+            (tmppath / "message-en.json").write_text(json.dumps(test_json_message))
+            (tmppath / "message-cs.json").write_text(json.dumps(test_json_message))
+            (tmppath / "plurals-en.json").write_text(json.dumps(test_json_plurals))
+            (tmppath / "plurals-cs.json").write_text(json.dumps(test_json_plurals))
+
+            finder = Finder(tmppath)
+            discovery = JSONDiscovery(finder)
+            results = list(discovery.discover())
+
+            # Should detect as go-i18n-json-v2 based on content
+            go_v2_results = [
+                r for r in results if r.get("file_format") == "go-i18n-json-v2"
+            ]
+            self.assertGreater(
+                len(go_v2_results),
+                0,
+                "Should detect go-i18n-json-v2 based on JSON content structure",
+            )
+
+    def test_nextcloud_json(self) -> None:
+        """Test nextcloud-json format detection."""
+        finder = self.get_real_finder()
+        discovery = JSONDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the nextcloud result
+        nextcloud_results = [
+            r for r in results if "nextcloud-en.json" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(nextcloud_results) > 0, "Should detect nextcloud-json format"
+        )
+        if nextcloud_results:
+            self.assertEqual(nextcloud_results[0]["file_format"], "nextcloud-json")
+
+    def test_resjson(self) -> None:
+        """Test resjson format detection."""
+        finder = self.get_real_finder()
+        discovery = JSONDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the resjson result
+        resjson_results = [
+            r for r in results if "resjson-en.json" in r.get("template", "")
+        ]
+        self.assertTrue(len(resjson_results) > 0, "Should detect resjson format")
+        if resjson_results:
+            self.assertEqual(resjson_results[0]["file_format"], "resjson")
+
+
+class XLIFFFormatVariantsTest(DiscoveryTestCase):
+    def test_xliff2(self) -> None:
+        """Test XLIFF 2.0 format detection."""
+        finder = self.get_real_finder()
+        discovery = XliffDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the XLIFF 2.0 results
+        xliff2_results = [r for r in results if r.get("filemask") == "xliff2/*.xliff"]
+        self.assertTrue(len(xliff2_results) > 0, "Should detect XLIFF 2.0 format")
+        if xliff2_results:
+            self.assertEqual(xliff2_results[0]["file_format"], "xliff2")
+
+    def test_xliff2_placeables(self) -> None:
+        """Test XLIFF 2.0 with placeables format detection."""
+        finder = self.get_real_finder()
+        discovery = XliffDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the XLIFF 2.0 placeables results
+        xliff2_placeables_results = [
+            r for r in results if r.get("filemask") == "xliff2/*-placeables.xliff"
+        ]
+        self.assertTrue(
+            len(xliff2_placeables_results) > 0,
+            "Should detect XLIFF 2.0 placeables format",
+        )
+        if xliff2_placeables_results:
+            self.assertEqual(
+                xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
+            )
+
+
+class TOMLFormatVariantsTest(DiscoveryTestCase):
+    def test_go_i18n_toml(self) -> None:
+        """Test go-i18n-toml format detection."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the go-i18n-toml result
+        go_i18n_toml_results = [
+            r for r in results if "go-i18n-en.toml" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(go_i18n_toml_results) > 0, "Should detect go-i18n-toml format"
+        )
+        if go_i18n_toml_results:
+            self.assertEqual(go_i18n_toml_results[0]["file_format"], "go-i18n-toml")
+
+    def test_regular_toml(self) -> None:
+        """Test regular TOML files remain as toml format."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find regular TOML results
+        regular_toml_results = [
+            r for r in results if "regular-en.toml" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(regular_toml_results) > 0, "Should detect regular TOML format"
+        )
+        if regular_toml_results:
+            self.assertEqual(regular_toml_results[0]["file_format"], "toml")
+
+    def test_corrupted_toml_handling(self) -> None:
+        """Test that corrupted TOML files don't break discovery."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        # This should not raise an exception
+        results = list(discovery.discover())
+
+        # The discovery should still work even with corrupted files
+        # The important thing is it doesn't crash
+        # Check we got some results (the good TOML files)
+        self.assertGreater(len(results), 0, "Should discover valid TOML files")
+
+
+class FormatJSContentDetectionTest(DiscoveryTestCase):
+    def test_formatjs_content_detection(self) -> None:
+        """Test FormatJS format is detected based on JSON content."""
+        # Create a mock JSON file with FormatJS structure
+        test_json = {
+            "greeting": {"defaultMessage": "Hello", "description": "A greeting"},
+            "farewell": {"defaultMessage": "Goodbye", "description": "A farewell"},
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            # Create test file
+            (tmppath / "en.json").write_text(json.dumps(test_json))
+            (tmppath / "cs.json").write_text(json.dumps(test_json))
+
+            finder = Finder(tmppath)
+            discovery = JSONDiscovery(finder)
+            results = list(discovery.discover())
+
+            # Should detect as formatjs based on content
+            formatjs_results = [
+                r for r in results if r.get("file_format") == "formatjs"
+            ]
+            self.assertTrue(
+                len(formatjs_results) > 0,
+                "Should detect FormatJS based on JSON content structure",
+            )
+
+
+class XMLFormatNoOverlapTest(DiscoveryTestCase):
+    def test_android_vs_cmp_vs_flatxml_no_overlap(self) -> None:  # noqa: PLR0914
+        """Test that Android, CMP, and FlatXML discoveries don't overlap."""
+        # Test Android resources (res/values pattern)
+        android_paths = [
+            "app/src/res/main/values/strings.xml",
+            "app/src/res/main/values-cs/strings.xml",
+        ]
+        android_finder = self.get_finder(android_paths)
+        android_discovery = AndroidDiscovery(android_finder)
+        android_results = list(android_discovery.discover())
+        cmp_discovery_android = CMPDiscovery(android_finder)
+        cmp_results_android = list(cmp_discovery_android.discover())
+        flatxml_discovery_android = FlatXMLDiscovery(android_finder)
+        flatxml_results_android = list(flatxml_discovery_android.discover())
+
+        # Android should detect, CMP and FlatXML should not
+        self.assertGreater(
+            len(android_results), 0, "Android should detect res/values XML files"
+        )
+        self.assertEqual(
+            len(cmp_results_android),
+            0,
+            "CMP should not detect Android res/values XML files",
+        )
+        self.assertEqual(
+            len(flatxml_results_android),
+            0,
+            "FlatXML should not detect Android res/values XML files without template",
+        )
+
+        # Test CMP resources (composeResources pattern)
+        cmp_paths = [
+            "common/src/commonMain/composeResources/values/strings.xml",
+            "common/src/commonMain/composeResources/values-cs/strings.xml",
+        ]
+        cmp_finder = self.get_finder(cmp_paths)
+        android_discovery_cmp = AndroidDiscovery(cmp_finder)
+        android_results_cmp = list(android_discovery_cmp.discover())
+        cmp_discovery = CMPDiscovery(cmp_finder)
+        cmp_results = list(cmp_discovery.discover())
+        flatxml_discovery_cmp = FlatXMLDiscovery(cmp_finder)
+        flatxml_results_cmp = list(flatxml_discovery_cmp.discover())
+
+        # CMP should detect, Android and FlatXML should not
+        self.assertEqual(
+            len(android_results_cmp),
+            0,
+            "Android should not detect CMP composeResources XML files",
+        )
+        self.assertGreater(
+            len(cmp_results), 0, "CMP should detect composeResources XML files"
+        )
+        self.assertEqual(
+            len(flatxml_results_cmp),
+            0,
+            "FlatXML should not detect CMP XML files without template",
+        )
+
+        # Test FlatXML (generic XML with template)
+        flatxml_paths = [
+            "strings/cs.xml",
+            "strings/en.xml",
+        ]
+        flatxml_finder = self.get_finder(flatxml_paths)
+        android_discovery_flat = AndroidDiscovery(flatxml_finder)
+        android_results_flat = list(android_discovery_flat.discover())
+        cmp_discovery_flat = CMPDiscovery(flatxml_finder)
+        cmp_results_flat = list(cmp_discovery_flat.discover())
+        flatxml_discovery = FlatXMLDiscovery(flatxml_finder)
+        flatxml_results = list(flatxml_discovery.discover())
+
+        # FlatXML should detect, Android and CMP should not
+        self.assertEqual(
+            len(android_results_flat),
+            0,
+            "Android should not detect generic XML files",
+        )
+        self.assertEqual(
+            len(cmp_results_flat), 0, "CMP should not detect generic XML files"
+        )
+        self.assertGreater(
+            len(flatxml_results), 0, "FlatXML should detect generic XML files"
         )

@@ -88,6 +88,22 @@ class APITest(DiscoveryTestCase):
                     "filemask": "json/flat-*.json",
                     "template": "json/flat-en.json",
                 },
+                # New JSON format variants
+                {
+                    "file_format": "go-i18n-json-v2",
+                    "filemask": "json/go-i18n-v2-*.json",
+                    "template": "json/go-i18n-v2-en.json",
+                },
+                {
+                    "file_format": "nextcloud-json",
+                    "filemask": "json/nextcloud-*.json",
+                    "template": "json/nextcloud-en.json",
+                },
+                {
+                    "file_format": "resjson",
+                    "filemask": "json/resjson-*.json",
+                    "template": "json/resjson-en.json",
+                },
                 {
                     "filemask": "locales/*.po",
                     "new_base": "locales/messages.pot",
@@ -168,10 +184,45 @@ class APITest(DiscoveryTestCase):
                     "filemask": "xliff/*.xlf",
                     "template": "xliff/en.xlf",
                 },
+                # New XLIFF2 formats
+                {
+                    "file_format": "xliff2",
+                    "filemask": "xliff2/*.xliff",
+                },
+                {
+                    "file_format": "xliff2-placeables",
+                    "filemask": "xliff2/*-placeables.xliff",
+                },
                 {
                     "file_format": "gotext-json",
                     "filemask": "json/gotext-*.json",
                     "template": "json/gotext-en.json",
+                },
+                # New format discoveries (DTD, Catkeys, Mi18n, TOML)
+                {
+                    "file_format": "dtd",
+                    "filemask": "dtd/*.dtd",
+                    "template": "dtd/en.dtd",
+                },
+                {
+                    "file_format": "catkeys",
+                    "filemask": "catkeys/*.catkeys",
+                    "template": "catkeys/en.catkeys",
+                },
+                {
+                    "file_format": "mi18n-lang",
+                    "filemask": "lang/*.lang",
+                    "template": "lang/en.lang",
+                },
+                {
+                    "file_format": "go-i18n-toml",
+                    "filemask": "toml/go-i18n-*.toml",
+                    "template": "toml/go-i18n-en.toml",
+                },
+                {
+                    "file_format": "toml",
+                    "filemask": "toml/regular-*.toml",
+                    "template": "toml/regular-en.toml",
                 },
             ],
         )

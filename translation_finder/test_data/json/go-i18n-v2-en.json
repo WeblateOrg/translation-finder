@@ -1,0 +1,6 @@
+{
+  "hash": "sha1-abc123",
+  "message": "Hello world",
+  "one": "One item",
+  "other": "{{.count}} items"
+}

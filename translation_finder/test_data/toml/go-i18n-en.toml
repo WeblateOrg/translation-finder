@@ -1,0 +1,9 @@
+[[messages]]
+description = "A greeting"
+id = "hello"
+message = "Hello"
+
+[[messages]]
+description = "A farewell"
+id = "goodbye"
+message = "Goodbye"

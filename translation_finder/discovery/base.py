@@ -52,6 +52,9 @@ EXTENSION_MAP = (
     (".html", "html"),
     (".idml", "idml"),
     (".rc", "rc"),
+    (".catkeys", "catkeys"),
+    (".lang", "mi18n-lang"),
+    (".toml", "toml"),
 )
 
 TEMPLATE_REPLACEMENTS = (

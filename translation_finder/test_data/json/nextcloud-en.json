@@ -1,0 +1,12 @@
+{
+  "translations": [
+    {
+      "key": "hello",
+      "value": "Hello world"
+    },
+    {
+      "key": "goodbye",
+      "value": "Goodbye"
+    }
+  ]
+}
