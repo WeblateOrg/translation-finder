@@ -409,7 +409,7 @@ class JSONDiscovery(BaseDiscovery):
                 # go-i18n-v2 detection in nested objects
                 if self.is_go_i18n_v2_dict(value):
                     return "go-i18n-json-v2"
-            
+
             # Check for i18next patterns
             if not isinstance(key, str):
                 all_strings = False
