@@ -1,9 +1,9 @@
 [[messages]]
-id = "hello"
 description = "A greeting"
+id = "hello"
 message = "Hello"
 
 [[messages]]
-id = "goodbye"
 description = "A farewell"
+id = "goodbye"
 message = "Goodbye"

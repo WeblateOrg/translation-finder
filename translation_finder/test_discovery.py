@@ -1715,7 +1715,9 @@ class FormatJSContentDetectionTest(DiscoveryTestCase):
             results = list(discovery.discover())
 
             # Should detect as formatjs based on content
-            formatjs_results = [r for r in results if r.get("file_format") == "formatjs"]
+            formatjs_results = [
+                r for r in results if r.get("file_format") == "formatjs"
+            ]
             self.assertTrue(
                 len(formatjs_results) > 0,
                 "Should detect FormatJS based on JSON content structure",
