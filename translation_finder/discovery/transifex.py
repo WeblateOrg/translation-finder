@@ -48,6 +48,7 @@ class TransifexDiscovery(BaseDiscovery):
     }
 
     def extract_format(self, transifex: str) -> str:
+        """Convert Transifex format to Weblate."""
         transifex = transifex.upper()
         try:
             return self.typemap[transifex]
@@ -57,6 +58,7 @@ class TransifexDiscovery(BaseDiscovery):
     def extract_section(
         self, config: RawConfigParser, section: str
     ) -> ResultDict | None:
+        """Extract single section from Transifex configuration."""
         if section == "main" or not config.has_option(section, "file_filter"):
             return None
         result: ResultDict = {

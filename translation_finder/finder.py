@@ -35,6 +35,7 @@ EXCLUDES = {
 
 
 def lc_convert(relative_path: str, relative: PurePath) -> tuple[str, str, PurePath]:
+    """Convert path to lower case and extract directory and filename from it."""
     lower = relative_path.lower()
     try:
         directory, filename = lower.rsplit("/", 1)
@@ -85,6 +86,7 @@ class Finder:
         self.files.sort(key=operator.itemgetter(0))
 
     def process_path(self, path: PurePath) -> tuple[PurePath, PurePath, str]:
+        """Convert path to relative path."""
         relative = path.relative_to(self.root)
         return (path, relative, relative.as_posix())
 
@@ -147,6 +149,7 @@ class Finder:
     @overload
     def open(self, path: PurePath, mode: OpenBinaryMode) -> FileIO: ...
     def open(self, path, mode="r"):
+        """Open file from the finder."""
         path_obj = self.absolutes[path.as_posix()]
         if not isinstance(path_obj, Path):
             msg = "Not a real file"
