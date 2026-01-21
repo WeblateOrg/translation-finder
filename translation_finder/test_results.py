@@ -31,5 +31,6 @@ class ResultTest(TestCase):
         r2 = loads(dumps(r1))
         self.assertIsInstance(r2, DiscoveryResult)
         self.assertEqual(r2, r1)
+        self.assertEqual(r2.meta, r1.meta)
         r2.meta["x"] = "y"
         self.assertNotEqual(r2, r1)
