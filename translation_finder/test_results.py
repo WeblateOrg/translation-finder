@@ -14,11 +14,11 @@ class ResultTest(TestCase):
     def test_lt(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
-        r2 = DiscoveryResult({"file_format": "b"})
-        r2.meta["priority"] = 20
-        self.assertLess(r1, r2)
-        r2.meta["priority"] = 10
-        self.assertLess(r1, r2)
+        second_result = DiscoveryResult({"file_format": "b"})
+        second_result.meta["priority"] = 20
+        self.assertLess(r1, second_result)
+        second_result.meta["priority"] = 10
+        self.assertLess(r1, second_result)
 
     def test_repr(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
