@@ -167,6 +167,10 @@ class AndroidDiscovery(BaseDiscovery):
         for path in self.finder.filter_files(
             r"(strings.*|.*strings)\.xml", ".*/values"
         ):
+            # Skip Compose Multiplatform resources
+            if "composeResources" in path.as_posix():
+                continue
+
             mask = list(path.parts)
             mask[-2] = "values-*"
 
@@ -631,12 +635,13 @@ class TOMLDiscovery(BaseDiscovery):
                 data = tomllib.load(handle)
             except Exception:  # noqa: BLE001
                 return
-            # go-i18n-toml detection - has array items with 'id' field
+            # go-i18n-toml detection - has messages array with 'id' field
+            messages = data.get("messages") if isinstance(data, dict) else None
             if (
-                isinstance(data, list)
-                and len(data) > 0
-                and isinstance(data[0], dict)
-                and "id" in data[0]
+                isinstance(messages, list)
+                and len(messages) > 0
+                and isinstance(messages[0], dict)
+                and "id" in messages[0]
             ):
                 result["file_format"] = "go-i18n-toml"
 
@@ -750,6 +755,10 @@ class CMPDiscovery(BaseDiscovery):
         for path in self.finder.filter_files(
             r"(strings.*|.*strings)\.xml", ".*/values"
         ):
+            # Only match files in composeResources directories
+            if "composeResources" not in path.as_posix():
+                continue
+
             mask = list(path.parts)
             mask[-2] = "values-*"
 

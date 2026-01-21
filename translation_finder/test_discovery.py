@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 from operator import itemgetter
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
@@ -1657,3 +1659,150 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
             self.assertEqual(
                 xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
             )
+
+
+class TOMLFormatVariantsTest(DiscoveryTestCase):
+    def test_go_i18n_toml(self) -> None:
+        """Test go-i18n-toml format detection."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find the go-i18n-toml result
+        go_i18n_toml_results = [
+            r for r in results if "go-i18n-en.toml" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(go_i18n_toml_results) > 0, "Should detect go-i18n-toml format"
+        )
+        if go_i18n_toml_results:
+            self.assertEqual(go_i18n_toml_results[0]["file_format"], "go-i18n-toml")
+
+    def test_regular_toml(self) -> None:
+        """Test regular TOML files remain as toml format."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        results = list(discovery.discover())
+
+        # Find regular TOML results
+        regular_toml_results = [
+            r for r in results if "regular-en.toml" in r.get("template", "")
+        ]
+        self.assertTrue(
+            len(regular_toml_results) > 0, "Should detect regular TOML format"
+        )
+        if regular_toml_results:
+            self.assertEqual(regular_toml_results[0]["file_format"], "toml")
+
+
+class FormatJSContentDetectionTest(DiscoveryTestCase):
+    def test_formatjs_content_detection(self) -> None:
+        """Test FormatJS format is detected based on JSON content."""
+        # Create a mock JSON file with FormatJS structure
+        test_json = {
+            "greeting": {"defaultMessage": "Hello", "description": "A greeting"},
+            "farewell": {"defaultMessage": "Goodbye", "description": "A farewell"},
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            # Create test file
+            (tmppath / "en.json").write_text(json.dumps(test_json))
+            (tmppath / "cs.json").write_text(json.dumps(test_json))
+
+            finder = Finder(tmppath)
+            discovery = JSONDiscovery(finder)
+            results = list(discovery.discover())
+
+            # Should detect as formatjs based on content
+            formatjs_results = [r for r in results if r.get("file_format") == "formatjs"]
+            self.assertTrue(
+                len(formatjs_results) > 0,
+                "Should detect FormatJS based on JSON content structure",
+            )
+
+
+class XMLFormatNoOverlapTest(DiscoveryTestCase):
+    def test_android_vs_cmp_vs_flatxml_no_overlap(self) -> None:  # noqa: PLR0914
+        """Test that Android, CMP, and FlatXML discoveries don't overlap."""
+        # Test Android resources (res/values pattern)
+        android_paths = [
+            "app/src/res/main/values/strings.xml",
+            "app/src/res/main/values-cs/strings.xml",
+        ]
+        android_finder = self.get_finder(android_paths)
+        android_discovery = AndroidDiscovery(android_finder)
+        android_results = list(android_discovery.discover())
+        cmp_discovery_android = CMPDiscovery(android_finder)
+        cmp_results_android = list(cmp_discovery_android.discover())
+        flatxml_discovery_android = FlatXMLDiscovery(android_finder)
+        flatxml_results_android = list(flatxml_discovery_android.discover())
+
+        # Android should detect, CMP and FlatXML should not
+        self.assertGreater(
+            len(android_results), 0, "Android should detect res/values XML files"
+        )
+        self.assertEqual(
+            len(cmp_results_android),
+            0,
+            "CMP should not detect Android res/values XML files",
+        )
+        self.assertEqual(
+            len(flatxml_results_android),
+            0,
+            "FlatXML should not detect Android res/values XML files without template",
+        )
+
+        # Test CMP resources (composeResources pattern)
+        cmp_paths = [
+            "common/src/commonMain/composeResources/values/strings.xml",
+            "common/src/commonMain/composeResources/values-cs/strings.xml",
+        ]
+        cmp_finder = self.get_finder(cmp_paths)
+        android_discovery_cmp = AndroidDiscovery(cmp_finder)
+        android_results_cmp = list(android_discovery_cmp.discover())
+        cmp_discovery = CMPDiscovery(cmp_finder)
+        cmp_results = list(cmp_discovery.discover())
+        flatxml_discovery_cmp = FlatXMLDiscovery(cmp_finder)
+        flatxml_results_cmp = list(flatxml_discovery_cmp.discover())
+
+        # CMP should detect, Android and FlatXML should not
+        self.assertEqual(
+            len(android_results_cmp),
+            0,
+            "Android should not detect CMP composeResources XML files",
+        )
+        self.assertGreater(
+            len(cmp_results), 0, "CMP should detect composeResources XML files"
+        )
+        self.assertEqual(
+            len(flatxml_results_cmp),
+            0,
+            "FlatXML should not detect CMP XML files without template",
+        )
+
+        # Test FlatXML (generic XML with template)
+        flatxml_paths = [
+            "strings/cs.xml",
+            "strings/en.xml",
+        ]
+        flatxml_finder = self.get_finder(flatxml_paths)
+        android_discovery_flat = AndroidDiscovery(flatxml_finder)
+        android_results_flat = list(android_discovery_flat.discover())
+        cmp_discovery_flat = CMPDiscovery(flatxml_finder)
+        cmp_results_flat = list(cmp_discovery_flat.discover())
+        flatxml_discovery = FlatXMLDiscovery(flatxml_finder)
+        flatxml_results = list(flatxml_discovery.discover())
+
+        # FlatXML should detect, Android and CMP should not
+        self.assertEqual(
+            len(android_results_flat),
+            0,
+            "Android should not detect generic XML files",
+        )
+        self.assertEqual(
+            len(cmp_results_flat), 0, "CMP should not detect generic XML files"
+        )
+        self.assertGreater(
+            len(flatxml_results), 0, "FlatXML should detect generic XML files"
+        )
