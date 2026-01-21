@@ -389,7 +389,7 @@ class JSONDiscovery(BaseDiscovery):
             return "resjson"
         return None
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0912, PLR0911
         """Detect JSON variant based on JSON content."""
         top_level_format = self._detect_top_level_format(data, level)
         if top_level_format is not None:
