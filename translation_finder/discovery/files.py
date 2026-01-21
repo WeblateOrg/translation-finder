@@ -486,7 +486,7 @@ class YAMLDiscovery(BaseDiscovery):
                 data = yaml.load(handle)
             except (YAMLError, YAMLFutureWarning):
                 return
-            except Exception as error:  # noqa: BLE001
+            except (OSError, UnicodeError, TypeError, ValueError) as error:  # noqa: BLE001
                 # Weird errors can happen when parsing YAML, handle them gracefully, but
                 # emit a warning
                 warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
