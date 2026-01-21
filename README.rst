@@ -45,7 +45,7 @@ In can be used from Python:
    >>> from pprint import pprint
    >>> results = discover("translation_finder/test_data/")
    >>> len(results)
-   39
+   40
    >>> pprint(results[0].match)
    {'file_format': 'aresource',
     'filemask': 'app/src/res/main/values-*/strings.xml',
@@ -63,7 +63,7 @@ Additional information about discovery can be obtained from meta attribute:
 
    >>> pprint(results[0].meta)
    {'discovery': 'TransifexDiscovery', 'origin': 'Transifex', 'priority': 500}
-   >>> pprint(results[21].meta)
+   >>> pprint(results[22].meta)
    {'discovery': 'GettextDiscovery', 'origin': None, 'priority': 1000}
 
 

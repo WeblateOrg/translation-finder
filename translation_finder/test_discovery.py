@@ -28,6 +28,7 @@ from .discovery.files import (
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
+    Mi18nDiscovery,
     MOKODiscovery,
     OSXDiscovery,
     PHPDiscovery,
@@ -1582,6 +1583,29 @@ class CMPDiscoveryTest(DiscoveryTestCase):
         )
 
 
+class Mi18nDiscoveryTest(DiscoveryTestCase):
+    def test_basic(self) -> None:
+        discovery = Mi18nDiscovery(
+            self.get_finder(
+                [
+                    "locales/cs.lang",
+                    "locales/en.lang",
+                    "locales/de.lang",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locales/*.lang",
+                    "template": "locales/en.lang",
+                    "file_format": "mi18n-lang",
+                },
+            ],
+        )
+
+
 class JSONFormatVariantsTest(DiscoveryTestCase):
     def test_go_i18n_v2(self) -> None:
         """Test go-i18n-json-v2 format detection."""
@@ -1596,6 +1620,42 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
         self.assertTrue(len(go_v2_results) > 0, "Should detect go-i18n-v2 format")
         if go_v2_results:
             self.assertEqual(go_v2_results[0]["file_format"], "go-i18n-json-v2")
+
+    def test_go_i18n_v2_content_detection(self) -> None:
+        """Test go-i18n-json-v2 format content-based detection."""
+        # Test with hash and message
+        test_json_message = {
+            "hash": "sha1-abc123",
+            "message": "Hello world",
+        }
+        # Test with hash and plurals
+        test_json_plurals = {
+            "hash": "sha1-def456",
+            "one": "One item",
+            "other": "{{.count}} items",
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            # Create test files
+            (tmppath / "message-en.json").write_text(json.dumps(test_json_message))
+            (tmppath / "message-cs.json").write_text(json.dumps(test_json_message))
+            (tmppath / "plurals-en.json").write_text(json.dumps(test_json_plurals))
+            (tmppath / "plurals-cs.json").write_text(json.dumps(test_json_plurals))
+
+            finder = Finder(tmppath)
+            discovery = JSONDiscovery(finder)
+            results = list(discovery.discover())
+
+            # Should detect as go-i18n-json-v2 based on content
+            go_v2_results = [
+                r for r in results if r.get("file_format") == "go-i18n-json-v2"
+            ]
+            self.assertGreater(
+                len(go_v2_results),
+                0,
+                "Should detect go-i18n-json-v2 based on JSON content structure",
+            )
 
     def test_nextcloud_json(self) -> None:
         """Test nextcloud-json format detection."""
@@ -1693,6 +1753,18 @@ class TOMLFormatVariantsTest(DiscoveryTestCase):
         )
         if regular_toml_results:
             self.assertEqual(regular_toml_results[0]["file_format"], "toml")
+
+    def test_corrupted_toml_handling(self) -> None:
+        """Test that corrupted TOML files don't break discovery."""
+        finder = self.get_real_finder()
+        discovery = TOMLDiscovery(finder)
+        # This should not raise an exception
+        results = list(discovery.discover())
+
+        # The discovery should still work even with corrupted files
+        # The important thing is it doesn't crash
+        # Check we got some results (the good TOML files)
+        self.assertGreater(len(results), 0, "Should discover valid TOML files")
 
 
 class FormatJSContentDetectionTest(DiscoveryTestCase):

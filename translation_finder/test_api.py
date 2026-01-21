@@ -198,7 +198,7 @@ class APITest(DiscoveryTestCase):
                     "filemask": "json/gotext-*.json",
                     "template": "json/gotext-en.json",
                 },
-                # New format discoveries (DTD, Catkeys, TOML)
+                # New format discoveries (DTD, Catkeys, Mi18n, TOML)
                 {
                     "file_format": "dtd",
                     "filemask": "dtd/*.dtd",
@@ -208,6 +208,11 @@ class APITest(DiscoveryTestCase):
                     "file_format": "catkeys",
                     "filemask": "catkeys/*.catkeys",
                     "template": "catkeys/en.catkeys",
+                },
+                {
+                    "file_format": "mi18n-lang",
+                    "filemask": "lang/*.lang",
+                    "template": "lang/en.lang",
                 },
                 {
                     "file_format": "go-i18n-toml",

@@ -763,3 +763,11 @@ class CMPDiscovery(BaseDiscovery):
             mask[-2] = "values-*"
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
+
+
+@register_discovery
+class Mi18nDiscovery(BaseDiscovery):
+    """@draggable/i18n lang files discovery."""
+
+    file_format = "mi18n-lang"
+    mask = "*.lang"

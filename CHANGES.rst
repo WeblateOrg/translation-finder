@@ -7,6 +7,7 @@ Changelog
 * Added support for FlatXML format files.
 * Added support for Haiku OS catkeys format files.
 * Added support for Compose Multiplatform resource files.
+* Added support for mi18n-lang format files.
 * Enhanced JSON discovery to detect go-i18n-json-v2, nextcloud-json, and resjson formats.
 * Enhanced XLIFF discovery to detect XLIFF 2.0 and XLIFF 2.0 with placeables formats.
 * Enhanced TOML discovery to detect go-i18n-toml format.

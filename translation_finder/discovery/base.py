@@ -53,6 +53,7 @@ EXTENSION_MAP = (
     (".idml", "idml"),
     (".rc", "rc"),
     (".catkeys", "catkeys"),
+    (".lang", "mi18n-lang"),
     (".toml", "toml"),
 )
 
