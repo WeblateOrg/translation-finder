@@ -465,7 +465,8 @@ class JSONDiscovery(BaseDiscovery):
         with self.finder.open(path, "r") as handle:
             try:
                 data = json.load(handle)
-            except ValueError:
+            except ValueError as error:
+                warnings.warn(f"Could not parse JSON: {error}", stacklevel=0)
                 return
             if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
                 result["file_format"] = "go-i18n-json"
@@ -673,6 +674,7 @@ class TOMLDiscovery(BaseDiscovery):
             try:
                 data = tomllib.load(handle)
             except (tomllib.TOMLDecodeError, OSError):
+                warnings.warn(f"Could not parse TOML: {error}", stacklevel=0)
                 return
             # go-i18n-toml detection - has messages array with 'id' field
             messages = data.get("messages") if isinstance(data, dict) else None
