@@ -368,11 +368,8 @@ class JSONDiscovery(BaseDiscovery):
             "message" in data or "one" in data or "other" in data
         )
 
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:  # noqa: PLR0911, PLR0912, C901
-        """Detect JSON variant based on JSON content."""
-        all_strings = True
-        i18next = False
-        i18nextv4 = False
+    def _detect_top_level_format(self, data: dict, level: int) -> str | None:
+        """Detect formats that are only determined from the top-level object."""
         if "lang" in data and "messages" in data:
             return "gotext-json"
         # go-i18n-v2 detection at top level
@@ -390,15 +387,35 @@ class JSONDiscovery(BaseDiscovery):
         # RESJSON format detection
         if "_strings" in data or "_locales" in data:
             return "resjson"
+        return None
+
+    def _detect_nested_format(
+        self,
+        key: object,
+        value: object,
+        level: int,
+    ) -> str | None:
+        """Detect formats based on nested dictionary values at the current level."""
+        if level == 0 and isinstance(value, dict):
+            if "message" in value and "description" in value:
+                return "webextension"
+            if "defaultMessage" in value and "description" in value:
+                return "formatjs"
+            # go-i18n-v2 detection in nested objects
+            if self.is_go_i18n_v2_dict(value):
+                return "go-i18n-json-v2"
+        return None
+
+    def _walk_dict_for_i18next(
+        self,
+        data: dict,
+        level: int,
+    ) -> tuple[bool, bool, bool]:
+        """Walk dictionary to determine i18next/i18nextv4 and all-strings flags."""
+        all_strings = True
+        i18next = False
+        i18nextv4 = False
         for key, value in data.items():
-            if level == 0 and isinstance(value, dict):
-                if "message" in value and "description" in value:
-                    return "webextension"
-                if "defaultMessage" in value and "description" in value:
-                    return "formatjs"
-                # go-i18n-v2 detection in nested objects
-                if self.is_go_i18n_v2_dict(value):
-                    return "go-i18n-json-v2"
             if not isinstance(key, str):
                 all_strings = False
                 break
@@ -411,7 +428,21 @@ class JSONDiscovery(BaseDiscovery):
             elif key.endswith(("_one", "_many", "_other")):
                 i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
+        return all_strings, i18next, i18nextv4
                 i18next = True
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:
+        """Detect JSON variant based on JSON content."""
+        top_level_format = self._detect_top_level_format(data, level)
+        if top_level_format is not None:
+            return top_level_format
+
+        for key, value in data.items():
+            nested_format = self._detect_nested_format(key, value, level)
+            if nested_format is not None:
+                return nested_format
+
+        all_strings, i18next, i18nextv4 = self._walk_dict_for_i18next(data, level)
+
 
         if i18nextv4:
             return "i18nextv4"
