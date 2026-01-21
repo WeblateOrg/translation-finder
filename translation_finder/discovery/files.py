@@ -389,33 +389,28 @@ class JSONDiscovery(BaseDiscovery):
             return "resjson"
         return None
 
-    def _detect_nested_format(
-        self,
-        key: object,
-        value: object,
-        level: int,
-    ) -> str | None:
-        """Detect formats based on nested dictionary values at the current level."""
-        if level == 0 and isinstance(value, dict):
-            if "message" in value and "description" in value:
-                return "webextension"
-            if "defaultMessage" in value and "description" in value:
-                return "formatjs"
-            # go-i18n-v2 detection in nested objects
-            if self.is_go_i18n_v2_dict(value):
-                return "go-i18n-json-v2"
-        return None
+    def detect_dict(self, data: dict, level: int = 0) -> str | None:
+        """Detect JSON variant based on JSON content."""
+        top_level_format = self._detect_top_level_format(data, level)
+        if top_level_format is not None:
+            return top_level_format
 
-    def _walk_dict_for_i18next(
-        self,
-        data: dict,
-        level: int,
-    ) -> tuple[bool, bool, bool]:
-        """Walk dictionary to determine i18next/i18nextv4 and all-strings flags."""
+        # Single loop to detect nested formats and i18next patterns
         all_strings = True
         i18next = False
         i18nextv4 = False
         for key, value in data.items():
+            # Check for nested formats at level 0
+            if level == 0 and isinstance(value, dict):
+                if "message" in value and "description" in value:
+                    return "webextension"
+                if "defaultMessage" in value and "description" in value:
+                    return "formatjs"
+                # go-i18n-v2 detection in nested objects
+                if self.is_go_i18n_v2_dict(value):
+                    return "go-i18n-json-v2"
+
+            # Check for i18next patterns
             if not isinstance(key, str):
                 all_strings = False
                 break
@@ -429,20 +424,6 @@ class JSONDiscovery(BaseDiscovery):
                 i18nextv4 = True
             elif key.endswith("_plural") or "{{" in value:
                 i18next = True
-        return all_strings, i18next, i18nextv4
-
-    def detect_dict(self, data: dict, level: int = 0) -> str | None:
-        """Detect JSON variant based on JSON content."""
-        top_level_format = self._detect_top_level_format(data, level)
-        if top_level_format is not None:
-            return top_level_format
-
-        for key, value in data.items():
-            nested_format = self._detect_nested_format(key, value, level)
-            if nested_format is not None:
-                return nested_format
-
-        all_strings, i18next, i18nextv4 = self._walk_dict_for_i18next(data, level)
 
         if i18nextv4:
             return "i18nextv4"
