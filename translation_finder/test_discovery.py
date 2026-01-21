@@ -11,7 +11,7 @@ from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
 from unittest import TestCase
 
-from .discovery.base import DiscoveryResult, ResultDict
+from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
@@ -48,6 +48,8 @@ from .finder import Finder
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from .discovery.base import ResultDict
 
 TEST_DATA = Path(__file__).parent / "test_data"
 

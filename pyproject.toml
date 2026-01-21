@@ -132,6 +132,7 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 extend-safe-fixes = [
+  "ANN",
   "D",
   "TCH",
   "FLY",
@@ -140,6 +141,7 @@ extend-safe-fixes = [
   "FA102",
   "UP"
 ]
+future-annotations = true
 ignore = [
   "CPY001",  # TODO: copyright notices
   "COM",  # CONFIG: No trailing commas

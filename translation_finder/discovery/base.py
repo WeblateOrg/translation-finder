@@ -9,7 +9,7 @@ from __future__ import annotations
 import fnmatch
 import re
 from itertools import chain
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from charset_normalizer import from_fp
@@ -18,12 +18,15 @@ from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
 
-from .result import DiscoveryResult, ResultDict
+from .result import DiscoveryResult
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from pathlib import PurePath
 
     from translation_finder.finder import Finder
+
+    from .result import ResultDict
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
 

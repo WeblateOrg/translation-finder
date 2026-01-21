@@ -10,13 +10,15 @@ import sys
 from argparse import ArgumentParser
 from typing import TYPE_CHECKING, TextIO
 
-from .finder import Finder, PathMockType
+from .finder import Finder
 
 if TYPE_CHECKING:
     from pathlib import PurePath
 
     from translation_finder.discovery.base import BaseDiscovery
     from translation_finder.discovery.result import DiscoveryResult
+
+    from .finder import PathMockType
 
 BACKENDS = []
 
