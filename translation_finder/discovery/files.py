@@ -444,7 +444,6 @@ class JSONDiscovery(BaseDiscovery):
 
         all_strings, i18next, i18nextv4 = self._walk_dict_for_i18next(data, level)
 
-
         if i18nextv4:
             return "i18nextv4"
         if i18next:
@@ -518,7 +517,7 @@ class YAMLDiscovery(BaseDiscovery):
                 data = yaml.load(handle)
             except (YAMLError, YAMLFutureWarning):
                 return
-            except (OSError, UnicodeError, TypeError, ValueError) as error:  # noqa: BLE001
+            except (OSError, UnicodeError, TypeError, ValueError) as error:
                 # Weird errors can happen when parsing YAML, handle them gracefully, but
                 # emit a warning
                 warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
