@@ -165,7 +165,7 @@ notice-rgx = "(?i)Copyright\\s+©\\s+"
 max-complexity = 16
 
 [tool.ruff.lint.per-file-ignores]
-"translation_finder/test_*.py" = ["S301", "S403", "D101", "D102"]
+"translation_finder/test_*.py" = ["D101", "D102"]
 
 [tool.setuptools]
 include-package-data = true
