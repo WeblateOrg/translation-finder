@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import re
-import sys
+import tomllib
 import warnings
 from typing import TYPE_CHECKING, ClassVar
 
@@ -23,11 +23,6 @@ from .base import (
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
 )
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Generator
