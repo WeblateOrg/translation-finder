@@ -148,7 +148,6 @@ ignore = [
   'ISC001',  # CONFIG: formatter
   "ARG002",  # TODO: Unused method argument (mostly for API compatibility)
   "DOC",  # CONFIG: Using type annotations instead
-  "PLR6301",  # TODO: Method could be a function, class method, or static method
   "E501"  # WONTFIX: we accept long strings (rest is formatted by black)
 ]
 preview = true

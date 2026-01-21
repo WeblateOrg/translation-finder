@@ -682,7 +682,7 @@ class RCDiscovery(MonoTemplateDiscovery):
         """Language code aliases."""
         if language == "en":
             return [language, "enu", "ENU"]
-        return [language]
+        return super().get_language_aliases(language)
 
 
 @register_discovery
