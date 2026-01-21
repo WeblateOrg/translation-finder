@@ -63,7 +63,7 @@ class DiscoveryTestCase(TestCase):
         if dirs is None:
             dirs = []
         return Finder(
-            PurePath("."),
+            PurePath(),
             mock=(
                 [(PurePath(path), PurePath(path), path) for path in paths],
                 [(PurePath(path), PurePath(path), path) for path in dirs],
