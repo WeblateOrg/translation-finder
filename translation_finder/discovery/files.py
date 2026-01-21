@@ -255,7 +255,7 @@ class OSXDiscovery(EncodingDiscovery):
 
 @register_discovery
 class StringsdictDiscovery(BaseDiscovery):
-    """Stringsdoct files discovery."""
+    """Stringsdict files discovery."""
 
     file_format = "stringsdict"
 
