@@ -190,7 +190,7 @@ class BaseDiscovery:
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
-    def get_language_aliases(self, language: str) -> list[str]:
+    def get_language_aliases(self, language: str) -> list[str]:  # noqa: PLR6301
         """Language code aliases."""
         return [language]
 
@@ -224,7 +224,7 @@ class BaseDiscovery:
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
-    def adjust_format(self, result: ResultDict) -> None:
+    def adjust_format(self, result: ResultDict) -> None:  # noqa: PLR6301
         """Override detected format, based on the file content."""
         return
 
@@ -306,7 +306,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
     uses_template = True
 
-    def fill_in_new_base(self, result: ResultDict) -> None:
+    def fill_in_new_base(self, result: ResultDict) -> None:  # noqa: PLR6301
         """Extend the result for new_base and intermediate parameters."""
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
