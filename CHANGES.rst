@@ -1,8 +1,10 @@
 Changelog
 =========
 
-**Not yet released**
+2.24
+----
 
+* Released on 26th January 2026.
 * Added support for DTD format files.
 * Added support for FlatXML format files.
 * Added support for Haiku OS catkeys format files.
@@ -12,10 +14,6 @@ Changelog
 * Enhanced XLIFF discovery to detect XLIFF 2.0 and XLIFF 2.0 with placeables formats.
 * Enhanced TOML discovery to detect go-i18n-toml format.
 * Added tomli dependency for TOML parsing on Python < 3.11.
-
-2.24
-----
-
 * Fixed handling of Windows-style paths in Transifex configuration files.
 
 2.23
