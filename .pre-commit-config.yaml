@@ -63,10 +63,10 @@ repos:
   rev: v1.22.0
   hooks:
   - id: zizmor
-- repo: https://github.com/gitleaks/gitleaks
-  rev: v8.30.0
+- repo: https://github.com/mongodb/kingfisher
+  rev: v1.77.0
   hooks:
-  - id: gitleaks
+  - id: kingfisher-auto
 exclude: ^.*\.(properties)|translation_finder/test_data/app/src/res/main/values-it/strings.xml|translation_finder/test_data/app/src/res/main/values/strings.xml|translation_finder/test_data/json/bom-en.json|translation_finder/test_data/yaml/en/corrupt.yml|translation_finder/test_data/toml/corrupted.toml$
 ci:
   autoupdate_schedule: quarterly
