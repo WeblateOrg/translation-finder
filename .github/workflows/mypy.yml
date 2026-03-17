@@ -10,6 +10,7 @@ on:
     - deepsource-fix-**
     - renovate/**
     - weblate
+    - dependabot/**
   pull_request:
 
 permissions:
