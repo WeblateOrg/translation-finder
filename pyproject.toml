@@ -51,7 +51,7 @@ lint = [
   "prek==0.3.8"
 ]
 test = [
-  "pytest==9.0.2",
+  "pytest==9.0.3",
   "pytest-cov==7.1.0",
   "pytest-github-actions-annotate-failures==0.4.0"
 ]
