@@ -48,7 +48,7 @@ dev = [
   "translation-finder[lint,test,types]"
 ]
 lint = [
-  "prek==0.3.9"
+  "prek==0.3.10"
 ]
 test = [
   "pytest==9.0.3",
