@@ -37,7 +37,7 @@ license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 name = "translation-finder"
 requires-python = ">=3.11"
-version = "2.24"
+version = "3.0"
 
 [[project.authors]]
 email = "michal@weblate.org"

@@ -1,11 +1,12 @@
 Changelog
 =========
 
-2.25
-----
+3.0
+---
 
-* Added discovery support for file formats supported by current Weblate but
-  missing in translation-finder.
+* Released on 6th May 2026.
+* Breaking change: updated file format parameters and encoding handling.
+* Added discovery support for more Weblate file formats.
 * Updated gotext JSON discovery to use Weblate's ``gotext`` format identifier.
 
 2.24
