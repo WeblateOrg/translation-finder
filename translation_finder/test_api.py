@@ -197,7 +197,7 @@ class APITest(DiscoveryTestCase):
                     "filemask": "xliff2/*-placeables.xliff",
                 },
                 {
-                    "file_format": "gotext-json",
+                    "file_format": "gotext",
                     "filemask": "json/gotext-*.json",
                     "template": "json/gotext-en.json",
                 },
