@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from configparser import RawConfigParser
 from operator import itemgetter
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
@@ -662,12 +663,14 @@ class OSXTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "App/Resources/*.lproj/Localizable.strings",
-                    "file_format": "strings-utf8",
+                    "file_format": "strings",
+                    "file_format_params": {"strings_encoding": "utf-8"},
                     "template": "App/Resources/en.lproj/Localizable.strings",
                 },
                 {
                     "filemask": "App/Resources/*.lproj/Other.strings",
-                    "file_format": "strings-utf8",
+                    "file_format": "strings",
+                    "file_format_params": {"strings_encoding": "utf-8"},
                     "template": "App/Resources/Base.lproj/Other.strings",
                 },
             ],
@@ -693,7 +696,8 @@ class OSXTest(DiscoveryTestCase):
             [
                 {
                     "filemask": "pappl/strings/*.strings",
-                    "file_format": "strings-utf8",
+                    "file_format": "strings",
+                    "file_format_params": {"strings_encoding": "utf-8"},
                     "template": "pappl/strings/base.strings",
                 },
             ],
@@ -1184,6 +1188,29 @@ class TransifexTest(DiscoveryTestCase):
                     "template": "app/src/res/main/values/strings.xml",
                 },
             ],
+        )
+
+    def test_unicode_properties(self) -> None:
+        config = RawConfigParser()
+        config.read_string(
+            """
+[unicode]
+file_filter = java/<lang>.properties
+source_file = java/messages.properties
+source_lang = en
+type = UNICODEPROPERTIES
+"""
+        )
+        discovery = TransifexDiscovery(self.get_finder([]))
+        self.assertEqual(
+            discovery.extract_section(config, "unicode"),
+            {
+                "name": "unicode",
+                "filemask": "java/*.properties",
+                "file_format": "properties",
+                "file_format_params": {"properties_encoding": "utf-8"},
+                "template": "java/messages.properties",
+            },
         )
 
 

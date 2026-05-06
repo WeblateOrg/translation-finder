@@ -219,9 +219,14 @@ class MOKODiscovery(BaseDiscovery):
 class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
-    file_format: ClassVar[str] = "strings-utf8"
+    file_format: ClassVar[str] = "strings"
+    file_format_params: ClassVar[dict[str, str | int | bool]] = {
+        "strings_encoding": "utf-8",
+    }
+    encoding_parameter: ClassVar[str] = "strings_encoding"
     encoding_map: ClassVar[dict[str, str]] = {
-        "utf_16": "strings",
+        "utf_8": "utf-8",
+        "utf_16": "utf-16",
     }
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
@@ -282,9 +287,10 @@ class JavaDiscovery(EncodingDiscovery):
     """Java string properties files discovery."""
 
     file_format = "properties"
+    encoding_parameter: ClassVar[str] = "properties_encoding"
     encoding_map: ClassVar[dict[str, str]] = {
-        "utf_8": "properties-utf8",
-        "utf_16": "properties-utf16",
+        "utf_8": "utf-8",
+        "utf_16": "utf-16",
     }
     mask = ("*_*.properties", "*.properties")
 
