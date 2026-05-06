@@ -17,7 +17,7 @@ from .base import BaseDiscovery
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from .result import ResultDict
+    from .result import FileFormatParams, ResultDict
 
 
 @register_discovery
@@ -33,7 +33,7 @@ class TransifexDiscovery(BaseDiscovery):
         "CHROME": "webextension",
         "PO": "po",
         "PROPERTIES": "properties",
-        "UNICODEPROPERTIES": "properties-utf8",
+        "UNICODEPROPERTIES": "properties",
         "INI": "joomla",
         "KEYVALUEJSON": "json-nested",
         "MAGENTO": "csv",
@@ -46,14 +46,19 @@ class TransifexDiscovery(BaseDiscovery):
         "YAML_GENERIC": "yaml",
         "YML": "ruby-yaml",
     }
+    format_params: ClassVar[dict[str, FileFormatParams]] = {
+        "UNICODEPROPERTIES": {"properties_encoding": "utf-8"},
+    }
 
-    def extract_format(self, transifex: str) -> str:
+    def extract_format(self, transifex: str) -> tuple[str, FileFormatParams | None]:
         """Convert Transifex format to Weblate."""
         transifex = transifex.upper()
         try:
-            return self.typemap[transifex]
+            file_format = self.typemap[transifex]
         except KeyError:
-            return ""
+            return "", None
+        params = self.format_params.get(transifex)
+        return file_format, params.copy() if params is not None else None
 
     def extract_section(
         self, config: RawConfigParser, section: str
@@ -70,7 +75,12 @@ class TransifexDiscovery(BaseDiscovery):
         }
 
         if config.has_option(section, "type"):
-            result["file_format"] = self.extract_format(config.get(section, "type"))
+            file_format, file_format_params = self.extract_format(
+                config.get(section, "type")
+            )
+            result["file_format"] = file_format
+            if file_format_params is not None:
+                result["file_format_params"] = file_format_params
 
         if not result["file_format"]:
             result["file_format"] = self.detect_format(result["filemask"])

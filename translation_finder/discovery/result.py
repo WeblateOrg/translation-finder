@@ -10,6 +10,8 @@ from collections import UserDict
 from functools import total_ordering
 from typing import TypedDict, cast
 
+FileFormatParams = dict[str, str | int | bool]
+
 
 class ResultMeta(TypedDict, total=False):
     """Discovery result metadata."""
@@ -27,6 +29,7 @@ class ResultDict(TypedDict, total=False):
     filemask: str
     template: str
     file_format: str
+    file_format_params: FileFormatParams
     intermediate: str
     new_base: str
 

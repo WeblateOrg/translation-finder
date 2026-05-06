@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from translation_finder.finder import Finder
 
-    from .result import ResultDict
+    from .result import FileFormatParams, ResultDict
 
 TOKEN_SPLIT = re.compile(r"([_.-])")
 
@@ -73,6 +73,7 @@ class BaseDiscovery:
     """Abstract base class for discovery."""
 
     file_format: ClassVar[str] = ""
+    file_format_params: ClassVar[FileFormatParams | None] = None
     mask: ClassVar[str | tuple[str, ...]] = "*.*"
     new_base_mask: ClassVar[str | None] = None
     origin: ClassVar[str | None] = None
@@ -224,6 +225,11 @@ class BaseDiscovery:
         if "file_format" not in result:
             result["file_format"] = self.file_format
 
+    def fill_in_file_format_params(self, result: ResultDict) -> None:
+        """Extend the result with class default file format parameters."""
+        if self.file_format_params is not None and "file_format_params" not in result:
+            result["file_format_params"] = self.file_format_params.copy()
+
     def adjust_format(self, result: ResultDict) -> None:  # noqa: PLR6301
         """Override detected format, based on the file content."""
         return
@@ -240,6 +246,7 @@ class BaseDiscovery:
             self.adjust_format(result)
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
+            self.fill_in_file_format_params(result)
             discovered.add(result["filemask"])
             discovery_result = DiscoveryResult(result)
             discovery_result.meta["discovery"] = self.__class__.__name__
@@ -315,6 +322,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 class EncodingDiscovery(BaseDiscovery):
     """Base class for formats needing encoding detection."""
 
+    encoding_parameter: ClassVar[str] = ""
     encoding_map: ClassVar[dict[str, str]] = {}
 
     def adjust_format(self, result: ResultDict) -> None:
@@ -334,8 +342,12 @@ class EncodingDiscovery(BaseDiscovery):
                 continue
 
             encoding = detection_result.encoding.lower()
-            if encoding in self.encoding_map:
-                result["file_format"] = self.encoding_map[encoding]
+            if encoding in self.encoding_map and self.encoding_parameter:
+                params = result.get("file_format_params")
+                if params is None:
+                    params = {}
+                    result["file_format_params"] = params
+                params[self.encoding_parameter] = self.encoding_map[encoding]
             return
 
 

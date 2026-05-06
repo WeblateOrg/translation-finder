@@ -124,12 +124,14 @@ class APITest(DiscoveryTestCase):
                 {
                     "filemask": "java/utf-8_*.properties",
                     "template": "java/utf-8.properties",
-                    "file_format": "properties-utf8",
+                    "file_format": "properties",
+                    "file_format_params": {"properties_encoding": "utf-8"},
                 },
                 {
                     "filemask": "java/utf-16_*.properties",
                     "template": "java/utf-16.properties",
-                    "file_format": "properties-utf16",
+                    "file_format": "properties",
+                    "file_format_params": {"properties_encoding": "utf-16"},
                 },
                 {
                     "filemask": "java/iso_*.properties",
