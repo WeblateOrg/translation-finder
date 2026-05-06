@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2.25
+----
+
+* Added discovery support for file formats supported by current Weblate but
+  missing in translation-finder.
+* Updated gotext JSON discovery to use Weblate's ``gotext`` format identifier.
+
 2.24
 ----
 

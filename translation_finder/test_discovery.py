@@ -18,18 +18,22 @@ from .discovery.files import (
     AndroidDiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
+    AsciiDocDiscovery,
     CatkeysDiscovery,
     CMPDiscovery,
     CSVDiscovery,
+    DokuWikiDiscovery,
     DTDDiscovery,
     FlatXMLDiscovery,
     FluentDiscovery,
     FormatJSDiscovery,
     GettextDiscovery,
     HTMLDiscovery,
+    IDMLDiscovery,
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
+    MediaWikiDiscovery,
     Mi18nDiscovery,
     MOKODiscovery,
     OSXDiscovery,
@@ -42,7 +46,9 @@ from .discovery.files import (
     TOMLDiscovery,
     TXTDiscovery,
     WebExtensionDiscovery,
+    WXLDiscovery,
     XliffDiscovery,
+    XLSXDiscovery,
     YAMLDiscovery,
 )
 from .discovery.transifex import TransifexDiscovery
@@ -774,6 +780,49 @@ class JavaTest(DiscoveryTestCase):
             ],
         )
 
+    def test_gwt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "gwt").mkdir()
+            content = (
+                "cartItems=There are {0,number} items in your cart.\n"
+                "cartItems[one]=There is {0,number} item in your cart.\n"
+            )
+            (tmppath / "gwt/messages.properties").write_text(content)
+            (tmppath / "gwt/messages_cs.properties").write_text(content)
+
+            discovery = JavaDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "gwt/messages_*.properties",
+                        "file_format": "gwt",
+                        "template": "gwt/messages.properties",
+                    },
+                ],
+            )
+
+    def test_xwiki_properties(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "xwiki").mkdir()
+            content = "# XWiki Core localization\njob.status.success=Done.\n"
+            (tmppath / "xwiki/messages.properties").write_text(content)
+            (tmppath / "xwiki/messages_cs.properties").write_text(content)
+
+            discovery = JavaDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "xwiki/messages_*.properties",
+                        "file_format": "xwiki-java-properties",
+                        "template": "xwiki/messages.properties",
+                    },
+                ],
+            )
+
 
 class JoomlaTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1394,6 +1443,65 @@ class CSVDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_simple_csv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "csv").mkdir()
+            (tmppath / "csv/en.csv").write_text('"key";"Source string"\n')
+            (tmppath / "csv/cs.csv").write_text('"key";"Target string"\n')
+
+            discovery = CSVDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "csv/*.csv",
+                        "file_format": "csv-simple",
+                        "new_base": "csv/en.csv",
+                    },
+                    {
+                        "filemask": "csv/*.csv",
+                        "file_format": "csv-simple",
+                        "template": "csv/en.csv",
+                        "new_base": "csv/en.csv",
+                    },
+                ],
+            )
+
+    def test_multi_csv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "csv").mkdir()
+            (tmppath / "csv/en.csv").write_text(
+                '"context","source"\n'
+                '"22298006","Myocardial infarction"\n'
+                '"271681002","Stomach ache"\n',
+            )
+            (tmppath / "csv/fr.csv").write_text(
+                '"context","source","target"\n'
+                '"22298006","Myocardial infarction","Infarction"\n'
+                '"22298006","Myocardial infarction","Heart attack"\n'
+                '"271681002","Stomach ache","Stomach pain"\n',
+            )
+
+            discovery = CSVDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "csv/*.csv",
+                        "file_format": "csv-multi",
+                        "new_base": "csv/en.csv",
+                    },
+                    {
+                        "filemask": "csv/*.csv",
+                        "file_format": "csv-multi",
+                        "template": "csv/en.csv",
+                        "new_base": "csv/en.csv",
+                    },
+                ],
+            )
+
 
 class PHPDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1460,6 +1568,26 @@ class TXTDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_simple_csv(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "docs").mkdir()
+            (tmppath / "docs/en.txt").write_text('"key";"Source string"\n')
+            (tmppath / "docs/cs.txt").write_text('"key";"Target string"\n')
+
+            discovery = TXTDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "docs/*.txt",
+                        "file_format": "csv-simple",
+                        "template": "docs/en.txt",
+                        "new_base": "docs/en.txt",
+                    },
+                ],
+            )
+
     def test_hint(self) -> None:
         discovery = TXTDiscovery(
             self.get_finder(
@@ -1477,6 +1605,64 @@ class TXTDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+
+class ConvertedDocumentDiscoveryTest(DiscoveryTestCase):
+    def test_idms(self) -> None:
+        discovery = IDMLDiscovery(self.get_finder(["docs/en.idms", "docs/cs.idms"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "docs/*.idms",
+                    "file_format": "idml",
+                    "template": "docs/en.idms",
+                    "new_base": "docs/en.idms",
+                },
+            ],
+        )
+
+    def test_xlsx(self) -> None:
+        discovery = XLSXDiscovery(self.get_finder(["csv/en.xlsx", "csv/cs.xlsx"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "csv/*.xlsx",
+                    "file_format": "xlsx",
+                    "new_base": "csv/en.xlsx",
+                },
+                {
+                    "filemask": "csv/*.xlsx",
+                    "file_format": "xlsx",
+                    "template": "csv/en.xlsx",
+                    "new_base": "csv/en.xlsx",
+                },
+            ],
+        )
+
+    def test_wiki_and_asciidoc(self) -> None:
+        checks = (
+            (DokuWikiDiscovery, "docs/*.dw", "docs/en.dw", "dokuwiki"),
+            (MediaWikiDiscovery, "docs/*.mw", "docs/en.mw", "mediawiki"),
+            (AsciiDocDiscovery, "docs/*.adoc", "docs/en.adoc", "asciidoc"),
+            (WXLDiscovery, "docs/*.wxl", "docs/en.wxl", "wxl"),
+        )
+        for discovery_class, filemask, template, file_format in checks:
+            with self.subTest(file_format=file_format):
+                translated = template.replace("en.", "cs.")
+                discovery = discovery_class(self.get_finder([template, translated]))
+                self.assert_discovery(
+                    discovery.discover(),
+                    [
+                        {
+                            "filemask": filemask,
+                            "file_format": file_format,
+                            "template": template,
+                            "new_base": template,
+                        },
+                    ],
+                )
 
 
 class FormatJSDiscoveryTest(DiscoveryTestCase):
@@ -1588,6 +1774,59 @@ class FlatXMLDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_xwiki_page_properties(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "xml").mkdir()
+            content = """<?xml version="1.1" encoding="UTF-8"?>
+<xwikidoc version="1.3" reference="XWiki.AdminTranslations" locale="">
+  <syntaxId>plain/1.0</syntaxId>
+  <content>key=Value</content>
+  <object><className>XWiki.TranslationDocumentClass</className></object>
+</xwikidoc>
+"""
+            (tmppath / "xml/XWikiSource.en.xml").write_text(content)
+            (tmppath / "xml/XWikiSource.cs.xml").write_text(content)
+
+            discovery = FlatXMLDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "xml/XWikiSource.*.xml",
+                        "file_format": "xwiki-page-properties",
+                        "template": "xml/XWikiSource.en.xml",
+                        "new_base": "xml/XWikiSource.en.xml",
+                    },
+                ],
+            )
+
+    def test_xwiki_fullpage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "xml").mkdir()
+            content = """<?xml version="1.1" encoding="UTF-8"?>
+<xwikidoc version="1.3" reference="Sandbox.WebHome" locale="">
+  <syntaxId>xwiki/2.1</syntaxId>
+  <content>= Sandbox =</content>
+</xwikidoc>
+"""
+            (tmppath / "xml/XWikiFullPage.en.xml").write_text(content)
+            (tmppath / "xml/XWikiFullPage.cs.xml").write_text(content)
+
+            discovery = FlatXMLDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "xml/XWikiFullPage.*.xml",
+                        "file_format": "xwiki-fullpage",
+                        "template": "xml/XWikiFullPage.en.xml",
+                        "new_base": "xml/XWikiFullPage.en.xml",
+                    },
+                ],
+            )
 
 
 class CMPDiscoveryTest(DiscoveryTestCase):
@@ -1719,6 +1958,37 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
 
 
 class XLIFFFormatVariantsTest(DiscoveryTestCase):
+    def test_apple_xliff(self) -> None:
+        """Test XLIFF 1.2 with Apple extensions format detection."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "xliff").mkdir()
+            content = """<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file original="Localizable.strings" source-language="en" datatype="plaintext">
+    <body>
+      <trans-unit id="items:count:dict">
+        <source>NSStringPluralRuleType</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
+"""
+            (tmppath / "xliff/en.xliff").write_text(content)
+            (tmppath / "xliff/cs.xliff").write_text(content)
+
+            discovery = XliffDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "xliff/*.xliff",
+                        "file_format": "apple-xliff",
+                        "template": "xliff/en.xliff",
+                    },
+                ],
+            )
+
     def test_xliff2(self) -> None:
         """Test XLIFF 2.0 format detection."""
         finder = self.get_real_finder()

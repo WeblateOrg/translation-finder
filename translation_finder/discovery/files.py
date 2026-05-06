@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 import tomllib
 import warnings
+from io import StringIO
 from typing import TYPE_CHECKING, ClassVar
 
 from ruamel.yaml import YAML
@@ -28,9 +30,147 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import PurePath
 
+    from translation_finder.finder import Finder
+
     from .result import DiscoveryResult, ResultDict
 
 LARAVEL_RE = re.compile(r"=>.*\|")
+GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
+CSV_SAMPLE_ROWS = 100
+SIMPLE_CSV_COLUMNS = 2
+CSV_FIELDNAMES = {
+    "context",
+    "developer_comments",
+    "fuzzy",
+    "id",
+    "id_hash",
+    "location",
+    "source",
+    "source_plural_form",
+    "target",
+    "target_plural_form",
+    "translator_comments",
+}
+
+
+def _decode_content(content: bytes) -> str | None:
+    """Decode sampled file content."""
+    for encoding in ("utf-8-sig", "utf-16", "iso-8859-1"):
+        try:
+            return content.decode(encoding)
+        except UnicodeError:
+            continue
+    return None
+
+
+def _read_text_sample(finder: Finder, path: PurePath, size: int = 65536) -> str | None:
+    """Read a text sample from a real finder path."""
+    if not hasattr(path, "open"):
+        return None
+    try:
+        with finder.open(path, "rb") as handle:
+            content = handle.read(size)
+    except OSError:
+        return None
+    return _decode_content(content)
+
+
+def _iter_result_paths(finder: Finder, result: ResultDict) -> Generator[PurePath]:
+    """Yield unique paths referenced by a discovery result."""
+    seen: set[str] = set()
+    for mask in (result.get("template"), result["filemask"]):
+        if mask is None:
+            continue
+        for path in finder.mask_matches(mask):
+            key = path.as_posix()
+            if key in seen:
+                continue
+            seen.add(key)
+            yield path
+
+
+def _read_csv_rows(finder: Finder, path: PurePath) -> list[list[str]] | None:
+    """Parse a small CSV sample."""
+    text = _read_text_sample(finder, path)
+    if not text or not any(delimiter in text for delimiter in ",;\t"):
+        return None
+
+    try:
+        dialect = csv.Sniffer().sniff(text, delimiters=",;\t")
+    except csv.Error:
+        dialect = csv.excel
+
+    rows: list[list[str]] = []
+    try:
+        for row in csv.reader(StringIO(text), dialect):
+            if not any(row):
+                continue
+            rows.append(row)
+            if len(rows) >= CSV_SAMPLE_ROWS:
+                break
+    except csv.Error:
+        return None
+    return rows
+
+
+def _csv_header(rows: list[list[str]]) -> list[str]:
+    """Return normalized CSV header if it looks like a Weblate CSV header."""
+    if not rows:
+        return []
+    header = [field.strip().lower() for field in rows[0]]
+    if header and all(field in CSV_FIELDNAMES for field in header):
+        return header
+    return []
+
+
+def _is_csv_multi(rows: list[list[str]]) -> bool:
+    """Check whether CSV rows look like a multivalue CSV file."""
+    header = _csv_header(rows)
+    if not header:
+        return False
+
+    if "context" not in header:
+        return False
+    if "source" in header:
+        key_indexes: tuple[int, ...]
+        key_indexes = (header.index("context"), header.index("source"))
+    elif "target" in header:
+        key_indexes = (header.index("context"),)
+    else:
+        return False
+
+    seen: set[tuple[str, ...]] = set()
+    for row in rows[1:]:
+        if len(row) <= max(key_indexes):
+            continue
+        key = tuple(row[index] for index in key_indexes)
+        if key in seen:
+            return True
+        seen.add(key)
+    return False
+
+
+def _is_csv_simple(rows: list[list[str]]) -> bool:
+    """Check whether CSV rows look like a simple two-column CSV file."""
+    if not rows or any(len(row) != SIMPLE_CSV_COLUMNS for row in rows):
+        return False
+    header = _csv_header(rows)
+    return not header or set(header) <= {"context", "id", "source", "target"}
+
+
+def _detect_csv_format(finder: Finder, result: ResultDict) -> str | None:
+    """Detect CSV format variants based on file content."""
+    detected_simple = False
+    for path in _iter_result_paths(finder, result):
+        rows = _read_csv_rows(finder, path)
+        if rows is None:
+            continue
+        if _is_csv_multi(rows):
+            return "csv-multi"
+        detected_simple |= _is_csv_simple(rows)
+    if detected_simple:
+        return "csv-simple"
+    return None
 
 
 @register_discovery
@@ -108,6 +248,12 @@ class XliffDiscovery(BaseDiscovery):
                     result["file_format"] = "xliff2"
             elif 'restype="x-gettext' in content:
                 result["file_format"] = "poxliff"
+            elif (
+                "NSStringPluralRuleType" in content
+                or 'original="Localizable.strings"' in content
+                or ":dict" in content
+            ):
+                result["file_format"] = "apple-xliff"
             elif "<x " not in content and "<g " not in content:
                 result["file_format"] = "plainxliff"
 
@@ -126,6 +272,12 @@ class CSVDiscovery(MonoTemplateDiscovery):
 
     file_format = "csv"
     mask = "*.csv"
+
+    def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
+        detected = _detect_csv_format(self.finder, result)
+        if detected is not None:
+            result["file_format"] = detected
 
     def discover(
         self, *, eager: bool = False, hint: str | None = None
@@ -299,6 +451,24 @@ class JavaDiscovery(EncodingDiscovery):
         yield mask.replace("_*", "")
         yield from super().possible_templates(language, mask)
 
+    def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
+        super().adjust_format(result)
+        for path in _iter_result_paths(self.finder, result):
+            content = _read_text_sample(self.finder, path)
+            if content is None:
+                continue
+            if (
+                "xwiki" in path.as_posix().lower()
+                or "XWiki Core localization" in content
+                or "# XWiki" in content
+            ):
+                result["file_format"] = "xwiki-java-properties"
+                return
+            if GWT_PLURAL_RE.search(content):
+                result["file_format"] = "gwt"
+                return
+
 
 @register_discovery
 class RESXDiscovery(BaseDiscovery):
@@ -377,7 +547,7 @@ class JSONDiscovery(BaseDiscovery):
     def _detect_top_level_format(self, data: dict) -> str | None:
         """Detect formats that are only determined from the top-level object."""
         if "lang" in data and "messages" in data:
-            return "gotext-json"
+            return "gotext"
         # go-i18n-v2 detection at top level
         if self.is_go_i18n_v2_dict(data):
             return "go-i18n-json-v2"
@@ -591,7 +761,7 @@ class IDMLDiscovery(MonoTemplateDiscovery):
     """IDML files discovery."""
 
     file_format = "idml"
-    mask = "*.idml"
+    mask = ("*.idml", "*.idms")
 
 
 @register_discovery
@@ -608,6 +778,11 @@ class TXTDiscovery(MonoTemplateDiscovery, EnglishVariantsDiscovery):
 
     file_format = "txt"
     mask = "*.txt"
+
+    def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
+        if _detect_csv_format(self.finder, result) == "csv-simple":
+            result["file_format"] = "csv-simple"
 
 
 @register_discovery
@@ -634,6 +809,18 @@ class ODFDiscovery(MonoTemplateDiscovery):
         "*.oti",
         "*.oth",
     )
+
+
+@register_discovery
+class XLSXDiscovery(CSVDiscovery):
+    """Excel Open XML files discovery."""
+
+    file_format = "xlsx"
+    mask = "*.xlsx"
+
+    def adjust_format(self, result: ResultDict) -> None:  # noqa: PLR6301
+        """Keep Excel files on the Excel format."""
+        return
 
 
 @register_discovery
@@ -734,6 +921,38 @@ class MarkdownDiscovery(MonoTemplateDiscovery):
 
 
 @register_discovery
+class DokuWikiDiscovery(MonoTemplateDiscovery):
+    """DokuWiki text files discovery."""
+
+    file_format = "dokuwiki"
+    mask = "*.dw"
+
+
+@register_discovery
+class MediaWikiDiscovery(MonoTemplateDiscovery):
+    """MediaWiki text files discovery."""
+
+    file_format = "mediawiki"
+    mask = "*.mw"
+
+
+@register_discovery
+class AsciiDocDiscovery(MonoTemplateDiscovery):
+    """AsciiDoc files discovery."""
+
+    file_format = "asciidoc"
+    mask = ("*.ad", "*.adoc", "*.asciidoc")
+
+
+@register_discovery
+class WXLDiscovery(MonoTemplateDiscovery):
+    """WiX localization files discovery."""
+
+    file_format = "wxl"
+    mask = "*.wxl"
+
+
+@register_discovery
 class FormatJSDiscovery(BaseDiscovery):
     """Format.JS JSON files discovery."""
 
@@ -769,6 +988,21 @@ class FlatXMLDiscovery(MonoTemplateDiscovery):
 
     file_format = "flatxml"
     mask = "*.xml"
+
+    def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
+        for path in _iter_result_paths(self.finder, result):
+            content = _read_text_sample(self.finder, path)
+            if content is None or "<xwikidoc" not in content:
+                continue
+            if (
+                "XWiki.TranslationDocumentClass" in content
+                or "<syntaxId>plain/" in content
+            ):
+                result["file_format"] = "xwiki-page-properties"
+            else:
+                result["file_format"] = "xwiki-fullpage"
+            return
 
 
 @register_discovery
