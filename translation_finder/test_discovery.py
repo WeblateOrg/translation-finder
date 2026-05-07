@@ -895,6 +895,14 @@ class JavaTest(DiscoveryTestCase):
         )
 
     def test_gwt(self) -> None:
+        class DetectionResult:
+            encoding = "utf_16"
+
+        class Detection:
+            @staticmethod
+            def best() -> DetectionResult:
+                return DetectionResult()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             (tmppath / "gwt").mkdir()
@@ -902,22 +910,34 @@ class JavaTest(DiscoveryTestCase):
                 "cartItems=There are {0,number} items in your cart.\n"
                 "cartItems[one]=There is {0,number} item in your cart.\n"
             )
-            (tmppath / "gwt/messages.properties").write_text(content)
-            (tmppath / "gwt/messages_cs.properties").write_text(content)
-
-            discovery = JavaDiscovery(Finder(tmppath))
-            self.assert_discovery(
-                discovery.discover(),
-                [
-                    {
-                        "filemask": "gwt/messages_*.properties",
-                        "file_format": "gwt",
-                        "template": "gwt/messages.properties",
-                    },
-                ],
+            (tmppath / "gwt/messages.properties").write_text(content, encoding="utf-16")
+            (tmppath / "gwt/messages_cs.properties").write_text(
+                content, encoding="utf-16"
             )
 
+            discovery = JavaDiscovery(Finder(tmppath))
+            with patch.object(base_module, "from_fp", return_value=Detection()):
+                self.assert_discovery(
+                    discovery.discover(),
+                    [
+                        {
+                            "filemask": "gwt/messages_*.properties",
+                            "file_format": "gwt",
+                            "file_format_params": {"gwt_encoding": "utf-16"},
+                            "template": "gwt/messages.properties",
+                        },
+                    ],
+                )
+
     def test_xwiki_properties(self) -> None:
+        class DetectionResult:
+            encoding = "utf_8"
+
+        class Detection:
+            @staticmethod
+            def best() -> DetectionResult:
+                return DetectionResult()
+
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             (tmppath / "xwiki").mkdir()
@@ -926,16 +946,17 @@ class JavaTest(DiscoveryTestCase):
             (tmppath / "xwiki/messages_cs.properties").write_text(content)
 
             discovery = JavaDiscovery(Finder(tmppath))
-            self.assert_discovery(
-                discovery.discover(),
-                [
-                    {
-                        "filemask": "xwiki/messages_*.properties",
-                        "file_format": "xwiki-java-properties",
-                        "template": "xwiki/messages.properties",
-                    },
-                ],
-            )
+            with patch.object(base_module, "from_fp", return_value=Detection()):
+                self.assert_discovery(
+                    discovery.discover(),
+                    [
+                        {
+                            "filemask": "xwiki/messages_*.properties",
+                            "file_format": "xwiki-java-properties",
+                            "template": "xwiki/messages.properties",
+                        },
+                    ],
+                )
 
 
 class JoomlaTest(DiscoveryTestCase):
