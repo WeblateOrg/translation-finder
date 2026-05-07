@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from .finder import PathMockType
 
-BACKENDS = []
+BACKENDS: list[type[BaseDiscovery]] = []
 
 
 def register_discovery(cls: type[BaseDiscovery]) -> type[BaseDiscovery]:
