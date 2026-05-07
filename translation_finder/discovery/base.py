@@ -343,11 +343,59 @@ class EncodingDiscovery(BaseDiscovery):
     """Base class for formats needing encoding detection."""
 
     encoding_parameter: ClassVar[str] = ""
+    encoding_parameters_by_format: ClassVar[dict[str, str]] = {}
     encoding_map: ClassVar[dict[str, str]] = {}
 
-    def adjust_format(self, result: ResultDict) -> None:
-        """Override detected format, based on the file content."""
-        encoding: str | None = None
+    def get_encoding_parameter(self, result: ResultDict) -> str:
+        """Return the encoding parameter for the result format."""
+        file_format = result.get("file_format") or self.file_format
+        if self.encoding_parameters_by_format:
+            return self.encoding_parameters_by_format.get(file_format, "")
+        if file_format == self.file_format:
+            return self.encoding_parameter
+        return ""
+
+    def get_managed_encoding_parameters(self) -> tuple[str, ...]:
+        """Return file format parameter names managed by this discovery."""
+        parameters = list(self.encoding_parameters_by_format.values())
+        if self.encoding_parameter:
+            parameters.append(self.encoding_parameter)
+        return tuple(dict.fromkeys(parameters))
+
+    def normalize_encoding_parameters(self, result: ResultDict) -> None:
+        """Keep only the encoding parameter supported by the result format."""
+        params = result.get("file_format_params")
+        if params is None:
+            return
+
+        parameter = self.get_encoding_parameter(result)
+        value = params.get(parameter) if parameter else None
+        for managed_parameter in self.get_managed_encoding_parameters():
+            if value is None and managed_parameter in params:
+                value = params[managed_parameter]
+            if managed_parameter != parameter:
+                params.pop(managed_parameter, None)
+
+        if parameter and value is not None:
+            params[parameter] = value
+        if not params:
+            result.pop("file_format_params", None)
+
+    def set_encoding_parameter(self, result: ResultDict, encoding: str) -> None:
+        """Set detected encoding in the parameter for the result format."""
+        parameter = self.get_encoding_parameter(result)
+        self.normalize_encoding_parameters(result)
+        if not parameter:
+            return
+
+        params = result.get("file_format_params")
+        if params is None:
+            params = {}
+            result["file_format_params"] = params
+        params[parameter] = encoding
+
+    def detect_encoding(self, result: ResultDict) -> str | None:
+        """Detect file encoding and translate it to a Weblate parameter value."""
         matches = [self.finder.mask_matches(result["filemask"])]
         if "template" in result:
             matches.append(self.finder.mask_matches(result["template"]))
@@ -362,13 +410,21 @@ class EncodingDiscovery(BaseDiscovery):
                 continue
 
             encoding = detection_result.encoding.lower()
-            if encoding in self.encoding_map and self.encoding_parameter:
-                params = result.get("file_format_params")
-                if params is None:
-                    params = {}
-                    result["file_format_params"] = params
-                params[self.encoding_parameter] = self.encoding_map[encoding]
-            return
+            return self.encoding_map.get(encoding)
+        return None
+
+    def adjust_encoding(self, result: ResultDict) -> str | None:
+        """Detect and set encoding parameter."""
+        encoding = self.detect_encoding(result)
+        if encoding is None:
+            self.normalize_encoding_parameters(result)
+        else:
+            self.set_encoding_parameter(result, encoding)
+        return encoding
+
+    def adjust_format(self, result: ResultDict) -> None:
+        """Override detected format, based on the file content."""
+        self.adjust_encoding(result)
 
 
 class EnglishVariantsDiscovery(BaseDiscovery):

@@ -440,6 +440,10 @@ class JavaDiscovery(EncodingDiscovery):
 
     file_format = "properties"
     encoding_parameter: ClassVar[str] = "properties_encoding"
+    encoding_parameters_by_format: ClassVar[dict[str, str]] = {
+        "properties": "properties_encoding",
+        "gwt": "gwt_encoding",
+    }
     encoding_map: ClassVar[dict[str, str]] = {
         "utf_8": "utf-8",
         "utf_16": "utf-16",
@@ -453,7 +457,7 @@ class JavaDiscovery(EncodingDiscovery):
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
-        super().adjust_format(result)
+        self.adjust_encoding(result)
         for path in _iter_result_paths(self.finder, result):
             content = _read_text_sample(self.finder, path)
             if content is None:
@@ -464,9 +468,11 @@ class JavaDiscovery(EncodingDiscovery):
                 or "# XWiki" in content
             ):
                 result["file_format"] = "xwiki-java-properties"
+                self.normalize_encoding_parameters(result)
                 return
             if GWT_PLURAL_RE.search(content):
                 result["file_format"] = "gwt"
+                self.normalize_encoding_parameters(result)
                 return
 
 
