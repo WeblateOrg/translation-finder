@@ -53,14 +53,14 @@ CSV_FIELDNAMES = {
 }
 
 
-def _decode_content(content: bytes) -> str | None:
+def _decode_content(content: bytes) -> str:
     """Decode sampled file content."""
-    for encoding in ("utf-8-sig", "utf-16", "iso-8859-1"):
+    for encoding in ("utf-8-sig", "utf-16"):
         try:
             return content.decode(encoding)
         except UnicodeError:
             continue
-    return None
+    return content.decode("iso-8859-1")
 
 
 def _read_text_sample(finder: Finder, path: PurePath, size: int = 65536) -> str | None:

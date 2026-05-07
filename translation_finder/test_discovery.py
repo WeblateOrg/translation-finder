@@ -1,18 +1,23 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# ruff: noqa: SLF001
 """Translation discovery tests."""
 
 from __future__ import annotations
 
+import csv
 import json
 import tempfile
 from configparser import RawConfigParser
 from operator import itemgetter
 from pathlib import Path, PurePath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from unittest import TestCase
+from unittest.mock import patch
 
+from .discovery import base as base_module
+from .discovery import files as files_module
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
     AndroidDiscovery,
@@ -92,6 +97,74 @@ class DiscoveryTestCase(TestCase):
         for i, value in enumerate(actual_list):
             self.assertIsInstance(value, DiscoveryResult)
             self.assertEqual(value.data, expected_list[i])
+
+
+class DiscoveryBaseTest(DiscoveryTestCase):
+    def test_explicit_source_language_template(self) -> None:
+        discovery = JSONDiscovery(self.get_finder(["locale/cs.json"]))
+        result: ResultDict = {"filemask": "locale/*.json"}
+        discovery.fill_in_template(result, "cs")
+        self.assertEqual(result["template"], "locale/cs.json")
+
+    def test_hint_without_matching_mask(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        self.assertEqual(list(discovery.get_masks(hint="messages.po")), [])
+
+    def test_eager_discovery_without_template(self) -> None:
+        discovery = JSONDiscovery(self.get_finder(["locale/cs.json"]))
+        self.assert_discovery(
+            discovery.discover(eager=True),
+            [{"filemask": "locale/*.json", "file_format": "json-nested"}],
+        )
+
+    def test_encoding_discovery_without_template_or_new_params(self) -> None:
+        class DetectionResult:
+            encoding = "utf_8"
+
+        class Detection:
+            @staticmethod
+            def best() -> DetectionResult:
+                return DetectionResult()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_cs.properties").write_text("hello=world\n")
+            finder = Finder(tmppath)
+            discovery = JavaDiscovery(finder)
+            result: ResultDict = {
+                "filemask": "messages_*.properties",
+                "file_format_params": {"existing": True},
+            }
+
+            with patch.object(base_module, "from_fp", return_value=Detection()):
+                discovery.adjust_format(result)
+
+        self.assertEqual(
+            result["file_format_params"],
+            {"existing": True, "properties_encoding": "utf-8"},
+        )
+
+    def test_encoding_discovery_without_detection_result(self) -> None:
+        class Detection:
+            @staticmethod
+            def best() -> None:
+                return None
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_cs.properties").write_text("hello=world\n")
+            finder = Finder(tmppath)
+            discovery = JavaDiscovery(finder)
+            result: ResultDict = {"filemask": "messages_*.properties"}
+
+            with patch.object(base_module, "from_fp", return_value=Detection()):
+                discovery.adjust_format(result)
+
+        self.assertNotIn("file_format_params", result)
+
+    def test_non_english_variant_aliases(self) -> None:
+        discovery = AppStoreDiscovery(self.get_finder([]))
+        self.assertEqual(discovery.get_language_aliases("cs"), ["cs"])
 
 
 class GettextTest(DiscoveryTestCase):
@@ -622,6 +695,33 @@ class AndroidTest(DiscoveryTestCase):
             ],
         )
 
+    def test_no_template_adjust_format(self) -> None:
+        discovery = AndroidDiscovery(self.get_finder([]))
+        result: ResultDict = {"filemask": "app/src/res/main/values-*/strings.xml"}
+        discovery.adjust_format(result)
+        self.assertEqual(result, {"filemask": "app/src/res/main/values-*/strings.xml"})
+
+    def test_plural_file_is_moko_resource(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "app/src/res/main/values").mkdir(parents=True)
+            (tmppath / "app/src/res/main/values-cs").mkdir(parents=True)
+            content = '<resources><plural name="items"></plural></resources>'
+            (tmppath / "app/src/res/main/values/strings.xml").write_text(content)
+            (tmppath / "app/src/res/main/values-cs/strings.xml").write_text(content)
+
+            discovery = AndroidDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "app/src/res/main/values-*/strings.xml",
+                        "template": "app/src/res/main/values/strings.xml",
+                        "file_format": "moko-resource",
+                    },
+                ],
+            )
+
 
 class MOKOTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -706,6 +806,20 @@ class OSXTest(DiscoveryTestCase):
                     "file_format_params": {"strings_encoding": "utf-8"},
                     "template": "pappl/strings/base.strings",
                 },
+            ],
+        )
+
+    def test_base_template_preference(self) -> None:
+        discovery = OSXDiscovery(self.get_finder([]))
+        self.assertEqual(
+            list(
+                discovery.possible_templates("en", "App/Resources/*.lproj/Main.strings")
+            ),
+            [
+                "App/Resources/Base.lproj/Main.strings",
+                "App/Resources/en.lproj/Main.strings",
+                "App/Resources/.lproj/Main.strings",
+                "App/Resources/templates.lproj/Main.strings",
             ],
         )
 
@@ -1180,6 +1294,35 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_nested_detection_edge_cases(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+
+        self.assertEqual(
+            discovery.detect_dict({"message": {"hash": "sha1", "message": "Hello"}}),
+            "go-i18n-json-v2",
+        )
+        self.assertIsNone(discovery.detect_dict({"translations": ["Missing key"]}))
+        self.assertIsNone(discovery.detect_dict({1: "Non-string key"}))
+        self.assertIsNone(discovery.detect_dict({"outer": {"inner": 1}, "plain": 1}))
+
+    def test_list_without_id_keeps_nested_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.json").write_text(json.dumps(["Hello"]))
+            (tmppath / "cs.json").write_text(json.dumps(["Ahoj"]))
+
+            discovery = JSONDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "*.json",
+                        "file_format": "json-nested",
+                        "template": "en.json",
+                    },
+                ],
+            )
+
 
 class TransifexTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1262,6 +1405,25 @@ type = UNICODEPROPERTIES
             },
         )
 
+    def test_section_without_source_file(self) -> None:
+        config = RawConfigParser()
+        config.read_string(
+            """
+[nosource]
+file_filter = locales/<lang>.po
+type = PO
+"""
+        )
+        discovery = TransifexDiscovery(self.get_finder([]))
+        self.assertEqual(
+            discovery.extract_section(config, "nosource"),
+            {
+                "name": "nosource",
+                "filemask": "locales/*.po",
+                "file_format": "po",
+            },
+        )
+
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1323,6 +1485,10 @@ class FluentDiscoveryTest(DiscoveryTestCase):
             ],
         )
 
+    def test_non_english_aliases(self) -> None:
+        discovery = FluentDiscovery(self.get_finder([]))
+        self.assertEqual(discovery.get_language_aliases("cs"), ["cs"])
+
 
 class YAMLDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1354,6 +1520,68 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
         )
         self.assert_discovery(discovery.discover(), [])
 
+    def test_no_template_adjust_format(self) -> None:
+        discovery = YAMLDiscovery(self.get_finder([]))
+        result: ResultDict = {"filemask": "translations/*.yml"}
+        discovery.adjust_format(result)
+        self.assertEqual(result, {"filemask": "translations/*.yml"})
+
+    def test_parser_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("hello: world\n")
+            (tmppath / "cs.yml").write_text("hello: svet\n")
+            discovery = YAMLDiscovery(Finder(tmppath))
+
+            with (
+                patch.object(
+                    files_module.YAML, "load", side_effect=ValueError("broken")
+                ),
+                self.assertWarnsRegex(UserWarning, "Could not parse YAML: broken"),
+            ):
+                results = list(discovery.discover())
+
+        self.assert_discovery(
+            results,
+            [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
+        )
+
+    def test_ruby_yaml_without_filemask(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "locale").mkdir()
+            (tmppath / "locale/en.yml").write_text("en:\n  hello: world\n")
+            discovery = YAMLDiscovery(Finder(tmppath))
+            result: ResultDict = {"template": "locale/en.yml"}
+
+            discovery.adjust_format(result)
+
+        self.assertEqual(result["file_format"], "ruby-yaml")
+
+    def test_non_matching_single_key_yaml_without_filemask(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "locale").mkdir()
+            (tmppath / "locale/en.yml").write_text("cs:\n  hello: svet\n")
+            discovery = YAMLDiscovery(Finder(tmppath))
+            result: ResultDict = {"template": "locale/en.yml"}
+
+            discovery.adjust_format(result)
+
+        self.assertNotIn("file_format", result)
+
+    def test_multi_key_yaml_keeps_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("en: hello\ncs: ahoj\n")
+            (tmppath / "cs.yml").write_text("en: hello\ncs: ahoj\n")
+
+            discovery = YAMLDiscovery(Finder(tmppath))
+            self.assert_discovery(
+                discovery.discover(),
+                [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
+            )
+
 
 class TOMLDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
@@ -1375,6 +1603,31 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_no_template_adjust_format(self) -> None:
+        discovery = TOMLDiscovery(self.get_finder([]))
+        result: ResultDict = {"filemask": "translations/*.toml"}
+        discovery.adjust_format(result)
+        self.assertEqual(result, {"filemask": "translations/*.toml"})
+
+    def test_parser_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.toml").write_text("[broken\n")
+            (tmppath / "cs.toml").write_text("[broken\n")
+
+            discovery = TOMLDiscovery(Finder(tmppath))
+            with self.assertWarnsRegex(UserWarning, "Could not parse TOML"):
+                self.assert_discovery(
+                    discovery.discover(),
+                    [
+                        {
+                            "filemask": "*.toml",
+                            "file_format": "toml",
+                            "template": "en.toml",
+                        },
+                    ],
+                )
 
 
 class ARBDiscoveryTest(DiscoveryTestCase):
@@ -1405,6 +1658,17 @@ class ARBDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_existing_intermediate_is_kept(self) -> None:
+        discovery = ARBDiscovery(
+            self.get_finder(["lib/l10n/intl_messages.arb"]),
+        )
+        result: ResultDict = {
+            "filemask": "lib/l10n/intl_*.arb",
+            "intermediate": "existing.arb",
+        }
+        discovery.fill_in_new_base(result)
+        self.assertEqual(result["intermediate"], "existing.arb")
 
 
 class HTMLDiscoveryTest(DiscoveryTestCase):
@@ -1441,6 +1705,13 @@ class CSVDiscoveryTest(DiscoveryTestCase):
                     "new_base": "csv/en.csv",
                 },
             ],
+        )
+
+    def test_without_template(self) -> None:
+        discovery = CSVDiscovery(self.get_finder(["csv/cs.csv"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [{"filemask": "csv/*.csv", "file_format": "csv"}],
         )
 
     def test_simple_csv(self) -> None:
@@ -1503,6 +1774,93 @@ class CSVDiscoveryTest(DiscoveryTestCase):
             )
 
 
+class CSVHelperTest(DiscoveryTestCase):
+    @staticmethod
+    def _read_rows(content: str) -> list[list[str]] | None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "sample.csv").write_text(content)
+            finder = Finder(tmppath)
+            path = next(finder.mask_matches("sample.csv"))
+            return files_module._read_csv_rows(finder, path)
+
+    def test_decode_content_fallbacks(self) -> None:
+        self.assertEqual(
+            files_module._decode_content("Pozdrav".encode("utf-16")),
+            "Pozdrav",
+        )
+        self.assertEqual(files_module._decode_content(b"\xff"), "\u00ff")
+
+    def test_read_text_sample_open_error(self) -> None:
+        class FailingFinder:
+            @staticmethod
+            def open(_path: Path, _mode: str = "rb") -> None:
+                raise OSError
+
+        sample = files_module._read_text_sample(
+            cast("Finder", FailingFinder()),
+            Path("missing.csv"),
+        )
+        self.assertIsNone(sample)
+
+    def test_read_csv_rows_with_sniffer_fallback(self) -> None:
+        with patch.object(files_module.csv.Sniffer, "sniff", side_effect=csv.Error):
+            self.assertEqual(
+                self._read_rows("source,target\nHello,Ahoj\n"),
+                [["source", "target"], ["Hello", "Ahoj"]],
+            )
+
+    def test_read_csv_rows_skips_empty_rows(self) -> None:
+        self.assertEqual(
+            self._read_rows("source,target\n,\nHello,Ahoj\n"),
+            [["source", "target"], ["Hello", "Ahoj"]],
+        )
+
+    def test_read_csv_rows_limit(self) -> None:
+        rows = self._read_rows("source,target\n" + "Hello,Ahoj\n" * 100)
+        self.assertIsNotNone(rows)
+        rows = cast("list[list[str]]", rows)
+        self.assertEqual(len(rows), files_module.CSV_SAMPLE_ROWS)
+
+    def test_read_csv_rows_reader_error(self) -> None:
+        with patch.object(files_module.csv, "reader", side_effect=csv.Error):
+            self.assertIsNone(self._read_rows("source,target\nHello,Ahoj\n"))
+
+    def test_csv_header_empty_rows(self) -> None:
+        self.assertEqual(files_module._csv_header([]), [])
+
+    def test_csv_multi_requires_context(self) -> None:
+        self.assertFalse(files_module._is_csv_multi([["source", "target"]]))
+
+    def test_csv_multi_uses_target_without_source(self) -> None:
+        self.assertTrue(
+            files_module._is_csv_multi(
+                [
+                    ["context", "target"],
+                    ["menu.file", "File"],
+                    ["menu.file", "Document"],
+                ],
+            ),
+        )
+
+    def test_csv_multi_requires_source_or_target(self) -> None:
+        self.assertFalse(files_module._is_csv_multi([["context"]]))
+
+    def test_csv_multi_skips_short_rows(self) -> None:
+        self.assertFalse(
+            files_module._is_csv_multi(
+                [
+                    ["context", "source"],
+                    ["menu.file"],
+                    ["menu.edit", "Edit"],
+                ],
+            ),
+        )
+
+    def test_csv_simple_rejects_non_two_column_rows(self) -> None:
+        self.assertFalse(files_module._is_csv_simple([["source", "target", "extra"]]))
+
+
 class PHPDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
         discovery = PHPDiscovery(self.get_finder(["test/en.php"]))
@@ -1517,6 +1875,12 @@ class PHPDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_no_template_adjust_format(self) -> None:
+        discovery = PHPDiscovery(self.get_finder([]))
+        result: ResultDict = {"filemask": "test/*.php"}
+        discovery.adjust_format(result)
+        self.assertEqual(result, {"filemask": "test/*.php"})
 
 
 class RCDiscoveryTest(DiscoveryTestCase):
@@ -1539,6 +1903,10 @@ class RCDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_non_english_aliases(self) -> None:
+        discovery = RCDiscovery(self.get_finder([]))
+        self.assertEqual(discovery.get_language_aliases("cs"), ["cs"])
 
 
 class TXTDiscoveryTest(DiscoveryTestCase):
@@ -1887,8 +2255,7 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
             r for r in results if "go-i18n-v2-en.json" in r.get("template", "")
         ]
         self.assertTrue(len(go_v2_results) > 0, "Should detect go-i18n-v2 format")
-        if go_v2_results:
-            self.assertEqual(go_v2_results[0]["file_format"], "go-i18n-json-v2")
+        self.assertEqual(go_v2_results[0]["file_format"], "go-i18n-json-v2")
 
     def test_go_i18n_v2_content_detection(self) -> None:
         """Test go-i18n-json-v2 format content-based detection."""
@@ -1939,8 +2306,7 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
         self.assertTrue(
             len(nextcloud_results) > 0, "Should detect nextcloud-json format"
         )
-        if nextcloud_results:
-            self.assertEqual(nextcloud_results[0]["file_format"], "nextcloud-json")
+        self.assertEqual(nextcloud_results[0]["file_format"], "nextcloud-json")
 
     def test_resjson(self) -> None:
         """Test resjson format detection."""
@@ -1953,8 +2319,7 @@ class JSONFormatVariantsTest(DiscoveryTestCase):
             r for r in results if "resjson-en.json" in r.get("template", "")
         ]
         self.assertTrue(len(resjson_results) > 0, "Should detect resjson format")
-        if resjson_results:
-            self.assertEqual(resjson_results[0]["file_format"], "resjson")
+        self.assertEqual(resjson_results[0]["file_format"], "resjson")
 
 
 class XLIFFFormatVariantsTest(DiscoveryTestCase):
@@ -1998,8 +2363,7 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
         # Find the XLIFF 2.0 results
         xliff2_results = [r for r in results if r.get("filemask") == "xliff2/*.xliff"]
         self.assertTrue(len(xliff2_results) > 0, "Should detect XLIFF 2.0 format")
-        if xliff2_results:
-            self.assertEqual(xliff2_results[0]["file_format"], "xliff2")
+        self.assertEqual(xliff2_results[0]["file_format"], "xliff2")
 
     def test_xliff2_placeables(self) -> None:
         """Test XLIFF 2.0 with placeables format detection."""
@@ -2015,10 +2379,9 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
             len(xliff2_placeables_results) > 0,
             "Should detect XLIFF 2.0 placeables format",
         )
-        if xliff2_placeables_results:
-            self.assertEqual(
-                xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
-            )
+        self.assertEqual(
+            xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
+        )
 
 
 class TOMLFormatVariantsTest(DiscoveryTestCase):
@@ -2035,8 +2398,7 @@ class TOMLFormatVariantsTest(DiscoveryTestCase):
         self.assertTrue(
             len(go_i18n_toml_results) > 0, "Should detect go-i18n-toml format"
         )
-        if go_i18n_toml_results:
-            self.assertEqual(go_i18n_toml_results[0]["file_format"], "go-i18n-toml")
+        self.assertEqual(go_i18n_toml_results[0]["file_format"], "go-i18n-toml")
 
     def test_regular_toml(self) -> None:
         """Test regular TOML files remain as toml format."""
@@ -2051,8 +2413,7 @@ class TOMLFormatVariantsTest(DiscoveryTestCase):
         self.assertTrue(
             len(regular_toml_results) > 0, "Should detect regular TOML format"
         )
-        if regular_toml_results:
-            self.assertEqual(regular_toml_results[0]["file_format"], "toml")
+        self.assertEqual(regular_toml_results[0]["file_format"], "toml")
 
     def test_corrupted_toml_handling(self) -> None:
         """Test that corrupted TOML files don't break discovery."""
