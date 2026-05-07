@@ -12,7 +12,7 @@ import re
 import tomllib
 import warnings
 from io import StringIO
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -693,7 +693,7 @@ class YAMLDiscovery(BaseDiscovery):
                 warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
                 return
             if isinstance(data, dict) and len(data) == 1:
-                key = next(iter(data.keys()))
+                key = cast("str", next(iter(data.keys())))
                 if "filemask" in result:
                     if result["filemask"].replace("*", key) == result["template"]:
                         result["file_format"] = "ruby-yaml"
