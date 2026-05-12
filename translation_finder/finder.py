@@ -23,6 +23,7 @@ EXCLUDES = {
     ".git",
     ".hg",
     ".eggs",
+    "*.egg-info",
     "*.swp",
     "__pycache__",
     "__MACOSX",
@@ -31,6 +32,9 @@ EXCLUDES = {
     ".venv",
     ".env",
     ".github",
+    "build",
+    "dist",
+    "node_modules",
 }
 
 

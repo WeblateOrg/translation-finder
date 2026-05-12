@@ -1326,6 +1326,33 @@ class JSONDiscoveryTest(DiscoveryTestCase):
         self.assertIsNone(discovery.detect_dict({1: "Non-string key"}))
         self.assertIsNone(discovery.detect_dict({"outer": {"inner": 1}, "plain": 1}))
 
+    def test_template_less_bilingual_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "bi-cs.json").write_text(
+                json.dumps({"Hello": "Ahoj"}),
+                encoding="utf-8",
+            )
+
+            discovery = JSONDiscovery(Finder(tmppath))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [{"filemask": "bi-*.json", "file_format": "json-nested"}],
+            )
+
+    def test_template_less_fixture_content_is_skipped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "cy_natural_1.json").write_text(
+                json.dumps([{"model": "app.model", "fields": {"name": "Hello"}}]),
+                encoding="utf-8",
+            )
+
+            discovery = JSONDiscovery(Finder(tmppath))
+
+            self.assert_discovery(discovery.discover(), [])
+
     def test_list_without_id_keeps_nested_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -1776,6 +1803,17 @@ class HTMLDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_template_required(self) -> None:
+        discovery = HTMLDiscovery(
+            self.get_finder(
+                [
+                    "django/forms/widgets/input.html",
+                    "django/forms/widgets/cy.html",
+                ],
+            ),
+        )
+        self.assert_discovery(discovery.discover(), [])
 
 
 class CSVDiscoveryTest(DiscoveryTestCase):
@@ -2233,6 +2271,12 @@ class FlatXMLDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_template_required(self) -> None:
+        discovery = FlatXMLDiscovery(
+            self.get_finder(["tests/fixtures/cy_natural_2.xml"]),
+        )
+        self.assert_discovery(discovery.discover(), [])
 
     def test_xwiki_page_properties(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
