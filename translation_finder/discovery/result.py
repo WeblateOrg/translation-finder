@@ -31,7 +31,7 @@ class ResultDict(TypedDict, total=False):
     file_format: str
     file_format_params: FileFormatParams
     intermediate: str
-    language_filter: str
+    language_regex: str
     new_base: str
 
 

@@ -98,7 +98,7 @@ class TransifexDiscovery(BaseDiscovery):
         return result
 
     @staticmethod
-    def get_language_filter(filemask: str, source_file: str) -> str | None:
+    def get_language_regex(filemask: str, source_file: str) -> str | None:
         """Return filter excluding the source language matched by the file mask."""
         pattern = re.escape(filemask).replace(r"\*", r"([^/]+)")
         match = re.fullmatch(pattern, source_file)
@@ -120,13 +120,13 @@ class TransifexDiscovery(BaseDiscovery):
                 continue
 
             template = result["template"]
-            language_filter = self.get_language_filter(result["filemask"], template)
+            language_regex = self.get_language_regex(result["filemask"], template)
 
             bilingual = result.copy()
             del bilingual["template"]
             bilingual["new_base"] = template
-            if language_filter is not None:
-                bilingual["language_filter"] = language_filter
+            if language_regex is not None:
+                bilingual["language_regex"] = language_regex
             yield bilingual
 
             monolingual = result.copy()

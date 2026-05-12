@@ -543,19 +543,21 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
+    def read_json_data(self, path: PurePath) -> object | None:
+        """Read and parse a complete JSON file."""
+        try:
+            with self.finder.open(path, "rb") as handle:
+                return json.loads(_decode_content(handle.read()))
+        except (OSError, ValueError):
+            return None
+
     def has_template_less_content(self, result: ResultDict) -> bool:
         """Check whether a template-less JSON result looks translatable."""
         for path in _iter_result_paths(self.finder, result):
             if not hasattr(path, "open"):
                 return True
 
-            text = _read_text_sample(self.finder, path)
-            if text is None:
-                continue
-            try:
-                data = json.loads(text)
-            except ValueError:
-                continue
+            data = self.read_json_data(path)
             if isinstance(data, dict) and self.detect_dict(data) is not None:
                 return True
         return False
