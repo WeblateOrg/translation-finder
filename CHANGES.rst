@@ -1,6 +1,16 @@
 Changelog
 =========
 
+3.1
+---
+
+* Released on 12th May 2026.
+* Improved Transifex PO handling to detect both bilingual and monolingual
+  configurations.
+* Improved matching accuracy for template-less and template-based file formats.
+* Fixed encoding parameter names when content detection changes file formats.
+* Synced discovery results with Weblate's ``language_regex`` field name.
+
 3.0
 ---
 
