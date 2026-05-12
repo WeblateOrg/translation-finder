@@ -1341,6 +1341,21 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                 [{"filemask": "bi-*.json", "file_format": "json-nested"}],
             )
 
+    def test_template_less_large_bilingual_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "large-cs.json").write_text(
+                json.dumps({"Hello": "Ahoj", "Padding": "x" * 70000}),
+                encoding="utf-8",
+            )
+
+            discovery = JSONDiscovery(Finder(tmppath))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [{"filemask": "large-*.json", "file_format": "json-nested"}],
+            )
+
     def test_template_less_fixture_content_is_skipped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -1522,7 +1537,7 @@ type = PO
                         "filemask": "django/conf/locale/*/LC_MESSAGES/django.po",
                         "file_format": "po",
                         "new_base": "django/conf/locale/en/LC_MESSAGES/django.po",
-                        "language_filter": "^(?!en$).+$",
+                        "language_regex": "^(?!en$).+$",
                     },
                     {
                         "name": "django",
@@ -1533,9 +1548,9 @@ type = PO
                 ],
             )
 
-    def test_po_language_filter_from_source_file(self) -> None:
+    def test_po_language_regex_from_source_file(self) -> None:
         self.assertEqual(
-            TransifexDiscovery.get_language_filter(
+            TransifexDiscovery.get_language_regex(
                 "django/conf/locale/*/LC_MESSAGES/django.po",
                 "django/conf/locale/en_GB/LC_MESSAGES/django.po",
             ),
