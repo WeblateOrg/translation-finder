@@ -1445,6 +1445,76 @@ type = PO
             },
         )
 
+    def test_po_source_file(self) -> None:
+        config = RawConfigParser()
+        config.read_string(
+            """
+[django]
+file_filter = django/conf/locale/<lang>/LC_MESSAGES/django.po
+source_file = django/conf/locale/en/LC_MESSAGES/django.po
+source_lang = en
+type = PO
+"""
+        )
+        discovery = TransifexDiscovery(self.get_finder([]))
+        self.assertEqual(
+            discovery.extract_section(config, "django"),
+            {
+                "name": "django",
+                "filemask": "django/conf/locale/*/LC_MESSAGES/django.po",
+                "file_format": "po",
+                "template": "django/conf/locale/en/LC_MESSAGES/django.po",
+            },
+        )
+
+    def test_po_source_file_discover(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").write_text(
+                """
+[django]
+file_filter = django/conf/locale/<lang>/LC_MESSAGES/django.po
+source_file = django/conf/locale/en/LC_MESSAGES/django.po
+source_lang = en
+type = PO
+""",
+                encoding="utf-8",
+            )
+            source_dir = root / "django/conf/locale/en/LC_MESSAGES"
+            source_dir.mkdir(parents=True)
+            (source_dir / "django.po").write_text("", encoding="utf-8")
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "name": "django",
+                        "filemask": "django/conf/locale/*/LC_MESSAGES/django.po",
+                        "file_format": "po",
+                        "new_base": "django/conf/locale/en/LC_MESSAGES/django.po",
+                        "language_filter": "^(?!en$).+$",
+                    },
+                    {
+                        "name": "django",
+                        "filemask": "django/conf/locale/*/LC_MESSAGES/django.po",
+                        "file_format": "po-mono",
+                        "template": "django/conf/locale/en/LC_MESSAGES/django.po",
+                    },
+                ],
+            )
+
+    def test_po_language_filter_from_source_file(self) -> None:
+        self.assertEqual(
+            TransifexDiscovery.get_language_filter(
+                "django/conf/locale/*/LC_MESSAGES/django.po",
+                "django/conf/locale/en_GB/LC_MESSAGES/django.po",
+            ),
+            "^(?!en_GB$).+$",
+        )
+
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
