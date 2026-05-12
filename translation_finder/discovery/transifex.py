@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 from configparser import Error as ConfigParserError
 from configparser import RawConfigParser
 from typing import TYPE_CHECKING, ClassVar
@@ -17,7 +18,7 @@ from .base import BaseDiscovery
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from .result import FileFormatParams, ResultDict
+    from .result import DiscoveryResult, FileFormatParams, ResultDict
 
 
 @register_discovery
@@ -95,6 +96,42 @@ class TransifexDiscovery(BaseDiscovery):
                 result["template"] = template
 
         return result
+
+    @staticmethod
+    def get_language_filter(filemask: str, source_file: str) -> str | None:
+        """Return filter excluding the source language matched by the file mask."""
+        pattern = re.escape(filemask).replace(r"\*", r"([^/]+)")
+        match = re.fullmatch(pattern, source_file)
+        if match is None:
+            return None
+        return rf"^(?!{re.escape(match.group(1))}$).+$"
+
+    def discover(
+        self, *, eager: bool = False, hint: str | None = None
+    ) -> Generator[DiscoveryResult]:
+        """Yield translation configurations matching Transifex configuration."""
+        for result in super().discover(eager=eager, hint=hint):
+            if (
+                result.get("file_format") != "po"
+                or "template" not in result
+                or not result["template"].lower().endswith(".po")
+            ):
+                yield result
+                continue
+
+            template = result["template"]
+            language_filter = self.get_language_filter(result["filemask"], template)
+
+            bilingual = result.copy()
+            del bilingual["template"]
+            bilingual["new_base"] = template
+            if language_filter is not None:
+                bilingual["language_filter"] = language_filter
+            yield bilingual
+
+            monolingual = result.copy()
+            monolingual["file_format"] = "po-mono"
+            yield monolingual
 
     def get_masks(
         self, *, eager: bool = False, hint: str | None = None
