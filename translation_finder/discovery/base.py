@@ -98,6 +98,7 @@ class BaseDiscovery:
     new_base_mask: ClassVar[str | None] = None
     origin: ClassVar[str | None] = None
     priority: ClassVar[int] = 1000
+    requires_template: ClassVar[bool] = False
     uses_template: ClassVar[bool] = False
 
     def __init__(self, finder: Finder, source_language: str = "en") -> None:
@@ -263,6 +264,8 @@ class BaseDiscovery:
             if result["filemask"] in discovered:
                 continue
             self.fill_in_template(result)
+            if self.requires_template and "template" not in result:
+                continue
             self.adjust_format(result)
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)

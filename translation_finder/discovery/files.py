@@ -543,6 +543,36 @@ class JSONDiscovery(BaseDiscovery):
     file_format = "json-nested"
     mask = "*.json"
 
+    def has_template_less_content(self, result: ResultDict) -> bool:
+        """Check whether a template-less JSON result looks translatable."""
+        for path in _iter_result_paths(self.finder, result):
+            if not hasattr(path, "open"):
+                return True
+
+            text = _read_text_sample(self.finder, path)
+            if text is None:
+                continue
+            try:
+                data = json.loads(text)
+            except ValueError:
+                continue
+            if isinstance(data, dict) and self.detect_dict(data) is not None:
+                return True
+        return False
+
+    def discover(
+        self, *, eager: bool = False, hint: str | None = None
+    ) -> Generator[DiscoveryResult]:
+        """Yield JSON configurations matching this discovery."""
+        for result in super().discover(eager=eager, hint=hint):
+            if (
+                not eager
+                and "template" not in result
+                and not self.has_template_less_content(result.match)
+            ):
+                continue
+            yield result
+
     @staticmethod
     def is_go_i18n_v2_dict(data: dict) -> bool:
         """Check if dict matches go-i18n-v2 format pattern."""
@@ -776,6 +806,7 @@ class HTMLDiscovery(MonoTemplateDiscovery):
 
     file_format = "html"
     mask = ("*.html", "*.htm")
+    requires_template = True
 
 
 @register_discovery
@@ -994,6 +1025,7 @@ class FlatXMLDiscovery(MonoTemplateDiscovery):
 
     file_format = "flatxml"
     mask = "*.xml"
+    requires_template = True
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
