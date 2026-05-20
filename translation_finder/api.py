@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import sys
 from argparse import ArgumentParser
-from typing import TYPE_CHECKING, TextIO
+from typing import TYPE_CHECKING, TextIO, TypeVar
+
+from translation_finder.discovery.base import BaseDiscovery
 
 from .finder import Finder
 
 if TYPE_CHECKING:
     from pathlib import PurePath
 
-    from translation_finder.discovery.base import BaseDiscovery
     from translation_finder.discovery.result import DiscoveryResult
 
     from .finder import PathMockType
@@ -23,7 +24,10 @@ if TYPE_CHECKING:
 BACKENDS: list[type[BaseDiscovery]] = []
 
 
-def register_discovery(cls: type[BaseDiscovery]) -> type[BaseDiscovery]:
+DiscoveryT = TypeVar("DiscoveryT", bound=type[BaseDiscovery])
+
+
+def register_discovery(cls: DiscoveryT) -> DiscoveryT:
     """Register a discovery class."""
     BACKENDS.append(cls)
     return cls
