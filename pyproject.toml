@@ -56,7 +56,7 @@ test = [
   "pytest-github-actions-annotate-failures==0.4.0"
 ]
 types = [
-  "ty==0.0.41",
+  "ty==0.0.42",
   "mypy==2.1.0"
 ]
 
