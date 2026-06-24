@@ -55,7 +55,7 @@ class DiscoveryResult(UserDict):  # noqa: PLW1641
 
     @property
     def match(self) -> ResultDict:
-        """Return match data as a dictionary."""
+        """Match data as a dictionary."""
         return cast("ResultDict", dict(self.data))
 
     def __lt__(self, other: object) -> bool:
