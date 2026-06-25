@@ -88,7 +88,14 @@ class FinderTest(TestCase):
     def test_generated_directories_are_skipped(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
-            for dirname in ("build", "dist", "node_modules", "package.egg-info"):
+            for dirname in (
+                "build",
+                "dist",
+                "node_modules",
+                "package.egg-info",
+                ".ruff_cache",
+                ".mypy_cache",
+            ):
                 directory = root / dirname
                 directory.mkdir()
                 (directory / "messages.po").write_text("", encoding="utf-8")
@@ -96,3 +103,4 @@ class FinderTest(TestCase):
             finder = Finder(root)
 
         self.assertEqual(finder.files, [])
+        self.assertEqual(finder.dirnames, set())

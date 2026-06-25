@@ -35,6 +35,7 @@ EXCLUDES = {
     "build",
     "dist",
     "node_modules",
+    ".*_cache",
 }
 
 
