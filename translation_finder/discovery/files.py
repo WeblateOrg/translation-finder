@@ -38,6 +38,7 @@ LARAVEL_RE = re.compile(r"=>.*\|")
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
+YAML_INSPECTION_MAX_DEPTH = 128
 CSV_FIELDNAMES = {
     "context",
     "developer_comments",
@@ -748,6 +749,7 @@ class YAMLDiscovery(BaseDiscovery):
 
         with self.finder.open(path, "rb") as handle:
             yaml = YAML()
+            yaml.max_depth = YAML_INSPECTION_MAX_DEPTH
             try:
                 data = yaml.load(handle)
             except (YAMLError, YAMLFutureWarning):

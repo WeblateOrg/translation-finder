@@ -20,6 +20,7 @@ from .discovery import base as base_module
 from .discovery import files as files_module
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
+    YAML_INSPECTION_MAX_DEPTH,
     AndroidDiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
@@ -1838,6 +1839,27 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 discovery.discover(),
                 [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
             )
+
+    def test_deep_yaml_keeps_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            lines = ["en:"]
+            lines.extend(
+                f"{'  ' * (depth + 1)}level_{depth}:"
+                for depth in range(YAML_INSPECTION_MAX_DEPTH + 1)
+            )
+            lines.append(f"{'  ' * (YAML_INSPECTION_MAX_DEPTH + 2)}leaf: value")
+            (tmppath / "en.yml").write_text("\n".join(lines))
+
+            discovery = YAMLDiscovery(Finder(tmppath))
+            result: ResultDict = {
+                "filemask": "*.yml",
+                "file_format": "yaml",
+                "template": "en.yml",
+            }
+            discovery.adjust_format(result)
+
+        self.assertEqual(result["file_format"], "yaml")
 
 
 class TOMLDiscoveryTest(DiscoveryTestCase):

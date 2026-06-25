@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
   "charset-normalizer>2.0,<4.0",
-  "ruamel.yaml",
+  "ruamel.yaml>=0.19.1",
   "weblate-language-data>=2026.8"
 ]
 description = "A translation file finder used in Weblate."
