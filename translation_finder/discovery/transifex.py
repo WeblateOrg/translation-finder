@@ -158,7 +158,11 @@ class TransifexDiscovery(BaseDiscovery):
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[ResultDict]:
         """Retuns matches from transifex files."""
-        for path in self.finder.filter_files("config", "(?:.*/|^).tx"):
+        for path in self.finder.filter_files(
+            "config",
+            "(?:.*/|^).tx",
+            candidate_names=("config",),
+        ):
             config = RawConfigParser()
             with self.finder.open(path) as handle:
                 try:
