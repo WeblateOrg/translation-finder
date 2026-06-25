@@ -1,5 +1,6 @@
 comment:
-  layout: reach, changes, diff, files
+  layout: condensed_header, condensed_files, condensed_footer
+  require_changes: coverage_drop OR uncovered_patch
 coverage:
   status:
     project:
