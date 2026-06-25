@@ -35,7 +35,9 @@ if TYPE_CHECKING:
     from .result import DiscoveryResult, ResultDict
 
 LARAVEL_RE = re.compile(r"=>.*\|")
+LARAVEL_BYTES_RE = re.compile(rb"=>.*\|")
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
+FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
 YAML_INSPECTION_MAX_DEPTH = 128
@@ -64,14 +66,104 @@ def _decode_content(content: bytes) -> str:
     return content.decode("iso-8859-1")
 
 
-def _read_text_sample(finder: Finder, path: PurePath, size: int = 65536) -> str | None:
-    """Read a text sample from a real finder path."""
+def _decode_sample_content(content: bytes) -> str:
+    """Decode sampled file content, ignoring incomplete trailing bytes."""
+    try:
+        return content.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        if error.end == len(content) and error.reason == "unexpected end of data":
+            return content[: error.start].decode("utf-8-sig")
+
+    if content.startswith((b"\xff\xfe", b"\xfe\xff")):
+        try:
+            return content.decode("utf-16")
+        except UnicodeDecodeError as error:
+            if error.end == len(content) and error.reason == "truncated data":
+                return content[: error.start].decode("utf-16")
+
+    return content.decode("iso-8859-1")
+
+
+def _read_binary_sample(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> bytes | None:
+    """Read a bounded binary sample from a real finder path."""
+    if size is None:
+        size = FORMAT_SNIFF_MAX_BYTES
     if not hasattr(path, "open"):
         return None
     try:
         with finder.open(path, "rb") as handle:
-            content = handle.read(size)
+            return handle.read(size)
     except OSError:
+        return None
+
+
+def _read_binary_sniff_sample(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> tuple[bytes, bool] | None:
+    """Read a bounded binary sample and report whether it is the complete file."""
+    if size is None:
+        size = FORMAT_SNIFF_MAX_BYTES
+    if not hasattr(path, "open"):
+        return None
+    try:
+        with finder.open(path, "rb") as handle:
+            content = handle.read(size + 1)
+    except OSError:
+        return None
+    return content[:size], len(content) <= size
+
+
+def _read_binary_sniff_content(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> bytes | None:
+    """Read complete content only when it fits within the sniffing limit."""
+    sample = _read_binary_sniff_sample(finder, path, size)
+    if sample is None:
+        return None
+    content, complete = sample
+    if not complete:
+        return None
+    return content
+
+
+def _is_sniff_content_over_limit(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> bool:
+    """Check whether sniffing skipped content because it exceeded the limit."""
+    sample = _read_binary_sniff_sample(finder, path, size)
+    return sample is not None and not sample[1]
+
+
+def _read_text_sample(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> str | None:
+    """Read a text sample from a real finder path."""
+    content = _read_binary_sample(finder, path, size)
+    if content is None:
+        return None
+    return _decode_sample_content(content)
+
+
+def _read_text_sniff_content(
+    finder: Finder,
+    path: PurePath,
+    size: int | None = None,
+) -> str | None:
+    """Read complete text content only when it fits within the sniffing limit."""
+    content = _read_binary_sniff_content(finder, path, size)
+    if content is None:
         return None
     return _decode_content(content)
 
@@ -239,24 +331,26 @@ class XliffDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "r") as handle:
-            content = handle.read()
-            # Check for XLIFF 2.0 first
-            if 'version="2.0"' in content or 'version="2.1"' in content:
-                if "<pc" in content or "<sc" in content or "<ec" in content:
-                    result["file_format"] = "xliff2-placeables"
-                else:
-                    result["file_format"] = "xliff2"
-            elif 'restype="x-gettext' in content:
-                result["file_format"] = "poxliff"
-            elif (
-                "NSStringPluralRuleType" in content
-                or 'original="Localizable.strings"' in content
-                or ":dict" in content
-            ):
-                result["file_format"] = "apple-xliff"
-            elif "<x " not in content and "<g " not in content:
-                result["file_format"] = "plainxliff"
+        sample = _read_binary_sniff_sample(self.finder, path)
+        if sample is None:
+            return
+        content, _complete = sample
+        # Check for XLIFF 2.0 first
+        if b'version="2.0"' in content or b'version="2.1"' in content:
+            if b"<pc" in content or b"<sc" in content or b"<ec" in content:
+                result["file_format"] = "xliff2-placeables"
+            else:
+                result["file_format"] = "xliff2"
+        elif b'restype="x-gettext' in content:
+            result["file_format"] = "poxliff"
+        elif (
+            b"NSStringPluralRuleType" in content
+            or b'original="Localizable.strings"' in content
+            or b":dict" in content
+        ):
+            result["file_format"] = "apple-xliff"
+        elif b"<x " not in content and b"<g " not in content:
+            result["file_format"] = "plainxliff"
 
 
 @register_discovery
@@ -338,10 +432,9 @@ class AndroidDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "r") as handle:
-            content = handle.read()
-            if "<plural " in content:
-                result["file_format"] = "moko-resource"
+        content = _read_binary_sample(self.finder, path)
+        if content is not None and b"<plural " in content:
+            result["file_format"] = "moko-resource"
 
 
 @register_discovery
@@ -546,9 +639,11 @@ class JSONDiscovery(BaseDiscovery):
 
     def read_json_data(self, path: PurePath) -> object | None:
         """Read and parse a complete JSON file."""
+        content = _read_binary_sniff_content(self.finder, path)
+        if content is None:
+            return None
         try:
-            with self.finder.open(path, "rb") as handle:
-                return json.loads(_decode_content(handle.read()))
+            return json.loads(_decode_content(content))
         except (OSError, RecursionError, ValueError):
             return None
 
@@ -556,6 +651,9 @@ class JSONDiscovery(BaseDiscovery):
         """Check whether a template-less JSON result looks translatable."""
         for path in _iter_result_paths(self.finder, result):
             if not hasattr(path, "open"):
+                return True
+
+            if _is_sniff_content_over_limit(self.finder, path):
                 return True
 
             data = self.read_json_data(path)
@@ -697,22 +795,24 @@ class JSONDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "r") as handle:
-            try:
-                data = json.load(handle)
-            except (RecursionError, ValueError) as error:
-                warnings.warn(f"Could not parse JSON: {error}", stacklevel=0)
-                return
-            if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
-                result["file_format"] = "go-i18n-json"
-                return
-            if not isinstance(data, dict):
-                return
+        content = _read_binary_sniff_content(self.finder, path)
+        if content is None:
+            return
+        try:
+            data = json.loads(content.decode())
+        except (RecursionError, UnicodeError, ValueError) as error:
+            warnings.warn(f"Could not parse JSON: {error}", stacklevel=0)
+            return
+        if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
+            result["file_format"] = "go-i18n-json"
+            return
+        if not isinstance(data, dict):
+            return
 
-            detected = self.detect_dict(data)
+        detected = self.detect_dict(data)
 
-            if detected is not None:
-                result["file_format"] = detected
+        if detected is not None:
+            result["file_format"] = detected
 
 
 @register_discovery
@@ -747,25 +847,27 @@ class YAMLDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "rb") as handle:
-            yaml = YAML()
-            yaml.max_depth = YAML_INSPECTION_MAX_DEPTH
-            try:
-                data = yaml.load(handle)
-            except (YAMLError, YAMLFutureWarning):
-                return
-            except (OSError, UnicodeError, TypeError, ValueError) as error:
-                # Weird errors can happen when parsing YAML, handle them gracefully, but
-                # emit a warning
-                warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
-                return
-            if isinstance(data, dict) and len(data) == 1:
-                key = cast("str", next(iter(data.keys())))
-                if "filemask" in result:
-                    if result["filemask"].replace("*", key) == result["template"]:
-                        result["file_format"] = "ruby-yaml"
-                elif key in result["template"]:
+        content = _read_text_sniff_content(self.finder, path)
+        if content is None:
+            return
+        yaml = YAML()
+        yaml.max_depth = YAML_INSPECTION_MAX_DEPTH
+        try:
+            data = yaml.load(content)
+        except (YAMLError, YAMLFutureWarning):
+            return
+        except (OSError, UnicodeError, TypeError, ValueError) as error:
+            # Weird errors can happen when parsing YAML, handle them gracefully, but
+            # emit a warning
+            warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
+            return
+        if isinstance(data, dict) and len(data) == 1:
+            key = cast("str", next(iter(data.keys())))
+            if "filemask" in result:
+                if result["filemask"].replace("*", key) == result["template"]:
                     result["file_format"] = "ruby-yaml"
+            elif key in result["template"]:
+                result["file_format"] = "ruby-yaml"
 
 
 @register_discovery
@@ -817,10 +919,13 @@ class PHPDiscovery(MonoTemplateDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "r") as handle:
-            content = handle.read()
-            if "return [" in content and LARAVEL_RE.search(content):
-                result["file_format"] = "laravel"
+        content = _read_binary_sample(self.finder, path)
+        if (
+            content is not None
+            and b"return [" in content
+            and LARAVEL_BYTES_RE.search(content)
+        ):
+            result["file_format"] = "laravel"
 
 
 @register_discovery
@@ -924,21 +1029,23 @@ class TOMLDiscovery(BaseDiscovery):
         if not hasattr(path, "open"):
             return
 
-        with self.finder.open(path, "rb") as handle:
-            try:
-                data = tomllib.load(handle)
-            except (tomllib.TOMLDecodeError, OSError) as error:
-                warnings.warn(f"Could not parse TOML: {error}", stacklevel=0)
-                return
-            # go-i18n-toml detection - has messages array with 'id' field
-            messages = data.get("messages") if isinstance(data, dict) else None
-            if (
-                isinstance(messages, list)
-                and len(messages) > 0
-                and isinstance(messages[0], dict)
-                and "id" in messages[0]
-            ):
-                result["file_format"] = "go-i18n-toml"
+        content = _read_text_sniff_content(self.finder, path)
+        if content is None:
+            return
+        try:
+            data = tomllib.loads(content)
+        except (tomllib.TOMLDecodeError, OSError) as error:
+            warnings.warn(f"Could not parse TOML: {error}", stacklevel=0)
+            return
+        # go-i18n-toml detection - has messages array with 'id' field
+        messages = data.get("messages") if isinstance(data, dict) else None
+        if (
+            isinstance(messages, list)
+            and len(messages) > 0
+            and isinstance(messages[0], dict)
+            and "id" in messages[0]
+        ):
+            result["file_format"] = "go-i18n-toml"
 
 
 @register_discovery
