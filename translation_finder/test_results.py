@@ -28,6 +28,11 @@ class ResultTest(TestCase):
         with self.assertRaises(TypeError):
             operator.lt(result, other)
 
+    def test_unhashable(self) -> None:
+        result = DiscoveryResult({"file_format": "a"})
+        with self.assertRaises(TypeError):
+            hash(result)
+
     def test_repr(self) -> None:
         r1 = DiscoveryResult({"file_format": "a"})
         r1.meta["priority"] = 10
