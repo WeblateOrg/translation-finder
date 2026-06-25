@@ -1326,6 +1326,85 @@ class JSONDiscoveryTest(DiscoveryTestCase):
         self.assertIsNone(discovery.detect_dict({1: "Non-string key"}))
         self.assertIsNone(discovery.detect_dict({"outer": {"inner": 1}, "plain": 1}))
 
+    def test_nested_detection_deep_dict(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        nested: dict[str, object] = {"count_plural": "{{ count }} messages"}
+        for _ in range(2000):
+            nested = {"a": nested}
+
+        self.assertEqual(discovery.detect_dict(nested), "i18next")
+
+    def test_nested_detection_cyclic_dict(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        nested: dict[str, object] = {}
+        nested["a"] = nested
+
+        self.assertIsNone(discovery.detect_dict(nested))
+
+    def test_adjust_format_recursion_error_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.json").write_text("{}", encoding="utf-8")
+            discovery = JSONDiscovery(Finder(tmppath))
+            result: ResultDict = {
+                "filemask": "*.json",
+                "file_format": "json-nested",
+                "template": "en.json",
+            }
+
+            with (
+                patch.object(
+                    files_module.json,
+                    "load",
+                    side_effect=RecursionError("too deep"),
+                ),
+                self.assertWarnsRegex(UserWarning, "Could not parse JSON: too deep"),
+            ):
+                discovery.adjust_format(result)
+
+        self.assertEqual(
+            result,
+            {
+                "filemask": "*.json",
+                "file_format": "json-nested",
+                "template": "en.json",
+            },
+        )
+
+    def test_read_json_data_recursion_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.json").write_text("{}", encoding="utf-8")
+            discovery = JSONDiscovery(Finder(tmppath))
+
+            with patch.object(
+                files_module.json,
+                "loads",
+                side_effect=RecursionError("too deep"),
+            ):
+                self.assertIsNone(discovery.read_json_data(Path("en.json")))
+
+    def test_deeply_nested_json_does_not_crash_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            content = '{"a":' * 2000 + "1" + "}" * 2000
+            (tmppath / "en.json").write_text(content, encoding="utf-8")
+            (tmppath / "cs.json").write_text(content, encoding="utf-8")
+            discovery = JSONDiscovery(Finder(tmppath))
+
+            results = list(discovery.discover())
+
+        self.assert_discovery(
+            results,
+            [
+                {
+                    "filemask": "*.json",
+                    "file_format": "json-nested",
+                    "template": "en.json",
+                },
+            ],
+        )
+
     def test_template_less_bilingual_content(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
