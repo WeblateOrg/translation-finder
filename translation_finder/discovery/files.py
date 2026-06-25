@@ -411,7 +411,9 @@ class AndroidDiscovery(BaseDiscovery):
         It is expected to contain duplicates.
         """
         for path in self.finder.filter_files(
-            r"(strings.*|.*strings)\.xml", ".*/values"
+            r"(strings.*|.*strings)\.xml",
+            ".*/values",
+            candidate_suffixes=(".xml",),
         ):
             # Skip Compose Multiplatform resources
             if "composeResources" in path.as_posix():
@@ -454,6 +456,7 @@ class MOKODiscovery(BaseDiscovery):
         for path in self.finder.filter_files(
             r"(strings|plurals)\.xml",
             ".*/resources/mr/base",
+            candidate_names=("strings.xml", "plurals.xml"),
         ):
             mask = list(path.parts)
             mask[-2] = "*"
@@ -491,13 +494,17 @@ class OSXDiscovery(EncodingDiscovery):
         for path in self.finder.filter_files(
             r".*\.strings",
             r".*/(base|en(-[a-z]{2})?)\.lproj",
+            candidate_suffixes=(".strings",),
         ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
 
             yield {"filemask": "/".join(mask), "template": path.as_posix()}
 
-        for path in self.finder.filter_files(r"base\.strings"):
+        for path in self.finder.filter_files(
+            r"base\.strings",
+            candidate_names=("base.strings",),
+        ):
             mask = list(path.parts)
             mask[-1] = "*.strings"
 
@@ -521,6 +528,7 @@ class StringsdictDiscovery(BaseDiscovery):
         for path in self.finder.filter_files(
             r".*\.stringsdict",
             r".*/(base|en)\.lproj",
+            candidate_suffixes=(".stringsdict",),
         ):
             mask = list(path.parts)
             mask[-2] = "*.lproj"
@@ -590,7 +598,10 @@ class RESXDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(r".*\..*\.res[xw]"):
+        for path in self.finder.filter_files(
+            r".*\..*\.res[xw]",
+            candidate_suffixes=(".resx", ".resw"),
+        ):
             mask = list(path.parts)
             base, code, ext = mask[-1].rsplit(".", 2)
             if not self.is_language_code(code):
@@ -620,9 +631,20 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
         """Filter possible file matches."""
         for path in self.finder.filter_files(
             "short_description.txt|full_description.txt|title.txt|description.txt|name.txt",
+            candidate_names=(
+                "short_description.txt",
+                "full_description.txt",
+                "title.txt",
+                "description.txt",
+                "name.txt",
+            ),
         ):
             yield path.parent
-        for path in self.finder.filter_files(r".*\.txt", ".*/changelogs"):
+        for path in self.finder.filter_files(
+            r".*\.txt",
+            ".*/changelogs",
+            candidate_suffixes=(".txt",),
+        ):
             yield path.parent.parent
 
     def has_storage(self, name: str) -> bool:
@@ -1141,7 +1163,11 @@ class FormatJSDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(r"en.json", ".*/extracted"):
+        for path in self.finder.filter_files(
+            r"en.json",
+            ".*/extracted",
+            candidate_names=("en.json",),
+        ):
             mask = list(path.parts)
             mask[-1] = "*.json"
             mask[-2] = "lang"
@@ -1204,7 +1230,9 @@ class CMPDiscovery(BaseDiscovery):
         It is expected to contain duplicates.
         """
         for path in self.finder.filter_files(
-            r"(strings.*|.*strings)\.xml", ".*/values"
+            r"(strings.*|.*strings)\.xml",
+            ".*/values",
+            candidate_suffixes=(".xml",),
         ):
             # Only match files in composeResources directories
             if "composeResources" not in path.as_posix():

@@ -5,6 +5,7 @@
 
 import pathlib
 import tempfile
+from fnmatch import translate
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -12,6 +13,23 @@ from .finder import Finder
 
 
 class FinderTest(TestCase):
+    @staticmethod
+    def get_finder(paths: list[str]) -> Finder:
+        return Finder(
+            pathlib.PurePath(),
+            mock=(
+                [
+                    (
+                        pathlib.PurePath(path),
+                        pathlib.PurePath(path),
+                        path,
+                    )
+                    for path in paths
+                ],
+                [],
+            ),
+        )
+
     def test_init(self) -> None:
         finder = Finder(pathlib.Path(__file__).parent)
         self.assertNotEqual(finder.files, {})
@@ -24,6 +42,118 @@ class FinderTest(TestCase):
         self.assertIsInstance(result[0], pathlib.Path)
         expected_path = pathlib.Path("test_finder.py")
         self.assertEqual(result[0], expected_path)
+
+    def test_filter_masks_exact_name(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/cs/messages.json",
+                "locale/en/messages.json",
+                "locale/en/other.json",
+                "locale/en/messages.po",
+            ],
+        )
+
+        self.assertEqual(
+            list(finder.filter_masks("messages.json")),
+            [
+                pathlib.PurePath("locale/cs/messages.json"),
+                pathlib.PurePath("locale/en/messages.json"),
+            ],
+        )
+
+    def test_filter_masks_suffix(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/en/messages.po",
+                "locale/cs/messages.po",
+                "locale/en/messages.json",
+            ],
+        )
+
+        self.assertEqual(
+            list(finder.filter_masks("*.po")),
+            [
+                pathlib.PurePath("locale/cs/messages.po"),
+                pathlib.PurePath("locale/en/messages.po"),
+            ],
+        )
+
+    def test_filter_masks_empty(self) -> None:
+        finder = self.get_finder(["locale/en/messages.po"])
+
+        self.assertEqual(list(finder.filter_masks(())), [])
+
+    def test_glob_suffix_candidate_without_glob_magic(self) -> None:
+        self.assertEqual(Finder.glob_suffix_candidate("messages.po"), ".po")
+
+    def test_filter_files_candidate_hints_match_full_scan(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/en/app.resx",
+                "locale/cs/app.resx",
+                "locale/de/app.resw",
+                "locale/de/app.po",
+            ],
+        )
+
+        expected = list(finder.filter_files(r".*\.res[xw]"))
+        actual = list(
+            finder.filter_files(
+                r".*\.res[xw]",
+                candidate_suffixes=(".resx", ".resw"),
+            ),
+        )
+
+        self.assertEqual(actual, expected)
+
+    def test_filter_masks_fallback_matches_filter_files(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/en/resources.resx",
+                "locale/en/resources.resw",
+                "locale/en/resources.resz",
+            ],
+        )
+
+        self.assertEqual(
+            list(finder.filter_masks("resources.res[xw]")),
+            list(finder.filter_files(translate("resources.res[xw]"))),
+        )
+
+    def test_mask_matches_uses_literal_question_and_bracket(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/en?.json",
+                "locale/en[1].json",
+                "locale/enx.json",
+            ],
+        )
+
+        self.assertEqual(
+            list(finder.mask_matches("locale/en?.json")),
+            [pathlib.PurePath("locale/en?.json")],
+        )
+        self.assertEqual(
+            list(finder.mask_matches("locale/en[1].json")),
+            [pathlib.PurePath("locale/en[1].json")],
+        )
+
+    def test_mask_matches_falls_back_for_suffixless_wildcard(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/messages",
+                "locale/messages.po",
+                "other/messages",
+            ],
+        )
+
+        self.assertEqual(
+            list(finder.mask_matches("locale/*")),
+            [
+                pathlib.PurePath("locale/messages"),
+                pathlib.PurePath("locale/messages.po"),
+            ],
+        )
 
     def test_unreadable_directories_are_skipped(self) -> None:
         class FakeEntry:

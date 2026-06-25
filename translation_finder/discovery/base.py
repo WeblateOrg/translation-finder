@@ -188,15 +188,13 @@ class BaseDiscovery:
                 basename = basename.replace(replacement_match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
-        new_regex = f"{re.escape(new_name)}|{fnmatch.translate(self.new_base_mask)}"
-
         best_result = None
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
-            for match in self.finder.filter_files(
-                new_regex,
+            for match in self.finder.filter_masks(
+                (new_name, self.new_base_mask),
                 f"{re.escape(path)}|{re.escape(path_wild)}",
             ):
                 if new_name == match.parts[-1].lower():
@@ -288,9 +286,7 @@ class BaseDiscovery:
 
     def filter_files(self) -> Generator[PurePath]:
         """Filter possible file matches."""
-        return self.finder.filter_files(
-            "|".join(fnmatch.translate(mask) for mask in self.masks_list),
-        )
+        return self.finder.filter_masks(self.masks_list)
 
     def get_masks(
         self, *, eager: bool = False, hint: str | None = None
