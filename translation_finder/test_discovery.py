@@ -1487,6 +1487,51 @@ type = PO
             },
         )
 
+    def test_reject_unsafe_file_filter(self) -> None:
+        discovery = TransifexDiscovery(self.get_finder([]))
+        for file_filter in (
+            "../../*.po",
+            "/absolute/*.po",
+            "C:/tmp/*.po",
+            "C:tmp/*.po",
+            "..\\..\\*.po",
+            "\n    /absolute/*.po",
+            "\n    ../../*.po",
+        ):
+            with self.subTest(file_filter=file_filter):
+                config = RawConfigParser()
+                config.read_string(
+                    f"""
+[unsafe]
+file_filter = {file_filter}
+type = PO
+"""
+                )
+                self.assertIsNone(discovery.extract_section(config, "unsafe"))
+
+    def test_reject_unsafe_source_file(self) -> None:
+        discovery = TransifexDiscovery(self.get_finder([]))
+        for source_file in (
+            "../../messages.pot",
+            "/etc/passwd",
+            "C:/tmp/messages.pot",
+            "C:tmp/messages.pot",
+            "..\\..\\messages.pot",
+            "\n    /etc/passwd",
+            "\n    ../../messages.pot",
+        ):
+            with self.subTest(source_file=source_file):
+                config = RawConfigParser()
+                config.read_string(
+                    f"""
+[unsafe]
+file_filter = locales/<lang>.po
+source_file = {source_file}
+type = PO
+"""
+                )
+                self.assertIsNone(discovery.extract_section(config, "unsafe"))
+
     def test_po_source_file(self) -> None:
         config = RawConfigParser()
         config.read_string(
