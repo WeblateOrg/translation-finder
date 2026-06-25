@@ -89,7 +89,7 @@ Changelog
 ----
 
 * Released on 20th December 2023.
-* Fixed detection UTF-16 Strings files.
+* Fixed detection of UTF-16 Strings files.
 * Fixed detection of files with some special chars.
 * Added support for Mobile Kotlin resources.
 
