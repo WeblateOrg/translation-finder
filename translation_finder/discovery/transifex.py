@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from configparser import Error as ConfigParserError
 from configparser import RawConfigParser
+from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING, ClassVar
 
 from translation_finder.api import register_discovery
@@ -61,17 +62,35 @@ class TransifexDiscovery(BaseDiscovery):
         params = self.format_params.get(transifex)
         return file_format, params.copy() if params is not None else None
 
+    @staticmethod
+    def normalize_config_path(path: str) -> str:
+        """Normalize path separators used in Transifex configuration."""
+        return path.strip().replace("\\", "/")
+
+    @classmethod
+    def is_safe_config_path(cls, path: str) -> bool:
+        """Check whether a Transifex configuration path stays in the repository."""
+        normalized = cls.normalize_config_path(path)
+        return not (
+            normalized.startswith("/")
+            or PureWindowsPath(normalized).drive
+            or ".." in normalized.split("/")
+        )
+
     def extract_section(
         self, config: RawConfigParser, section: str
     ) -> ResultDict | None:
         """Extract single section from Transifex configuration."""
         if section == "main" or not config.has_option(section, "file_filter"):
             return None
+        filemask = self.normalize_config_path(
+            config.get(section, "file_filter").replace("<lang>", "*")
+        )
+        if not self.is_safe_config_path(filemask):
+            return None
         result: ResultDict = {
             "name": section,
-            "filemask": config.get(section, "file_filter")
-            .replace("<lang>", "*")
-            .replace("\\", "/"),
+            "filemask": filemask,
             "file_format": "",
         }
 
@@ -89,7 +108,9 @@ class TransifexDiscovery(BaseDiscovery):
             return None
 
         if config.has_option(section, "source_file"):
-            template = config.get(section, "source_file").replace("\\", "/")
+            template = self.normalize_config_path(config.get(section, "source_file"))
+            if not self.is_safe_config_path(template):
+                return None
             if template.lower().endswith(".pot"):
                 result["new_base"] = template
             else:
