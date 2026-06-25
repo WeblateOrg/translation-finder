@@ -1,6 +1,26 @@
 Changelog
 =========
 
+3.2.0
+-----
+
+* Released on 25th June 2026.
+* Switched release numbering to semver-style three-part versions.
+* Improved discovery performance in large repositories by indexing candidate
+  files before matching.
+* Limited format sniffing and parser-based detection to bounded samples to avoid
+  expensive full-file reads.
+* Hardened JSON, YAML, TOML, XLIFF, PHP, and Android format detection against
+  recursive, deeply nested, malformed, or oversized files.
+* Rejected unsafe absolute, drive-prefixed, and parent-directory paths from
+  Transifex ``.tx/config`` files.
+* Excluded additional cache directories from discovery.
+* Fixed discovery result metadata initialization and made discovery results
+  unhashable.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
+* Added fuzz testing coverage for discovery file contents.
+
 3.1
 ---
 
