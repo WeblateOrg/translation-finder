@@ -45,7 +45,7 @@ def discover(
     High level discovery interface.
 
     It detects all files which seem translatable (either follow conventions for
-    given file format or contain source langauge in a file path or name).
+    given file format or contain source language in a file path or name).
 
     The eager mode detects all files in known format regardless their naming.
     Use this in case you want to list all files which can be handled by
