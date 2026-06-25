@@ -8,16 +8,16 @@ from __future__ import annotations
 
 from collections import UserDict
 from functools import total_ordering
-from typing import TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 FileFormatParams = dict[str, str | int | bool]
 
 
-class ResultMeta(TypedDict, total=False):
+class ResultMeta(TypedDict):
     """Discovery result metadata."""
 
     priority: int
-    file_format: str
+    file_format: NotRequired[str]
     discovery: str
     origin: str | None
 
@@ -47,7 +47,11 @@ class DiscoveryResult(UserDict):  # noqa: PLW1641
 
     def __init__(self, data: ResultDict) -> None:
         super().__init__(data)
-        self.meta: ResultMeta = {}
+        self.meta: ResultMeta = {
+            "priority": 0,
+            "discovery": "",
+            "origin": None,
+        }
 
     @property
     def _sort_key(self) -> tuple[int, str]:
