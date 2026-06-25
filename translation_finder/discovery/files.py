@@ -548,7 +548,7 @@ class JSONDiscovery(BaseDiscovery):
         try:
             with self.finder.open(path, "rb") as handle:
                 return json.loads(_decode_content(handle.read()))
-        except (OSError, ValueError):
+        except (OSError, RecursionError, ValueError):
             return None
 
     def has_template_less_content(self, result: ResultDict) -> bool:
@@ -613,36 +613,63 @@ class JSONDiscovery(BaseDiscovery):
             return "go-i18n-json-v2"
         return None
 
+    @staticmethod
+    def _iter_nested_dicts(data: dict, level: int) -> Generator[tuple[dict, int]]:
+        seen: set[int] = set()
+        stack = [(data, level)]
+
+        while stack:
+            current, current_level = stack.pop()
+            current_id = id(current)
+            if current_id in seen:
+                continue
+            seen.add(current_id)
+            yield current, current_level
+
+            stack.extend(
+                (value, current_level + 1)
+                for value in current.values()
+                if isinstance(value, dict)
+            )
+
+    @staticmethod
+    def _detect_i18next_format(key: str, value: str) -> str | None:
+        if key.endswith(("_one", "_many", "_other")):
+            return "i18nextv4"
+        if key.endswith("_plural") or "{{" in value:
+            return "i18next"
+        return None
+
     def _detect_nested_format(self, data: dict, level: int) -> str | None:
-        all_strings = True
         i18next = False
         i18nextv4 = False
+        all_strings = True
 
-        # Single loop to detect nested formats and i18next patterns
-        for key, value in data.items():
-            # Check for nested formats at level 0
-            if (
-                level == 0
-                and isinstance(value, dict)
-                and (detected := self._detect_first_level_format(value))
-            ):
-                return detected
+        for current, current_level in self._iter_nested_dicts(data, level):
+            # Single loop to detect nested formats and i18next patterns
+            for key, value in current.items():
+                # Check for nested formats at level 0
+                if (
+                    current_level == 0
+                    and isinstance(value, dict)
+                    and (detected := self._detect_first_level_format(value))
+                ):
+                    return detected
 
-            # Check for i18next patterns
-            if not isinstance(key, str):
-                all_strings = False
-                break
-            if not isinstance(value, str):
-                all_strings = False
-                if isinstance(value, dict):
-                    detected = self._detect_nested_format(value, level + 1)
-                    i18next |= detected == "i18next"
-                    i18nextv4 |= detected == "i18nextv4"
-                    # "json" is intentionally ignored here as the format is already nested at this level
-            elif key.endswith(("_one", "_many", "_other")):
-                i18nextv4 = True
-            elif key.endswith("_plural") or "{{" in value:
-                i18next = True
+                # Check for i18next patterns
+                if not isinstance(key, str):
+                    if current is data:
+                        all_strings = False
+                    break
+                if not isinstance(value, str):
+                    if current is data:
+                        all_strings = False
+                    continue
+
+                detected = self._detect_i18next_format(key, value)
+                i18nextv4 |= detected == "i18nextv4"
+                i18next |= detected == "i18next"
+
         if i18nextv4:
             return "i18nextv4"
         if i18next:
@@ -672,7 +699,7 @@ class JSONDiscovery(BaseDiscovery):
         with self.finder.open(path, "r") as handle:
             try:
                 data = json.load(handle)
-            except ValueError as error:
+            except (RecursionError, ValueError) as error:
                 warnings.warn(f"Could not parse JSON: {error}", stacklevel=0)
                 return
             if isinstance(data, list) and len(data) > 0 and "id" in data[0]:

@@ -4,6 +4,7 @@
 """High level API tests."""
 
 import pathlib
+import tempfile
 from io import StringIO
 
 from .api import cli, discover
@@ -24,6 +25,26 @@ class APITest(DiscoveryTestCase):
                 mock=([(PurePath(path), PurePath(path), path) for path in paths], []),
             ),
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
+        )
+
+    def test_discover_deeply_nested_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            content = '{"a":' * 2000 + "1" + "}" * 2000
+            (root / "en.json").write_text(content, encoding="utf-8")
+            (root / "cs.json").write_text(content, encoding="utf-8")
+
+            results = discover(root)
+
+        self.assert_discovery(
+            results,
+            [
+                {
+                    "filemask": "*.json",
+                    "file_format": "json-nested",
+                    "template": "en.json",
+                },
+            ],
         )
 
     def test_discover_files(self) -> None:
