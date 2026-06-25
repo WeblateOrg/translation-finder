@@ -36,7 +36,7 @@ class ResultDict(TypedDict, total=False):
 
 
 @total_ordering
-class DiscoveryResult(UserDict):  # noqa: PLW1641
+class DiscoveryResult(UserDict):
     """
     Discovery result class.
 
@@ -44,6 +44,7 @@ class DiscoveryResult(UserDict):  # noqa: PLW1641
     """
 
     data: ResultDict  # type: ignore[assignment]
+    __hash__ = None  # type: ignore[assignment]
 
     def __init__(self, data: ResultDict) -> None:
         super().__init__(data)
