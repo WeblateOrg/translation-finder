@@ -58,7 +58,7 @@ test = [
 ]
 types = [
   "ty==0.0.56",
-  "mypy==2.1.0"
+  "mypy==2.2.0"
 ]
 
 [project.readme]
