@@ -1,6 +1,15 @@
 Changelog
 =========
 
+3.2.1
+-----
+
+* Released on 8th July 2026.
+* Fixed TOML discovery to handle recursive parser failures without crashing.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
+* Synced repository configuration with WeblateOrg/meta.
+
 3.2.0
 -----
 
