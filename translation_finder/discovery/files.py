@@ -1056,7 +1056,7 @@ class TOMLDiscovery(BaseDiscovery):
             return
         try:
             data = tomllib.loads(content)
-        except (tomllib.TOMLDecodeError, OSError) as error:
+        except (tomllib.TOMLDecodeError, OSError, RecursionError) as error:
             warnings.warn(f"Could not parse TOML: {error}", stacklevel=0)
             return
         # go-i18n-toml detection - has messages array with 'id' field

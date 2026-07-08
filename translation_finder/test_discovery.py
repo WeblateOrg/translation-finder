@@ -1933,6 +1933,58 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                     ],
                 )
 
+    def test_adjust_format_recursion_error_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.toml").write_text("[a]\nb = 1\n", encoding="utf-8")
+            discovery = TOMLDiscovery(Finder(tmppath))
+            result: ResultDict = {
+                "filemask": "*.toml",
+                "file_format": "toml",
+                "template": "en.toml",
+            }
+
+            with (
+                patch.object(
+                    files_module.tomllib,
+                    "loads",
+                    side_effect=RecursionError("too deep"),
+                ),
+                self.assertWarnsRegex(UserWarning, "Could not parse TOML: too deep"),
+            ):
+                discovery.adjust_format(result)
+
+        self.assertEqual(
+            result,
+            {
+                "filemask": "*.toml",
+                "file_format": "toml",
+                "template": "en.toml",
+            },
+        )
+
+    def test_deeply_nested_toml_does_not_crash_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            content = "[a]\nb = " + "[" * 5000 + "]" * 5000 + "\n"
+            (tmppath / "en.toml").write_text(content, encoding="utf-8")
+            (tmppath / "cs.toml").write_text(content, encoding="utf-8")
+            discovery = TOMLDiscovery(Finder(tmppath))
+
+            with self.assertWarnsRegex(UserWarning, "Could not parse TOML"):
+                results = list(discovery.discover())
+
+        self.assert_discovery(
+            results,
+            [
+                {
+                    "filemask": "*.toml",
+                    "file_format": "toml",
+                    "template": "en.toml",
+                },
+            ],
+        )
+
 
 class ARBDiscoveryTest(DiscoveryTestCase):
     def test_basic(self) -> None:
