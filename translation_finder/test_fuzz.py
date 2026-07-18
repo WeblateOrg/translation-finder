@@ -428,7 +428,7 @@ class FuzzTest(TestCase):
     @given(eager=st.booleans(), paths=PATH_NAMES, source_language=LANGUAGE_CODES)
     def test_discovery_accepts_generated_mock_paths(
         self,
-        eager: bool,  # noqa: FBT001
+        eager: bool,  # ruff:ignore[boolean-type-hint-positional-argument]
         paths: list[str],
         source_language: str,
     ) -> None:

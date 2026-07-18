@@ -1,7 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# ruff: noqa: S403,S301
+# ruff:file-ignore[suspicious-pickle-import, suspicious-pickle-usage]
 """Discovery result tests including pickling."""
 
 import operator

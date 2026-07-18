@@ -1,7 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-# ruff: noqa: SLF001
+# ruff:file-ignore[private-member-access]
 """Translation discovery tests."""
 
 from __future__ import annotations
@@ -3151,7 +3151,7 @@ class FormatJSContentDetectionTest(DiscoveryTestCase):
 
 
 class XMLFormatNoOverlapTest(DiscoveryTestCase):
-    def test_android_vs_cmp_vs_flatxml_no_overlap(self) -> None:  # noqa: PLR0914
+    def test_android_vs_cmp_vs_flatxml_no_overlap(self) -> None:  # ruff:ignore[too-many-locals]
         """Test that Android, CMP, and FlatXML discoveries don't overlap."""
         # Test Android resources (res/values pattern)
         android_paths = [
