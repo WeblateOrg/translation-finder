@@ -1013,7 +1013,7 @@ class XLSXDiscovery(CSVDiscovery):
     file_format = "xlsx"
     mask = "*.xlsx"
 
-    def adjust_format(self, result: ResultDict) -> None:  # noqa: PLR6301
+    def adjust_format(self, result: ResultDict) -> None:  # ruff:ignore[no-self-use]
         """Keep Excel files on the Excel format."""
         return
 

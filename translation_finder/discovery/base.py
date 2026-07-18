@@ -210,7 +210,7 @@ class BaseDiscovery:
         """Check whether finder has a storage."""
         return self.finder.has_file(name)
 
-    def get_language_aliases(self, language: str) -> list[str]:  # noqa: PLR6301
+    def get_language_aliases(self, language: str) -> list[str]:  # ruff:ignore[no-self-use]
         """Language code aliases."""
         return [language]
 
@@ -249,7 +249,7 @@ class BaseDiscovery:
         if self.file_format_params is not None and "file_format_params" not in result:
             result["file_format_params"] = self.file_format_params.copy()
 
-    def adjust_format(self, result: ResultDict) -> None:  # noqa: PLR6301
+    def adjust_format(self, result: ResultDict) -> None:  # ruff:ignore[no-self-use]
         """Override detected format, based on the file content."""
         return
 
@@ -332,7 +332,7 @@ class MonoTemplateDiscovery(BaseDiscovery):
 
     uses_template = True
 
-    def fill_in_new_base(self, result: ResultDict) -> None:  # noqa: PLR6301
+    def fill_in_new_base(self, result: ResultDict) -> None:  # ruff:ignore[no-self-use]
         """Extend the result for new_base and intermediate parameters."""
         if "new_base" not in result and "template" in result:
             result["new_base"] = result["template"]
