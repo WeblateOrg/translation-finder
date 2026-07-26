@@ -48,7 +48,7 @@ dev = [
   "translation-finder[lint,test,types]"
 ]
 lint = [
-  "prek==0.4.10"
+  "prek==0.4.11"
 ]
 test = [
   "hypothesis==6.156.6",
