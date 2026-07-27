@@ -620,6 +620,44 @@ class QtTest(DiscoveryTestCase):
             ],
         )
 
+    def test_exact_new_base_precedes_nearer_fallback(self) -> None:
+        discovery = QtDiscovery(
+            self.get_finder(
+                [
+                    "parent/child/app_fr.ts",
+                    "parent/child/fallback.ts",
+                    "parent/app_.ts",
+                ],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "parent/child/app_*.ts",
+                    "file_format": "ts",
+                    "new_base": "parent/app_.ts",
+                },
+            ],
+        )
+
+    def test_new_base_candidates_are_indexed_once(self) -> None:
+        finder = self.get_finder(
+            [f"d0/d1/d2/d3/comp{i}/en.ts" for i in range(1000)],
+        )
+        discovery = QtDiscovery(finder)
+
+        with patch.object(
+            finder, "filter_masks", wraps=finder.filter_masks
+        ) as filter_masks:
+            results = list(discovery.discover())
+
+        self.assertEqual(len(results), 1000)
+        self.assertEqual(
+            sum(call.args == ("*.ts",) for call in filter_masks.call_args_list),
+            1,
+        )
+
     def test_po_mono_template(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
