@@ -104,6 +104,10 @@ class BaseDiscovery:
     def __init__(self, finder: Finder, source_language: str = "en") -> None:
         self.finder: Finder = finder
         self.source_language: str = source_language
+        self._new_base_by_directory: dict[str, tuple[int, PurePath]] | None = None
+        self._new_base_by_name: dict[tuple[str, str], tuple[int, PurePath]] | None = (
+            None
+        )
 
     @staticmethod
     def is_country_code(code: str) -> bool:
@@ -189,22 +193,58 @@ class BaseDiscovery:
         new_name = self.new_base_mask.replace("*", basename).lower()
 
         best_result = None
+        new_base_by_directory, new_base_by_name = self._index_new_bases()
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
-            for match in self.finder.filter_masks(
-                (new_name, self.new_base_mask),
-                f"{re.escape(path)}|{re.escape(path_wild)}",
-            ):
-                if new_name == match.parts[-1].lower():
-                    result["new_base"] = "/".join(match.parts)
-                    return
-                if not best_result:
-                    best_result = "/".join(match.parts)
+            directories = {path, path_wild}
+            exact_matches = (
+                new_base_by_name[directory, new_name]
+                for directory in directories
+                if (directory, new_name) in new_base_by_name
+            )
+            exact_match = min(exact_matches, default=None)
+            if exact_match is not None:
+                result["new_base"] = "/".join(exact_match[1].parts)
+                return
+
+            if best_result is None:
+                fallback_matches = (
+                    new_base_by_directory[directory]
+                    for directory in directories
+                    if directory in new_base_by_directory
+                )
+                fallback_match = min(fallback_matches, default=None)
+                if fallback_match is not None:
+                    best_result = "/".join(fallback_match[1].parts)
 
         if best_result is not None:
             result["new_base"] = best_result
+
+    def _index_new_bases(
+        self,
+    ) -> tuple[
+        dict[str, tuple[int, PurePath]],
+        dict[tuple[str, str], tuple[int, PurePath]],
+    ]:
+        """Index possible new-base files for repeated constant-time lookups."""
+        if self._new_base_by_directory is None or self._new_base_by_name is None:
+            self._new_base_by_directory = {}
+            self._new_base_by_name = {}
+            if self.new_base_mask is not None:
+                for position, match in enumerate(
+                    self.finder.filter_masks(self.new_base_mask)
+                ):
+                    directory = "/".join(match.parts[:-1]).lower()
+                    candidate = (position, match)
+                    self._new_base_by_directory.setdefault(directory, candidate)
+                    self._new_base_by_name.setdefault(
+                        (directory, match.parts[-1].lower()),
+                        candidate,
+                    )
+
+        return self._new_base_by_directory, self._new_base_by_name
 
     def has_storage(self, name: str) -> bool:
         """Check whether finder has a storage."""
