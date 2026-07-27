@@ -658,6 +658,91 @@ class QtTest(DiscoveryTestCase):
             1,
         )
 
+    def test_detects_ts_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "ts1").mkdir()
+            (tmppath / "ts2").mkdir()
+            (tmppath / "ts1/cs.ts").write_text(
+                """<?build metadata?>
+<!DOCTYPE TS>
+<TS language="cs" version = '1.1'></TS>
+""",
+                encoding="utf-8",
+            )
+            (tmppath / "ts2/cs.ts").write_text(
+                """<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<!-- <TS version="1.1"></TS> -->
+<TS xmlns:x="urn:version='1.1'" version="2.1" language="cs"></TS>
+""",
+                encoding="utf-8",
+            )
+
+            results = QtDiscovery(Finder(tmppath)).discover()
+
+            self.assert_discovery(
+                results,
+                [
+                    {
+                        "filemask": "ts1/*.ts",
+                        "file_format": "ts1",
+                        "new_base": "ts1/cs.ts",
+                    },
+                    {
+                        "filemask": "ts2/*.ts",
+                        "file_format": "ts",
+                        "new_base": "ts2/cs.ts",
+                    },
+                ],
+            )
+
+    def test_detects_multibyte_ts_version_1(self) -> None:
+        for encoding in ("utf-16", "utf-32"):
+            with (
+                self.subTest(encoding=encoding),
+                tempfile.TemporaryDirectory() as tmpdir,
+            ):
+                tmppath = Path(tmpdir)
+                (tmppath / "cs.ts").write_text(
+                    f"""<?xml version="1.0" encoding="{encoding}"?>
+<TS version="1.0"></TS>
+""",
+                    encoding=encoding,
+                )
+
+                self.assert_discovery(
+                    QtDiscovery(Finder(tmppath)).discover(),
+                    [
+                        {
+                            "filemask": "*.ts",
+                            "file_format": "ts1",
+                        },
+                    ],
+                )
+
+    def test_unrecognized_content_defaults_to_version_2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "cs.ts").write_text("not XML", encoding="utf-8")
+
+            self.assert_discovery(
+                QtDiscovery(Finder(tmppath)).discover(),
+                [
+                    {
+                        "filemask": "*.ts",
+                        "file_format": "ts",
+                    },
+                ],
+            )
+
+    def test_missing_file_defaults_to_version_2(self) -> None:
+        result: ResultDict = {"filemask": "missing.ts"}
+
+        QtDiscovery(self.get_finder([])).adjust_format(result)
+
+        self.assertEqual(result, {"filemask": "missing.ts"})
+
     def test_po_mono_template(self) -> None:
         discovery = GettextDiscovery(
             self.get_finder(
@@ -2352,6 +2437,12 @@ class FormatSniffLimitTest(DiscoveryTestCase):
             files_module._decode_sample_content(b"\xff\xfeA\x00B"),
             "A",
         )
+        for encoding in ("utf-32-le", "utf-32-be"):
+            with self.subTest(encoding=encoding):
+                self.assertEqual(
+                    files_module._decode_sample_content("<TS>".encode(encoding)),
+                    "<TS>",
+                )
 
     def test_text_sample_ignores_truncated_utf8_character(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

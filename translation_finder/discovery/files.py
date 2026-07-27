@@ -37,6 +37,24 @@ if TYPE_CHECKING:
 LARAVEL_RE = re.compile(r"=>.*\|")
 LARAVEL_BYTES_RE = re.compile(rb"=>.*\|")
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
+QT_TS_ROOT_RE = re.compile(
+    r"""
+    \A \ufeff? \s*
+    (?: (?: <\?.*?\?> | <!-- .*? --> ) \s*)*
+    (?: <!DOCTYPE\s+TS (?:\s[^>]*)? > \s*)?
+    (?: (?: <\?.*?\?> | <!-- .*? --> ) \s*)*
+    <TS\b
+    (?P<attributes>
+        (?: \s+ [^\s=/>]+ \s*=\s* (?: "[^"]*" | '[^']*' ) )*
+    )
+    \s*/?>
+    """,
+    re.DOTALL | re.VERBOSE,
+)
+QT_TS_ATTRIBUTE_RE = re.compile(
+    r"""\s+([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""",
+    re.DOTALL,
+)
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
@@ -56,6 +74,17 @@ CSV_FIELDNAMES = {
 }
 
 
+def _detect_utf32_encoding(content: bytes) -> str | None:
+    """Detect standard UTF-32 byte orders from a BOM or XML opening marker."""
+    if content.startswith((b"\x00\x00\xfe\xff", b"\xff\xfe\x00\x00")):
+        return "utf-32"
+    if content.startswith(b"\x00\x00\x00<"):
+        return "utf-32-be"
+    if content.startswith(b"<\x00\x00\x00"):
+        return "utf-32-le"
+    return None
+
+
 def _decode_content(content: bytes) -> str:
     """Decode sampled file content."""
     for encoding in ("utf-8-sig", "utf-16"):
@@ -68,6 +97,11 @@ def _decode_content(content: bytes) -> str:
 
 def _decode_sample_content(content: bytes) -> str:
     """Decode sampled file content, ignoring incomplete trailing bytes."""
+    if encoding := _detect_utf32_encoding(content):
+        return content[: len(content) - len(content) % 4].decode(
+            encoding, errors="replace"
+        )
+
     try:
         return content.decode("utf-8-sig")
     except UnicodeDecodeError as error:
@@ -313,6 +347,30 @@ class QtDiscovery(BaseDiscovery):
     file_format = "ts"
     mask = "*.ts"
     new_base_mask = "*.ts"
+
+    def adjust_format(self, result: ResultDict) -> None:
+        """Detect legacy Qt Linguist files based on the TS root version."""
+        path = next(iter(self.finder.mask_matches(result["filemask"])), None)
+        if path is None:
+            return
+
+        content = _read_text_sample(self.finder, path)
+        if content is None:
+            return
+
+        root_match = QT_TS_ROOT_RE.search(content)
+        if root_match is None:
+            return
+
+        for attribute_match in QT_TS_ATTRIBUTE_RE.finditer(
+            root_match.group("attributes")
+        ):
+            name, double_quoted, single_quoted = attribute_match.groups()
+            if name == "version":
+                version = double_quoted if double_quoted is not None else single_quoted
+                if version.startswith("1."):
+                    result["file_format"] = "ts1"
+                return
 
 
 @register_discovery
