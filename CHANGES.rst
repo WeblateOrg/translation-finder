@@ -1,6 +1,18 @@
 Changelog
 =========
 
+3.3.0
+-----
+
+* Released on 27th July 2026.
+* Added content-based detection of legacy Qt Linguist TS 1.x files, including
+  UTF-16 and UTF-32 encoded files.
+* Improved new-base discovery performance by indexing candidates and avoiding
+  quadratic lookups.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
+* Synced repository configuration with WeblateOrg/meta.
+
 3.2.1
 -----
 
