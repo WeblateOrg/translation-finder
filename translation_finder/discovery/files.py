@@ -13,6 +13,7 @@ import tomllib
 import warnings
 from io import StringIO
 from typing import TYPE_CHECKING, ClassVar, cast
+from xml.parsers import expat
 
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError, YAMLFutureWarning
@@ -37,24 +38,6 @@ if TYPE_CHECKING:
 LARAVEL_RE = re.compile(r"=>.*\|")
 LARAVEL_BYTES_RE = re.compile(rb"=>.*\|")
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
-QT_TS_ROOT_RE = re.compile(
-    r"""
-    \A \ufeff? \s*
-    (?: (?: <\?.*?\?> | <!-- .*? --> ) \s*)*
-    (?: <!DOCTYPE\s+TS (?:\s[^>]*)? > \s*)?
-    (?: (?: <\?.*?\?> | <!-- .*? --> ) \s*)*
-    <TS\b
-    (?P<attributes>
-        (?: \s+ [^\s=/>]+ \s*=\s* (?: "[^"]*" | '[^']*' ) )*
-    )
-    \s*/?>
-    """,
-    re.DOTALL | re.VERBOSE,
-)
-QT_TS_ATTRIBUTE_RE = re.compile(
-    r"""\s+([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""",
-    re.DOTALL,
-)
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
@@ -72,6 +55,31 @@ CSV_FIELDNAMES = {
     "target_plural_form",
     "translator_comments",
 }
+
+
+class _QtRootFoundError(Exception):
+    """Stop Qt XML parsing after the root element."""
+
+
+def _get_qt_ts_version(content: str) -> str | None:
+    """Return the version from a Qt TS root element."""
+    version: str | None = None
+    parser = expat.ParserCreate()
+
+    def handle_start(name: str, attributes: dict[str, str]) -> None:
+        nonlocal version
+        if name == "TS":
+            version = attributes.get("version")
+        raise _QtRootFoundError
+
+    parser.StartElementHandler = handle_start
+    try:
+        parser.Parse(content, False)  # ruff: ignore[boolean-positional-value-in-call]
+    except _QtRootFoundError:
+        return version
+    except expat.ExpatError:
+        return None
+    return None
 
 
 def _detect_utf32_encoding(content: bytes) -> str | None:
@@ -358,19 +366,9 @@ class QtDiscovery(BaseDiscovery):
         if content is None:
             return
 
-        root_match = QT_TS_ROOT_RE.search(content)
-        if root_match is None:
-            return
-
-        for attribute_match in QT_TS_ATTRIBUTE_RE.finditer(
-            root_match.group("attributes")
-        ):
-            name, double_quoted, single_quoted = attribute_match.groups()
-            if name == "version":
-                version = double_quoted if double_quoted is not None else single_quoted
-                if version.startswith("1."):
-                    result["file_format"] = "ts1"
-                return
+        version = _get_qt_ts_version(content)
+        if version is not None and version.startswith("1."):
+            result["file_format"] = "ts1"
 
 
 @register_discovery

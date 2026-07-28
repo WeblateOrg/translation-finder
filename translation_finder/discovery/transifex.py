@@ -86,7 +86,7 @@ class TransifexDiscovery(BaseDiscovery):
         filemask = self.normalize_config_path(
             config.get(section, "file_filter").replace("<lang>", "*")
         )
-        if not self.is_safe_config_path(filemask):
+        if filemask.count("*") != 1 or not self.is_safe_config_path(filemask):
             return None
         result: ResultDict = {
             "name": section,
@@ -121,11 +121,18 @@ class TransifexDiscovery(BaseDiscovery):
     @staticmethod
     def get_language_regex(filemask: str, source_file: str) -> str | None:
         """Return filter excluding the source language matched by the file mask."""
-        pattern = re.escape(filemask).replace(r"\*", r"([^/]+)")
-        match = re.fullmatch(pattern, source_file)
-        if match is None:
+        if filemask.count("*") != 1:
             return None
-        return rf"^(?!{re.escape(match.group(1))}$).+$"
+
+        prefix, suffix = filemask.split("*")
+        if not source_file.startswith(prefix) or not source_file.endswith(suffix):
+            return None
+
+        language_end = len(source_file) - len(suffix) if suffix else len(source_file)
+        language = source_file[len(prefix) : language_end]
+        if not language or "/" in language:
+            return None
+        return rf"^(?!{re.escape(language)}$).+$"
 
     def discover(
         self, *, eager: bool = False, hint: str | None = None
