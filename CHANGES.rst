@@ -1,6 +1,16 @@
 Changelog
 =========
 
+3.3.1
+-----
+
+* Released on 28th July 2026.
+* Hardened Qt Linguist and Transifex discovery against regular expression
+  denial-of-service attacks.
+* Fixed discovery crashes on malformed JSON and unreadable, invalid, or
+  oversized Transifex configuration files.
+* Updated dependency requirements and CI actions.
+
 3.3.0
 -----
 
