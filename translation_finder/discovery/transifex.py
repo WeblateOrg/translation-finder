@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
     from .result import DiscoveryResult, FileFormatParams, ResultDict
 
+TRANSIFEX_CONFIG_MAX_BYTES = 1024 * 1024
+
 
 @register_discovery
 class TransifexDiscovery(BaseDiscovery):
@@ -163,13 +165,24 @@ class TransifexDiscovery(BaseDiscovery):
             "(?:.*/|^).tx",
             candidate_names=("config",),
         ):
+            try:
+                with self.finder.open(path, "rb") as handle:
+                    content = handle.read(TRANSIFEX_CONFIG_MAX_BYTES + 1)
+            except OSError:
+                continue
+            if len(content) > TRANSIFEX_CONFIG_MAX_BYTES:
+                continue
+            try:
+                config_content = content.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                continue
+
             config = RawConfigParser()
-            with self.finder.open(path) as handle:
-                try:
-                    config.read_file(handle)
-                except ConfigParserError:
-                    # Skip invalid files
-                    continue
+            try:
+                config.read_string(config_content, source=path.as_posix())
+            except ConfigParserError:
+                # Skip invalid files
+                continue
             for section in config.sections():
                 result = self.extract_section(config, section)
                 if result:

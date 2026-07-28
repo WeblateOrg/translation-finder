@@ -883,7 +883,12 @@ class JSONDiscovery(BaseDiscovery):
         except (RecursionError, UnicodeError, ValueError) as error:
             warnings.warn(f"Could not parse JSON: {error}", stacklevel=0)
             return
-        if isinstance(data, list) and len(data) > 0 and "id" in data[0]:
+        if (
+            isinstance(data, list)
+            and len(data) > 0
+            and isinstance(data[0], dict)
+            and "id" in data[0]
+        ):
             result["file_format"] = "go-i18n-json"
             return
         if not isinstance(data, dict):
