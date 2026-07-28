@@ -736,6 +736,24 @@ class QtTest(DiscoveryTestCase):
                 ],
             )
 
+    def test_malformed_prolog_defaults_to_version_2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "cs.ts").write_text(
+                "<?build metadata?>" * 1000 + "not XML",
+                encoding="utf-8",
+            )
+
+            self.assert_discovery(
+                QtDiscovery(Finder(tmppath)).discover(),
+                [
+                    {
+                        "filemask": "*.ts",
+                        "file_format": "ts",
+                    },
+                ],
+            )
+
     def test_missing_file_defaults_to_version_2(self) -> None:
         result: ResultDict = {"filemask": "missing.ts"}
 
@@ -1804,6 +1822,39 @@ type = PO
             ),
             "^(?!en_GB$).+$",
         )
+
+    def test_language_regex_rejects_invalid_masks_and_sources(self) -> None:
+        checks = (
+            ("locales/messages.po", "locales/en.po"),
+            ("locales/**.po", "locales/en.po"),
+            ("locales/*.po", "locale/en.po"),
+            ("locales/*.po", "locales/.po"),
+            ("locales/*", "locales/en/messages.po"),
+        )
+        for filemask, source_file in checks:
+            with self.subTest(filemask=filemask, source_file=source_file):
+                self.assertIsNone(
+                    TransifexDiscovery.get_language_regex(filemask, source_file)
+                )
+
+    def test_reject_file_filter_without_exactly_one_wildcard(self) -> None:
+        discovery = TransifexDiscovery(self.get_finder([]))
+        for file_filter in (
+            "locales/messages.po",
+            "locales/<lang>*.po",
+            "locales/<lang>/<lang>.po",
+            "locales/" + "*" * 100 + ".po",
+        ):
+            with self.subTest(file_filter=file_filter):
+                config = RawConfigParser()
+                config.read_string(
+                    f"""
+[invalid]
+file_filter = {file_filter}
+type = PO
+"""
+                )
+                self.assertIsNone(discovery.extract_section(config, "invalid"))
 
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):
