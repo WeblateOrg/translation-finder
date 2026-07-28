@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 from .discovery import base as base_module
 from .discovery import files as files_module
+from .discovery import transifex as transifex_module
 from .discovery.base import DiscoveryResult
 from .discovery.files import (
     YAML_INSPECTION_MAX_DEPTH,
@@ -1590,22 +1591,23 @@ class JSONDiscoveryTest(DiscoveryTestCase):
             self.assert_discovery(discovery.discover(), [])
 
     def test_list_without_id_keeps_nested_format(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
-            (tmppath / "en.json").write_text(json.dumps(["Hello"]))
-            (tmppath / "cs.json").write_text(json.dumps(["Ahoj"]))
+        for value in ("Hello", 1, None):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as tmpdir:
+                tmppath = Path(tmpdir)
+                (tmppath / "en.json").write_text(json.dumps([value]))
+                (tmppath / "cs.json").write_text(json.dumps([value]))
 
-            discovery = JSONDiscovery(Finder(tmppath))
-            self.assert_discovery(
-                discovery.discover(),
-                [
-                    {
-                        "filemask": "*.json",
-                        "file_format": "json-nested",
-                        "template": "en.json",
-                    },
-                ],
-            )
+                discovery = JSONDiscovery(Finder(tmppath))
+                self.assert_discovery(
+                    discovery.discover(),
+                    [
+                        {
+                            "filemask": "*.json",
+                            "file_format": "json-nested",
+                            "template": "en.json",
+                        },
+                    ],
+                )
 
 
 class TransifexTest(DiscoveryTestCase):
@@ -1665,6 +1667,45 @@ class TransifexTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_invalid_utf8_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").write_bytes(b"\xff")
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            self.assert_discovery(discovery.discover(), [])
+
+    def test_oversized_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").write_text(
+                """
+[translation]
+file_filter = locales/<lang>.po
+source_file = locales/messages.pot
+type = PO
+""",
+                encoding="utf-8",
+            )
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            with patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_BYTES", 4):
+                self.assert_discovery(discovery.discover(), [])
+
+    def test_config_io_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").touch()
+            discovery = TransifexDiscovery(Finder(root))
+
+            with patch.object(discovery.finder, "open", side_effect=OSError):
+                self.assert_discovery(discovery.discover(), [])
 
     def test_unicode_properties(self) -> None:
         config = RawConfigParser()
