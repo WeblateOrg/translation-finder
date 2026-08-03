@@ -71,6 +71,7 @@ EXTENSION_MAP = (
     (".tbx", "tbx"),
     (".md", "markdown"),
     (".markdown", "markdown"),
+    (".mdx", "mdx"),
     (".dw", "dokuwiki"),
     (".mw", "mediawiki"),
     (".ad", "asciidoc"),
