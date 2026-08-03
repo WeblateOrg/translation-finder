@@ -41,6 +41,7 @@ from .discovery.files import (
     JavaDiscovery,
     JoomlaDiscovery,
     JSONDiscovery,
+    MDXDiscovery,
     MediaWikiDiscovery,
     Mi18nDiscovery,
     MOKODiscovery,
@@ -1731,6 +1732,26 @@ type = UNICODEPROPERTIES
             },
         )
 
+    def test_mdx_extension_fallback(self) -> None:
+        config = RawConfigParser()
+        config.read_string(
+            """
+[mdx]
+file_filter = docs/<lang>.mdx
+source_file = docs/en.mdx
+"""
+        )
+        discovery = TransifexDiscovery(self.get_finder([]))
+        self.assertEqual(
+            discovery.extract_section(config, "mdx"),
+            {
+                "name": "mdx",
+                "filemask": "docs/*.mdx",
+                "file_format": "mdx",
+                "template": "docs/en.mdx",
+            },
+        )
+
     def test_section_without_source_file(self) -> None:
         config = RawConfigParser()
         config.read_string(
@@ -2939,6 +2960,20 @@ class ConvertedDocumentDiscoveryTest(DiscoveryTestCase):
                     "file_format": "xlsx",
                     "template": "csv/en.xlsx",
                     "new_base": "csv/en.xlsx",
+                },
+            ],
+        )
+
+    def test_mdx(self) -> None:
+        discovery = MDXDiscovery(self.get_finder(["docs/en.mdx", "docs/cs.mdx"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "docs/*.mdx",
+                    "file_format": "mdx",
+                    "template": "docs/en.mdx",
+                    "new_base": "docs/en.mdx",
                 },
             ],
         )

@@ -1183,6 +1183,14 @@ class MarkdownDiscovery(MonoTemplateDiscovery):
 
 
 @register_discovery
+class MDXDiscovery(MonoTemplateDiscovery):
+    """MDX files discovery."""
+
+    file_format = "mdx"
+    mask = "*.mdx"
+
+
+@register_discovery
 class DokuWikiDiscovery(MonoTemplateDiscovery):
     """DokuWiki text files discovery."""
 
