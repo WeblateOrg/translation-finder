@@ -1,6 +1,17 @@
 Changelog
 =========
 
+3.4.0
+-----
+
+* Released on 3rd August 2026.
+* Added MDX format detection.
+* Hardened Laravel plural detection against regular expression denial-of-service
+  attacks.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
+* Synced repository configuration with WeblateOrg/meta.
+
 3.3.1
 -----
 
