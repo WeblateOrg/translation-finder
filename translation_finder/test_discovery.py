@@ -12,6 +12,7 @@ import tempfile
 from configparser import RawConfigParser
 from operator import itemgetter
 from pathlib import Path, PurePath
+from time import monotonic
 from typing import TYPE_CHECKING, cast
 from unittest import TestCase
 from unittest.mock import patch
@@ -2789,6 +2790,31 @@ class PHPDiscoveryTest(DiscoveryTestCase):
         result: ResultDict = {"filemask": "test/*.php"}
         discovery.adjust_format(result)
         self.assertEqual(result, {"filemask": "test/*.php"})
+
+    def test_laravel_plural_detection(self) -> None:
+        tests = (
+            (b"'apples' => 'one|many'", True),
+            (b"'key|context' => 'value'", False),
+            (b"'key' => 'value'\n'one|many'", False),
+            (b"'key' =>\n'one|many'", False),
+        )
+
+        for content, expected in tests:
+            with self.subTest(content=content):
+                self.assertEqual(
+                    files_module.LARAVEL_BYTES_RE.search(content) is not None,
+                    expected,
+                )
+
+    def test_laravel_plural_detection_runtime(self) -> None:
+        content = b"return [" + b"=>" * 64_000
+
+        start = monotonic()
+        match = files_module.LARAVEL_BYTES_RE.search(content)
+        duration = monotonic() - start
+
+        self.assertIsNone(match)
+        self.assertLess(duration, 0.1)
 
 
 class RCDiscoveryTest(DiscoveryTestCase):

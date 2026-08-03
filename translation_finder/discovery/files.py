@@ -35,8 +35,12 @@ if TYPE_CHECKING:
 
     from .result import DiscoveryResult, ResultDict
 
-LARAVEL_RE = re.compile(r"=>.*\|")
-LARAVEL_BYTES_RE = re.compile(rb"=>.*\|")
+# Anchoring limits matching to one attempt per line, while the atomic group
+# prevents retrying the match from every subsequent ``=>`` on that line.
+LARAVEL_BYTES_RE = re.compile(
+    rb"^(?>[^\n]*?=>)[^\n]*\|",
+    re.MULTILINE,
+)
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 CSV_SAMPLE_ROWS = 100
