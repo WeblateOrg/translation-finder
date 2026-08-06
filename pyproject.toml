@@ -4,6 +4,29 @@ requires = [
   "setuptools>=78.0.2"
 ]
 
+[dependency-groups]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"},
+  {include-group = "types"}
+]
+lint = [
+  {include-group = "pre-commit"}
+]
+pre-commit = [
+  "prek==0.4.11"
+]
+test = [
+  "hypothesis==6.165.0",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "pytest-github-actions-annotate-failures==0.4.2"
+]
+types = [
+  "ty==0.0.68",
+  "mypy==2.3.0"
+]
+
 [project]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -42,24 +65,6 @@ version = "3.4.0"
 [[project.authors]]
 email = "michal@weblate.org"
 name = "Michal Čihař"
-
-[project.optional-dependencies]
-dev = [
-  "translation-finder[lint,test,types]"
-]
-lint = [
-  "prek==0.4.11"
-]
-test = [
-  "hypothesis==6.165.0",
-  "pytest==9.1.1",
-  "pytest-cov==7.1.0",
-  "pytest-github-actions-annotate-failures==0.4.2"
-]
-types = [
-  "ty==0.0.68",
-  "mypy==2.3.0"
-]
 
 [project.readme]
 content-type = "text/x-rst"

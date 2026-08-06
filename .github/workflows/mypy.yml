@@ -34,12 +34,11 @@ jobs:
       with:
         python-version: '3.14'
     - name: Install pip dependencies
-      run: uv pip install --system -e .[dev]
-
+      run: uv sync --dev
     - name: Run mypy
       run: |
         echo "::add-matcher::.github/matchers/mypy.json"
-        mypy --show-column-numbers translation_finder
+        uv run --no-sync mypy --show-column-numbers translation_finder
         echo "::remove-matcher owner=mypy::"
   ty:
     runs-on: ubuntu-24.04
@@ -57,5 +56,7 @@ jobs:
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: '3.14'
+    - name: Install pip dependencies
+      run: uv sync --dev
     - name: Run ty
-      run: uv run --all-extras ty check --output-format=github
+      run: uv run --no-sync ty check --output-format=github
