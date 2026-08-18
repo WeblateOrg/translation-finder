@@ -2442,6 +2442,19 @@ class CSVHelperTest(DiscoveryTestCase):
                 [["source", "target"], ["Hello", "Ahoj"]],
             )
 
+    def test_read_csv_rows_limits_dialect_sniffer_input(self) -> None:
+        content = ',"' + "a" * 5 + '",' * 2048
+        with patch.object(
+            files_module.csv.Sniffer, "sniff", return_value=csv.excel
+        ) as sniff:
+            self._read_rows(content)
+
+        sniff.assert_called_once()
+        sample = sniff.call_args.args[0]
+        self.assertEqual(sample, content[: files_module.CSV_DIALECT_SNIFF_MAX_CHARS])
+        self.assertLessEqual(len(sample), 1024)
+        self.assertEqual(sniff.call_args.kwargs, {"delimiters": ",;\t"})
+
     def test_read_csv_rows_skips_empty_rows(self) -> None:
         self.assertEqual(
             self._read_rows("source,target\n,\nHello,Ahoj\n"),
