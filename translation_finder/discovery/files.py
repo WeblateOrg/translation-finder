@@ -707,6 +707,17 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
         ):
             yield path.parent.parent
 
+    def get_masks(
+        self, *, eager: bool = False, hint: str | None = None
+    ) -> Generator[ResultDict]:
+        """
+        Return all file masks found in the directory.
+
+        App store metadata is represented by language directories, so eager
+        discovery should keep the regular directory mask behavior.
+        """
+        yield from super().get_masks(eager=False, hint=hint)
+
     def has_storage(self, name: str) -> bool:
         """Check whether finder has a storage."""
         return self.finder.has_dir(name)
