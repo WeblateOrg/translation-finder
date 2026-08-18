@@ -20,7 +20,7 @@ from unittest.mock import patch
 from .discovery import base as base_module
 from .discovery import files as files_module
 from .discovery import transifex as transifex_module
-from .discovery.base import DiscoveryResult
+from .discovery.base import BaseDiscovery, DiscoveryResult
 from .discovery.files import (
     YAML_INSPECTION_MAX_DEPTH,
     AndroidDiscovery,
@@ -64,7 +64,7 @@ from .discovery.transifex import TransifexDiscovery
 from .finder import Finder
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Generator, Iterable
 
     from .discovery.base import ResultDict
 
@@ -120,6 +120,16 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             discovery.discover(eager=True),
             [{"filemask": "locale/*.json", "file_format": "json-nested"}],
         )
+
+    def test_eager_discovery_skips_suffixless_paths(self) -> None:
+        class DirectoryDiscovery(BaseDiscovery):
+            file_format = "txt"
+
+            def filter_files(self) -> Generator[PurePath]:  # ruff:ignore[no-self-use]
+                yield PurePath("locale/en-US")
+
+        discovery = DirectoryDiscovery(self.get_finder([]))
+        self.assert_discovery(discovery.discover(eager=True), [])
 
     def test_encoding_discovery_without_template_or_new_params(self) -> None:
         class DetectionResult:
@@ -1945,6 +1955,24 @@ class AppStoreDiscoveryTest(DiscoveryTestCase):
                     "filemask": "private/metadata/*",
                     "file_format": "appstore",
                     "template": "private/metadata/en-AU",
+                },
+            ],
+        )
+
+    def test_eager(self) -> None:
+        discovery = AppStoreDiscovery(
+            self.get_finder(
+                ["fastlane/metadata/en-US/short_description.txt"],
+                ["fastlane/metadata/en-US"],
+            ),
+        )
+        self.assert_discovery(
+            discovery.discover(eager=True),
+            [
+                {
+                    "filemask": "fastlane/metadata/*",
+                    "file_format": "appstore",
+                    "template": "fastlane/metadata/en-US",
                 },
             ],
         )

@@ -344,7 +344,10 @@ class BaseDiscovery:
         for path in self.filter_files():
             parts = list(path.parts)
             if eager:
-                parts[-1] = "*.{}".format(parts[-1].rsplit(".", 1)[1])
+                filename = parts[-1]
+                if "." not in filename:
+                    continue
+                parts[-1] = "*.{}".format(filename.rsplit(".", 1)[1])
                 result: ResultDict = {"filemask": "/".join(parts)}
                 if self.uses_template:
                     result["new_base"] = result["template"] = "/".join(path.parts)
