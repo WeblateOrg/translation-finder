@@ -23,7 +23,7 @@ test = [
   "pytest-github-actions-annotate-failures==0.4.2"
 ]
 types = [
-  "ty==0.0.75",
+  "ty==0.0.76",
   "mypy==2.3.1"
 ]
 
