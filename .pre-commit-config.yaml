@@ -39,8 +39,6 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --indent, '2']
-  - id: pretty-format-toml
-    args: [--autofix]
 - repo: https://github.com/fsfe/reuse-tool
   rev: v6.2.0
   hooks:
