@@ -103,7 +103,7 @@ ignore = [
 
 [tool.check-wheel-contents]
 ignore = [
-  "W002"  # Duplicate test files
+  "W002" # Duplicate test files
 ]
 
 [tool.coverage.paths]
@@ -147,15 +147,15 @@ extend-safe-fixes = [
 ]
 future-annotations = true
 ignore = [
-  "COM",  # CONFIG: No trailing commas
-  "PT",  # CONFIG: Not using pytest
-  "D107",  # CONFIG: skipping __init__ docs for now
-  "D203",  # CONFIG: incompatible with D211
-  "D212",  # CONFIG: incompatible with D213
-  'ISC001',  # CONFIG: formatter
-  "ARG002",  # TODO: Unused method argument (mostly for API compatibility)
-  "DOC",  # CONFIG: Using type annotations instead
-  "E501"  # WONTFIX: we accept long strings (rest is formatted by black)
+  "COM", # CONFIG: No trailing commas
+  "PT", # CONFIG: Not using pytest
+  "D107", # CONFIG: skipping __init__ docs for now
+  "D203", # CONFIG: incompatible with D211
+  "D212", # CONFIG: incompatible with D213
+  'ISC001', # CONFIG: formatter
+  "ARG002", # TODO: Unused method argument (mostly for API compatibility)
+  "DOC", # CONFIG: Using type annotations instead
+  "E501" # WONTFIX: we accept long strings (rest is formatted by black)
 ]
 preview = true
 select = ["ALL"]
