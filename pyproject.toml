@@ -142,20 +142,20 @@ extend-safe-fixes = [
   "FLY",
   "SIM",
   "ANN",
-  "FA102",
+  "future-required-type-annotation",
   "UP"
 ]
 future-annotations = true
 ignore = [
   "COM", # CONFIG: No trailing commas
   "PT", # CONFIG: Not using pytest
-  "D107", # CONFIG: skipping __init__ docs for now
-  "D203", # CONFIG: incompatible with D211
-  "D212", # CONFIG: incompatible with D213
-  'ISC001', # CONFIG: formatter
-  "ARG002", # TODO: Unused method argument (mostly for API compatibility)
+  "undocumented-public-init", # CONFIG: skipping __init__ docs for now
+  "incorrect-blank-line-before-class", # CONFIG: incompatible with D211
+  "multi-line-summary-first-line", # CONFIG: incompatible with D213
+  'single-line-implicit-string-concatenation', # CONFIG: formatter
+  "unused-method-argument", # TODO: Unused method argument (mostly for API compatibility)
   "DOC", # CONFIG: Using type annotations instead
-  "E501" # WONTFIX: we accept long strings (rest is formatted by black)
+  "line-too-long" # WONTFIX: we accept long strings (rest is formatted by black)
 ]
 preview = true
 select = ["ALL"]
@@ -169,7 +169,7 @@ notice-rgx = "(?i)Copyright\\s+©\\s+"
 max-complexity = 16
 
 [tool.ruff.lint.per-file-ignores]
-"translation_finder/test_*.py" = ["D101", "D102"]
+"translation_finder/test_*.py" = ["undocumented-public-class", "undocumented-public-method"]
 
 [tool.rumdl]
 disable = [
