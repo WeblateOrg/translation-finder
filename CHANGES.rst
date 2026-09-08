@@ -1,6 +1,16 @@
 Changelog
 =========
 
+3.4.1
+-----
+
+* Released on 8th September 2026.
+* Fixed eager discovery crashes on app store metadata and extensionless files.
+* Limited CSV dialect sniffing input to avoid excessive processing time.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
+* Synced repository configuration with WeblateOrg/meta.
+
 3.4.0
 -----
 
