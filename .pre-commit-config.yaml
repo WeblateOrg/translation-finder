@@ -67,7 +67,7 @@ repos:
   hooks:
   - id: toml-sort-fix
 - repo: https://github.com/kjanat/actionlint
-  rev: v1.15.1
+  rev: v1.16.1
   hooks:
   - id: actionlint
 exclude: ^.*\.(properties)|translation_finder/test_data/app/src/res/main/values-it/strings.xml|translation_finder/test_data/app/src/res/main/values/strings.xml|translation_finder/test_data/json/bom-en.json|translation_finder/test_data/yaml/en/corrupt.yml|translation_finder/test_data/toml/corrupted.toml$
