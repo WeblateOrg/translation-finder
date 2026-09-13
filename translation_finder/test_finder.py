@@ -4,6 +4,7 @@
 """File finder tests."""
 
 import pathlib
+import sys
 import tempfile
 from fnmatch import translate
 from unittest import TestCase
@@ -197,6 +198,58 @@ class FinderTest(TestCase):
 
         self.assertEqual(finder.files, [])
         self.assertEqual(finder.dirnames, {"blocked"})
+
+    def test_deep_directories_are_scanned_iteratively(self) -> None:
+        class FakeEntry:
+            def __init__(self, path: pathlib.Path, *, is_dir: bool) -> None:
+                self.path = path
+                self._is_dir = is_dir
+
+            @staticmethod
+            def is_symlink() -> bool:
+                return False
+
+            def is_dir(self) -> bool:
+                return self._is_dir
+
+        class FakeScandir:
+            def __init__(self, entries: list[FakeEntry]) -> None:
+                self.entries = entries
+
+            def __enter__(self) -> list[FakeEntry]:
+                return self.entries
+
+            def __exit__(
+                self,
+                exc_type: object,
+                exc_value: object,
+                traceback: object,
+            ) -> None:
+                return None
+
+        root = pathlib.Path("root")
+        depth = sys.getrecursionlimit() + 10
+
+        def fake_scandir(path: pathlib.Path) -> FakeScandir:
+            current_depth = len(path.parts) - len(root.parts)
+            if current_depth < depth:
+                return FakeScandir([FakeEntry(path / "d", is_dir=True)])
+            return FakeScandir([FakeEntry(path / "messages.po", is_dir=False)])
+
+        with patch("translation_finder.finder.scandir", side_effect=fake_scandir):
+            finder = Finder(root)
+
+        deep_file = pathlib.Path(*(["d"] * depth), "messages.po").as_posix()
+        self.assertEqual(len(finder.dirnames), depth)
+        self.assertTrue(finder.has_file(deep_file))
+
+    def test_unreadable_root_is_reported(self) -> None:
+        root = pathlib.Path("root")
+        with (
+            patch("translation_finder.finder.scandir", side_effect=OSError),
+            self.assertRaises(OSError),
+        ):
+            Finder(root)
 
     def test_open_mock_file_rejects_non_real_path(self) -> None:
         finder = Finder(

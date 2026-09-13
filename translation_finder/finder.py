@@ -158,10 +158,29 @@ class Finder:
         self, root: PurePath, files: PathListType, dirs: PathListType
     ) -> None:
         """
-        Recursively list files and dirs in a path.
+        List files and dirs in a path.
 
         It skips excluded files.
         """
+        pending = [root]
+        while pending:
+            current = pending.pop()
+            child_dirs: list[Path] = []
+            try:
+                self._list_directory(current, files, dirs, child_dirs)
+            except OSError:
+                if current == root:
+                    raise
+            pending.extend(reversed(child_dirs))
+
+    def _list_directory(
+        self,
+        root: PurePath,
+        files: PathListType,
+        dirs: PathListType,
+        child_dirs: list[Path],
+    ) -> None:
+        """List entries in a single directory."""
         with scandir(root) as matches:
             for match in matches:
                 if match.is_symlink():
@@ -172,10 +191,7 @@ class Finder:
                     continue
                 if is_dir:
                     dirs.append(self.process_path(path))
-                    try:
-                        self.list_files(path, files, dirs)
-                    except OSError:
-                        continue
+                    child_dirs.append(path)
                 else:
                     files.append(self.process_path(path))
 
