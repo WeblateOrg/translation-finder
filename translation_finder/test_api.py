@@ -204,18 +204,21 @@ class APITest(DiscoveryTestCase):
                     "template": "xliff/en.xliff",
                 },
                 {
-                    "file_format": "plainxliff",
+                    "file_format": "xliff",
                     "filemask": "xliff/*.xlf",
                     "template": "xliff/en.xlf",
+                    "file_format_params": {"xliff_placeables": "plain"},
                 },
                 # New XLIFF2 formats
                 {
                     "file_format": "xliff2",
                     "filemask": "xliff2/*.xliff",
+                    "file_format_params": {"xliff_placeables": "plain"},
                 },
                 {
-                    "file_format": "xliff2-placeables",
+                    "file_format": "xliff2",
                     "filemask": "xliff2/*-placeables.xliff",
+                    "file_format_params": {"xliff_placeables": "placeables"},
                 },
                 {
                     "file_format": "gotext",
