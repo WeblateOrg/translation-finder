@@ -400,10 +400,12 @@ class XliffDiscovery(BaseDiscovery):
         content, _complete = sample
         # Check for XLIFF 2.0 first
         if b'version="2.0"' in content or b'version="2.1"' in content:
+            result["file_format"] = "xliff2"
+            params = result.setdefault("file_format_params", {})
             if b"<pc" in content or b"<sc" in content or b"<ec" in content:
-                result["file_format"] = "xliff2-placeables"
+                params["xliff_placeables"] = "placeables"
             else:
-                result["file_format"] = "xliff2"
+                params["xliff_placeables"] = "plain"
         elif b'restype="x-gettext' in content:
             result["file_format"] = "poxliff"
         elif (
@@ -413,7 +415,9 @@ class XliffDiscovery(BaseDiscovery):
         ):
             result["file_format"] = "apple-xliff"
         elif b"<x " not in content and b"<g " not in content:
-            result["file_format"] = "plainxliff"
+            result["file_format"] = "xliff"
+            result.setdefault("file_format_params", {})["xliff_placeables"] = "plain"
+
 
 
 @register_discovery
