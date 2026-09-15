@@ -419,7 +419,6 @@ class XliffDiscovery(BaseDiscovery):
             result.setdefault("file_format_params", {})["xliff_placeables"] = "plain"
 
 
-
 @register_discovery
 class JoomlaDiscovery(BaseDiscovery):
     """Joomla files discovery."""

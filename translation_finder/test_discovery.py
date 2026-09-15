@@ -3397,11 +3397,10 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
             len(xliff2_placeables_results) > 0,
             "Should detect XLIFF 2.0 placeables format",
         )
+        self.assertEqual(xliff2_placeables_results[0]["file_format"], "xliff2")
         self.assertEqual(
-            xliff2_placeables_results[0]["file_format"], "xliff2"
-        )
-        self.assertEqual(
-            xliff2_placeables_results[0]["file_format_params"]["xliff_placeables"], "placeables"
+            xliff2_placeables_results[0]["file_format_params"]["xliff_placeables"],
+            "placeables",
         )
 
 
