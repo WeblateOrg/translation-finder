@@ -2624,6 +2624,7 @@ class FormatSniffLimitTest(DiscoveryTestCase):
                 discovery.adjust_format(result)
 
         self.assertEqual(result["file_format"], "xliff2")
+        self.assertEqual(result["file_format_params"]["xliff_placeables"], "plain")
 
     def test_large_xliff_uses_sample_for_negative_refinement(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2640,7 +2641,8 @@ class FormatSniffLimitTest(DiscoveryTestCase):
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
                 discovery.adjust_format(result)
 
-        self.assertEqual(result["file_format"], "plainxliff")
+        self.assertEqual(result["file_format"], "xliff")
+        self.assertEqual(result["file_format_params"]["xliff_placeables"], "plain")
 
     def test_xliff_skips_missing_sample(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -3395,8 +3397,10 @@ class XLIFFFormatVariantsTest(DiscoveryTestCase):
             len(xliff2_placeables_results) > 0,
             "Should detect XLIFF 2.0 placeables format",
         )
+        self.assertEqual(xliff2_placeables_results[0]["file_format"], "xliff2")
         self.assertEqual(
-            xliff2_placeables_results[0]["file_format"], "xliff2-placeables"
+            xliff2_placeables_results[0]["file_format_params"]["xliff_placeables"],
+            "placeables",
         )
 
 
