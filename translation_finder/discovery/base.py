@@ -12,7 +12,7 @@ from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
-from charset_normalizer import from_fp
+from charset_normalizer import from_bytes
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
@@ -31,6 +31,28 @@ if TYPE_CHECKING:
 TOKEN_SPLIT = re.compile(r"([_.-])")
 
 LOCALES = {"latn", "cyrl", "hant", "hans"}
+
+FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
+
+
+def _trim_incomplete_unicode_tail(content: bytes) -> bytes:
+    """Remove an incomplete Unicode character from a truncated sample."""
+    if content.startswith((b"\x00\x00\xfe\xff", b"\xff\xfe\x00\x00")):
+        return content[: len(content) - len(content) % 4]
+
+    encoding = (
+        "utf-16" if content.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-8-sig"
+    )
+    try:
+        content.decode(encoding)
+    except UnicodeDecodeError as error:
+        if error.end == len(content) and error.reason in {
+            "truncated data",
+            "unexpected end of data",
+        }:
+            return content[: error.start]
+    return content
+
 
 EXTENSION_MAP = (
     (".po", "po"),
@@ -448,7 +470,12 @@ class EncodingDiscovery(BaseDiscovery):
                 # PurePath only
                 continue
             with self.finder.open(path, "rb") as handle:
-                detection_result = from_fp(handle).best()
+                content = handle.read(FORMAT_SNIFF_MAX_BYTES + 1)
+            if len(content) > FORMAT_SNIFF_MAX_BYTES:
+                content = _trim_incomplete_unicode_tail(
+                    content[:FORMAT_SNIFF_MAX_BYTES]
+                )
+            detection_result = from_bytes(content).best()
             if detection_result is None:
                 continue
 

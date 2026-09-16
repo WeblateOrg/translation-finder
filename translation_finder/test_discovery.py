@@ -10,6 +10,7 @@ import csv
 import json
 import tempfile
 from configparser import RawConfigParser
+from io import BytesIO
 from operator import itemgetter
 from pathlib import Path, PurePath
 from time import monotonic
@@ -150,7 +151,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
                 "file_format_params": {"existing": True},
             }
 
-            with patch.object(base_module, "from_fp", return_value=Detection()):
+            with patch.object(base_module, "from_bytes", return_value=Detection()):
                 discovery.adjust_format(result)
 
         self.assertEqual(
@@ -171,7 +172,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             discovery = JavaDiscovery(finder)
             result: ResultDict = {"filemask": "messages_*.properties"}
 
-            with patch.object(base_module, "from_fp", return_value=Detection()):
+            with patch.object(base_module, "from_bytes", return_value=Detection()):
                 discovery.adjust_format(result)
 
         self.assertNotIn("file_format_params", result)
@@ -179,6 +180,117 @@ class DiscoveryBaseTest(DiscoveryTestCase):
     def test_non_english_variant_aliases(self) -> None:
         discovery = AppStoreDiscovery(self.get_finder([]))
         self.assertEqual(discovery.get_language_aliases("cs"), ["cs"])
+
+    def test_encoding_discovery_reads_bounded_sample(self) -> None:
+        class DetectionResult:
+            encoding = "utf_8"
+
+        class Detection:
+            @staticmethod
+            def best() -> DetectionResult:
+                return DetectionResult()
+
+        class TrackingBytesIO(BytesIO):
+            def __init__(self, content: bytes) -> None:
+                super().__init__(content)
+                self.read_sizes: list[int | None] = []
+
+            def read(self, size: int | None = -1) -> bytes:
+                self.read_sizes.append(size)
+                return super().read(size)
+
+        class SampleFinder:
+            @staticmethod
+            def mask_matches(_mask: str) -> Generator[Path]:
+                yield Path("sample.properties")
+
+            @staticmethod
+            def open(_path: Path, _mode: str) -> TrackingBytesIO:
+                return handle
+
+        handle = TrackingBytesIO(b"abc\xe2\x82\xacrest")
+        discovery = JavaDiscovery(cast("Finder", SampleFinder()))
+        with (
+            patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4),
+            patch.object(base_module, "from_bytes", return_value=Detection()) as detect,
+        ):
+            self.assertEqual(
+                discovery.detect_encoding({"filemask": "*.properties"}), "utf-8"
+            )
+
+        self.assertEqual(handle.read_sizes, [5])
+        detect.assert_called_once_with(b"abc")
+
+    def test_encoding_discovery_preserves_complete_sample(self) -> None:
+        class Detection:
+            @staticmethod
+            def best() -> None:
+                return None
+
+        content = b"abc\xe2"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "sample.properties").write_bytes(content)
+            discovery = JavaDiscovery(Finder(tmppath))
+            with (
+                patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4),
+                patch.object(
+                    base_module, "from_bytes", return_value=Detection()
+                ) as detect,
+            ):
+                self.assertIsNone(
+                    discovery.detect_encoding({"filemask": "*.properties"})
+                )
+
+        detect.assert_called_once_with(content)
+
+    def test_trim_incomplete_utf8_tail(self) -> None:
+        complete = "Příliš žluťoučký".encode()
+        character = "€".encode()
+        for length in range(1, len(character)):
+            with self.subTest(length=length):
+                self.assertEqual(
+                    base_module._trim_incomplete_unicode_tail(
+                        complete + character[:length]
+                    ),
+                    complete,
+                )
+
+    def test_trim_incomplete_utf16_tail(self) -> None:
+        for byte_order, bom in (
+            ("utf-16-le", b"\xff\xfe"),
+            ("utf-16-be", b"\xfe\xff"),
+        ):
+            complete = bom + "Complete".encode(byte_order)
+            character = "😀".encode(byte_order)
+            for length in range(1, len(character)):
+                with self.subTest(byte_order=byte_order, length=length):
+                    self.assertEqual(
+                        base_module._trim_incomplete_unicode_tail(
+                            complete + character[:length]
+                        ),
+                        complete,
+                    )
+
+    def test_trim_incomplete_utf32_tail(self) -> None:
+        for byte_order, bom in (
+            ("utf-32-le", b"\xff\xfe\x00\x00"),
+            ("utf-32-be", b"\x00\x00\xfe\xff"),
+        ):
+            complete = bom + "Complete".encode(byte_order)
+            character = "€".encode(byte_order)
+            for length in range(1, len(character)):
+                with self.subTest(byte_order=byte_order, length=length):
+                    self.assertEqual(
+                        base_module._trim_incomplete_unicode_tail(
+                            complete + character[:length]
+                        ),
+                        complete,
+                    )
+
+    def test_trim_incomplete_unicode_tail_preserves_interior_errors(self) -> None:
+        content = b"valid\xffinvalid\xe2"
+        self.assertEqual(base_module._trim_incomplete_unicode_tail(content), content)
 
 
 class GettextTest(DiscoveryTestCase):
@@ -1071,7 +1183,7 @@ class JavaTest(DiscoveryTestCase):
             )
 
             discovery = JavaDiscovery(Finder(tmppath))
-            with patch.object(base_module, "from_fp", return_value=Detection()):
+            with patch.object(base_module, "from_bytes", return_value=Detection()):
                 self.assert_discovery(
                     discovery.discover(),
                     [
@@ -1101,7 +1213,7 @@ class JavaTest(DiscoveryTestCase):
             (tmppath / "xwiki/messages_cs.properties").write_text(content)
 
             discovery = JavaDiscovery(Finder(tmppath))
-            with patch.object(base_module, "from_fp", return_value=Detection()):
+            with patch.object(base_module, "from_bytes", return_value=Detection()):
                 self.assert_discovery(
                     discovery.discover(),
                     [
