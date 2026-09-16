@@ -159,6 +159,37 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             {"existing": True, "properties_encoding": "utf-8"},
         )
 
+    def test_encoding_parameter_without_format_mapping(self) -> None:
+        discovery = OSXDiscovery(self.get_finder([]))
+        for file_format in (None, "strings", "json"):
+            with self.subTest(file_format=file_format):
+                result: ResultDict = {"filemask": "*"}
+                if file_format is not None:
+                    result["file_format"] = file_format
+                self.assertEqual(
+                    discovery.get_encoding_parameter(result),
+                    "" if file_format == "json" else "strings_encoding",
+                )
+
+    def test_set_encoding_parameter_for_unsupported_format(self) -> None:
+        discovery = OSXDiscovery(self.get_finder([]))
+        result: ResultDict = {
+            "filemask": "*.json",
+            "file_format": "json",
+            "file_format_params": {"strings_encoding": "utf-8", "existing": True},
+        }
+
+        discovery.set_encoding_parameter(result, "utf-16")
+
+        self.assertEqual(
+            result,
+            {
+                "filemask": "*.json",
+                "file_format": "json",
+                "file_format_params": {"existing": True},
+            },
+        )
+
     def test_encoding_discovery_without_detection_result(self) -> None:
         class Detection:
             @staticmethod
@@ -782,6 +813,11 @@ class QtTest(DiscoveryTestCase):
             sum(call.args == ("*.ts",) for call in filter_masks.call_args_list),
             1,
         )
+
+    def test_ts_version_without_root_element(self) -> None:
+        for content in ("", '<?xml version="1.0"?>'):
+            with self.subTest(content=content):
+                self.assertIsNone(files_module._get_qt_ts_version(content))
 
     def test_detects_ts_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

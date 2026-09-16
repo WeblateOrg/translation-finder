@@ -128,6 +128,8 @@ exclude_also = [
   "raise AssertionError",
   "raise NotImplementedError"
 ]
+fail_under = 100
+omit = ["translation_finder/test_fuzz.py"]
 
 [tool.pytest.ini_options]
 doctest_optionflags = "NORMALIZE_WHITESPACE ALLOW_UNICODE"
