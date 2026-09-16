@@ -1,6 +1,6 @@
 # Copyright © Michal Čihař
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Standalone CI script, not an importable package.
 # ruff: file-ignore[implicit-namespace-package]
