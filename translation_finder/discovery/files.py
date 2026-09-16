@@ -21,6 +21,7 @@ from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 from translation_finder.api import register_discovery
 
 from .base import (
+    FORMAT_SNIFF_MAX_BYTES,
     BaseDiscovery,
     EncodingDiscovery,
     EnglishVariantsDiscovery,
@@ -42,7 +43,6 @@ LARAVEL_BYTES_RE = re.compile(
     re.MULTILINE,
 )
 GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILINE)
-FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 CSV_DIALECT_SNIFF_MAX_CHARS = 1024
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
