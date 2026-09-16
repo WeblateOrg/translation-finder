@@ -1,6 +1,19 @@
 Changelog
 =========
 
+3.5.0
+-----
+
+* Released on 16th September 2026.
+* Changed XLIFF discovery results to use ``xliff`` and ``xliff2`` with the
+  ``xliff_placeables`` file format parameter instead of ``plainxliff`` and
+  ``xliff2-placeables`` format identifiers.
+* Fixed discovery crashes on deeply nested repositories by avoiding recursive
+  directory traversal.
+* Limited encoding detection to bounded file samples to reduce memory usage.
+* Expanded tests and enforced 100% line coverage.
+* Updated test tooling, CI actions, and pre-commit hooks.
+
 3.4.1
 -----
 
