@@ -3,11 +3,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """File finder tests."""
 
+import os
 import pathlib
+import socket
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import tempfile
 from fnmatch import translate
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from .finder import Finder
@@ -166,8 +169,8 @@ class FinderTest(TestCase):
                 return False
 
             @staticmethod
-            def is_dir() -> bool:
-                return True
+            def is_dir(*, follow_symlinks: bool = True) -> bool:
+                return not follow_symlinks
 
         class FakeScandir:
             def __init__(self, entries: list[FakeEntry]) -> None:
@@ -209,8 +212,11 @@ class FinderTest(TestCase):
             def is_symlink() -> bool:
                 return False
 
-            def is_dir(self) -> bool:
+            def is_dir(self, *, follow_symlinks: bool = True) -> bool:
                 return self._is_dir
+
+            def is_file(self, *, follow_symlinks: bool = True) -> bool:
+                return not self._is_dir
 
         class FakeScandir:
             def __init__(self, entries: list[FakeEntry]) -> None:
@@ -287,3 +293,142 @@ class FinderTest(TestCase):
 
         self.assertEqual(finder.files, [])
         self.assertEqual(finder.dirnames, set())
+
+
+class FinderOpenTest(TestCase):
+    def test_open_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "en.json").write_bytes(b'{"hello": "world"}')
+            finder = Finder(root)
+            for nofollow in (getattr(os, "O_NOFOLLOW", 0), 0):
+                with (
+                    self.subTest(nofollow=nofollow),
+                    patch.object(os, "O_NOFOLLOW", nofollow, create=True),
+                ):
+                    with finder.open(pathlib.Path("en.json")) as handle:
+                        self.assertEqual(handle.read(), '{"hello": "world"}')
+                    with finder.open(pathlib.Path("en.json"), "rb") as handle:
+                        self.assertEqual(handle.read(), b'{"hello": "world"}')
+
+    def test_open_fstat_failure_closes_descriptor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "en.json").touch()
+            finder = Finder(root)
+            with (
+                patch.object(os, "fstat", side_effect=OSError("stat failed")),
+                patch.object(os, "close", wraps=os.close) as close,
+                self.assertRaisesRegex(OSError, "stat failed"),
+            ):
+                finder.open(pathlib.Path("en.json"))
+            close.assert_called_once()
+            with self.assertRaises(OSError):
+                os.fstat(close.call_args.args[0])
+
+    def test_open_replaced_directory_without_nofollow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            path = root / "en.json"
+            path.touch()
+            finder = Finder(root)
+            path.unlink()
+            path.mkdir()
+            with (
+                patch.object(os, "O_NOFOLLOW", 0, create=True),
+                self.assertRaisesRegex(OSError, "Not a regular file"),
+            ):
+                finder.open(pathlib.Path("en.json"))
+
+    # Coverage includes tests; platform-specific bodies cannot run on Windows.
+    @skipUnless(sys.platform != "win32", "Requires symlink support")  # pragma: no cover
+    def test_open_replaced_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            path = root / "en.json"
+            path.touch()
+            (root / "target.json").write_text("{}")
+            finder = Finder(root)
+            path.unlink()
+            path.symlink_to(root / "target.json")
+            for nofollow in (getattr(os, "O_NOFOLLOW", 0), 0):
+                with (
+                    self.subTest(nofollow=nofollow),
+                    patch.object(os, "O_NOFOLLOW", nofollow, create=True),
+                    self.assertRaises(OSError),
+                ):
+                    finder.open(pathlib.Path("en.json"))
+
+    @skipUnless(hasattr(os, "mkfifo"), "Requires FIFOs")  # pragma: no cover
+    def test_fifo_discovery_and_replacement_do_not_block(self) -> None:
+        # Keep potentially blocking operations in a child that can be killed.
+        script = """
+import os
+import sys
+from pathlib import Path
+from unittest import TestCase
+from unittest.mock import patch
+from translation_finder import discover
+from translation_finder.finder import Finder
+
+check = TestCase()
+root = Path(sys.argv[1])
+path = root / "en.json"
+os.mkfifo(path)
+finder = Finder(root)
+check.assertFalse(finder.has_file("en.json"))
+check.assertEqual(list(finder.mask_matches("*.json")), [])
+check.assertEqual(list(finder.filter_masks("*.json")), [])
+check.assertEqual(discover(root), [])
+check.assertEqual(discover(root, eager=True), [])
+path.unlink()
+path.write_text('{}')
+check.assertTrue(discover(root))
+finder = Finder(root)
+path.unlink()
+os.mkfifo(path)
+with patch.object(os, "close", wraps=os.close) as close:
+    with check.assertRaises(OSError):
+        finder.open(Path("en.json"), "rb")
+    close.assert_called_once()
+    with check.assertRaises(OSError):
+        os.fstat(close.call_args.args[0])
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true]
+                [sys.executable, "-c", script, tmpdir],
+                check=True,
+                capture_output=True,
+                timeout=10,
+            )
+            self.assertEqual(result.stdout, b"")
+
+    @skipUnless(sys.platform != "win32", "Requires Unix sockets")  # pragma: no cover
+    def test_socket_is_not_indexed(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            socket.socket(socket.AF_UNIX) as server,
+        ):
+            root = pathlib.Path(tmpdir)
+            server.bind(str(root / "en.json"))
+            (root / "cs.json").write_text("{}")
+            finder = Finder(root)
+            self.assertEqual(finder.filenames, {"cs.json"})
+            self.assertEqual(
+                list(finder.filter_masks("*.json")), [pathlib.Path("cs.json")]
+            )
+
+    def test_open_nonregular_descriptor_is_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "en.json").touch()
+            finder = Finder(root)
+            with (
+                patch.object(os, "fstat", return_value=os.stat_result((0,) * 10)),
+                patch.object(os, "close", wraps=os.close) as close,
+                self.assertRaisesRegex(OSError, "Not a regular file"),
+            ):
+                finder.open(pathlib.Path("en.json"))
+            close.assert_called_once()
+            with self.assertRaises(OSError):
+                os.fstat(close.call_args.args[0])

@@ -6,11 +6,14 @@
 
 from __future__ import annotations
 
+import errno
 import operator
+import os
 import re
 from fnmatch import fnmatch, translate
 from os import scandir
 from pathlib import Path, PurePath
+from stat import S_ISREG
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
@@ -185,14 +188,14 @@ class Finder:
             for match in matches:
                 if match.is_symlink():
                     continue
-                is_dir = match.is_dir()
+                is_dir = match.is_dir(follow_symlinks=False)
                 path = Path(match.path)
                 if any(path.match(exclude) for exclude in EXCLUDES):
                     continue
                 if is_dir:
                     dirs.append(self.process_path(path))
                     child_dirs.append(path)
-                else:
+                elif match.is_file(follow_symlinks=False):
                     files.append(self.process_path(path))
 
     def has_file(self, name: str) -> bool:
@@ -301,4 +304,21 @@ class Finder:
         if not isinstance(path_obj, Path):
             msg = "Not a real file"
             raise TypeError(msg)
-        return path_obj.open(mode=mode)
+        return open(path_obj, mode=mode, opener=self._open_regular_file)
+
+    @staticmethod
+    def _open_regular_file(path: str, flags: int) -> int:
+        """Open without blocking on FIFOs and validate before reading."""
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        if not nofollow and not S_ISREG(os.lstat(path).st_mode):
+            raise OSError(errno.EINVAL, "Not a regular file", path)
+        descriptor = os.open(path, flags | nofollow | getattr(os, "O_NONBLOCK", 0))
+        try:
+            mode = os.fstat(descriptor).st_mode
+        except BaseException:
+            os.close(descriptor)
+            raise
+        if not S_ISREG(mode):
+            os.close(descriptor)
+            raise OSError(errno.EINVAL, "Not a regular file", path)
+        return descriptor

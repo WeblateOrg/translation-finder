@@ -469,8 +469,11 @@ class EncodingDiscovery(BaseDiscovery):
             if not isinstance(path, Path):
                 # PurePath only
                 continue
-            with self.finder.open(path, "rb") as handle:
-                content = handle.read(FORMAT_SNIFF_MAX_BYTES + 1)
+            try:
+                with self.finder.open(path, "rb") as handle:
+                    content = handle.read(FORMAT_SNIFF_MAX_BYTES + 1)
+            except OSError:
+                continue
             if len(content) > FORMAT_SNIFF_MAX_BYTES:
                 content = _trim_incomplete_unicode_tail(
                     content[:FORMAT_SNIFF_MAX_BYTES]
