@@ -212,6 +212,21 @@ class DiscoveryBaseTest(DiscoveryTestCase):
         discovery = AppStoreDiscovery(self.get_finder([]))
         self.assertEqual(discovery.get_language_aliases("cs"), ["cs"])
 
+    def test_encoding_discovery_skips_unreadable_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            missing = root / "a.properties"
+            missing.touch()
+            (root / "b.properties").write_bytes(
+                b"\xff\xfe" + "hello=world".encode("utf-16-le")
+            )
+            finder = Finder(root)
+            missing.unlink()
+            discovery = JavaDiscovery(finder)
+            self.assertEqual(
+                discovery.detect_encoding({"filemask": "*.properties"}), "utf-16"
+            )
+
     def test_encoding_discovery_reads_bounded_sample(self) -> None:
         class DetectionResult:
             encoding = "utf_8"

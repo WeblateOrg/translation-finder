@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+* Prevented FIFOs from blocking discovery by skipping special files and
+  validating opened files before reading them.
+
 3.5.0
 -----
 

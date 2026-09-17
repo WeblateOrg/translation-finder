@@ -33,6 +33,8 @@ This library is used by `Weblate`_ to discover translation files in a cloned
 repository. It can operate on both file listings and actual filesystem.
 Filesystem access is needed for more accurate detection in some cases
 (detecting encoding or actual syntax of similar files).
+Filesystem discovery indexes only regular files, skipping symbolic links and
+special files such as FIFOs, sockets, and devices.
 
 Usage
 -----
