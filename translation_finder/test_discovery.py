@@ -1359,6 +1359,21 @@ class ResourceDictionaryTest(DiscoveryTestCase):
 
 
 class XliffTest(DiscoveryTestCase):
+    def test_adjust_format_without_matches(self) -> None:
+        discovery = XliffDiscovery(self.get_finder([]))
+        result: ResultDict = {"filemask": "ghost.xlf"}
+        discovery.adjust_format(result)
+        self.assertEqual(result, {"filemask": "ghost.xlf"})
+
+    def test_existing_hint(self) -> None:
+        discovery = XliffDiscovery(self.get_finder(["ghost.xlf"]))
+        for hint in ("ghost.xlf", "*.xlf"):
+            with self.subTest(hint=hint):
+                self.assertEqual(
+                    list(discovery.get_masks(hint=hint)),
+                    [{"filemask": hint}],
+                )
+
     def test_basic(self) -> None:
         discovery = XliffDiscovery(
             self.get_finder(["locales/cs.xliff", "locales/en.xliff"]),
