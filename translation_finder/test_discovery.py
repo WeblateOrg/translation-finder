@@ -2252,6 +2252,40 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
 
         self.assertEqual(result["file_format"], "ruby-yaml")
 
+    def test_non_string_yaml_key_keeps_format(self) -> None:
+        for content in ("1: hello\n", "? [en, cs]\n: hello\n"):
+            for with_filemask in (False, True):
+                with (
+                    self.subTest(content=content, with_filemask=with_filemask),
+                    tempfile.TemporaryDirectory() as tmpdir,
+                ):
+                    tmppath = Path(tmpdir)
+                    (tmppath / "en.yml").write_text(content)
+                    discovery = YAMLDiscovery(Finder(tmppath))
+                    result: ResultDict = {
+                        "template": "en.yml",
+                        "file_format": "yaml",
+                    }
+                    if with_filemask:
+                        result["filemask"] = "*.yml"
+                    expected = result.copy()
+
+                    discovery.adjust_format(result)
+
+                    self.assertEqual(result, expected)
+
+    def test_numeric_yaml_key_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("1: hello\n")
+            (tmppath / "cs.yml").write_text("1: ahoj\n")
+            discovery = YAMLDiscovery(Finder(tmppath))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
+            )
+
     def test_parser_error_is_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
