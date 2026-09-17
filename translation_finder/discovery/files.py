@@ -389,9 +389,9 @@ class XliffDiscovery(BaseDiscovery):
         """Override detected format, based on the file content."""
         base = result["template"] if "template" in result else result["filemask"]
 
-        path = next(iter(self.finder.mask_matches(base)))
+        path = next(iter(self.finder.mask_matches(base)), None)
 
-        if not hasattr(path, "open"):
+        if path is None or not hasattr(path, "open"):
             return
 
         sample = _read_binary_sniff_sample(self.finder, path)

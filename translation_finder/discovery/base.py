@@ -361,7 +361,10 @@ class BaseDiscovery:
         """
         if hint:
             for mask in self.masks_list:
-                if fnmatch.fnmatch(hint, mask):
+                if (
+                    fnmatch.fnmatch(hint, mask)
+                    and next(self.finder.mask_matches(hint), None) is not None
+                ):
                     yield {"filemask": hint}
         for path in self.filter_files():
             parts = list(path.parts)

@@ -17,6 +17,12 @@ TEST_DATA = pathlib.Path(__file__).parent / "test_data"
 class APITest(DiscoveryTestCase):
     maxDiff = None
 
+    def test_discover_nonexistent_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for hint in ("ghost.xlf", "*.xlf", "ghost.po", "*.po"):
+                with self.subTest(hint=hint):
+                    self.assert_discovery(discover(tmpdir, hint=hint), [])
+
     def test_discover(self) -> None:
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         self.assert_discovery(
