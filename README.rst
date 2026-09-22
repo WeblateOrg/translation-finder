@@ -86,4 +86,8 @@ Or command line:
    filemask       : locales/*.po
    new_base       : locales/messages.pot
 
+Non-printable characters in command-line results are displayed as visible
+escapes (for example, ``\n`` and ``\x1b``). The Python API returns the original
+values unchanged.
+
 .. _Weblate: https://weblate.org/

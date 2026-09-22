@@ -60,6 +60,14 @@ def discover(
     return results
 
 
+def _escape_terminal(value: object) -> str:
+    """Render non-printable characters as visible escapes for terminal output."""
+    return "".join(
+        char if char.isprintable() else char.encode("unicode_escape").decode("ascii")
+        for char in str(value)
+    )
+
+
 def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
     """Command line execution entry point."""
     stdout = stdout if stdout is not None else sys.stdout
@@ -90,9 +98,13 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
             hint=params.hint,
         ),
     ):
-        origin = " ({})".format(match.meta["origin"]) if match.meta["origin"] else ""
+        origin = (
+            f" ({_escape_terminal(match.meta['origin'])})"
+            if match.meta["origin"]
+            else ""
+        )
         print(f"== Match {pos + 1}{origin} ==", file=stdout)
         for key, value in sorted(match.items()):
-            print(f"{key:15}: {value}", file=stdout)
+            print(f"{_escape_terminal(key):15}: {_escape_terminal(value)}", file=stdout)
         print(file=stdout)
     return 0

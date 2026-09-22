@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Escaped non-printable characters in command-line results to prevent terminal
+  control sequences and injected output lines.
 * Prevented FIFOs from blocking discovery by skipping special files and
   validating opened files before reading them.
 

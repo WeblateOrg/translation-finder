@@ -6,8 +6,10 @@
 import pathlib
 import tempfile
 from io import StringIO
+from unittest.mock import patch
 
 from .api import cli, discover
+from .discovery.result import DiscoveryResult
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
 
@@ -264,6 +266,68 @@ class APITest(DiscoveryTestCase):
         output = StringIO()
         cli(args=[TEST_DATA.as_posix()], stdout=output)
         self.assertIn("Match 2", output.getvalue())
+
+    def test_cli_escape_controls(self) -> None:
+        controls = "".join(chr(code) for code in (*range(32), *range(127, 160)))
+        value = f"překlady/日本語{controls}\u2028\u2029\u202e\udcff.po"
+        result = DiscoveryResult({"filemask": value})
+        result.meta["origin"] = value
+        output = StringIO()
+        with patch("translation_finder.api.discover", return_value=[result]):
+            self.assertEqual(cli(args=["."], stdout=output), 0)
+
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(all(line.isprintable() for line in lines))
+        self.assertIn("překlady/日本語", lines[1])
+        self.assertIn(r"\x1b", lines[1])
+        self.assertIn(r"\n", lines[1])
+        self.assertIn(r"\u2028\u2029\u202e\udcff.po", lines[1])
+        self.assertEqual(result["filemask"], value)
+        self.assertEqual(result.meta["origin"], value)
+
+    def test_cli_escape_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            source = root / "cs.po"
+            source.touch()
+            # Windows forbids control characters in real filesystem paths.
+            path = "locales\n\x1b[31m/cs.po"
+            results = discover(root, mock=([(source, PurePath(path), path)], []))
+            output = StringIO()
+            with patch("translation_finder.api.discover", return_value=results):
+                cli(args=[tmpdir], stdout=output)
+
+        self.assertEqual(
+            output.getvalue(),
+            "== Match 1 ==\n"
+            "file_format    : po\n"
+            "filemask       : locales\\n\\x1b[31m/*.po\n\n",
+        )
+
+    def test_cli_escape_transifex(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").write_text(
+                "[překlady\x1b]0;title\x07]\n"
+                "file_filter = locales/<lang>.po\n"
+                "source_file = source\n"
+                "  injected\x1b[31m.pot\n"
+                "type = PO\n",
+                encoding="utf-8",
+            )
+            output = StringIO()
+            cli(args=[tmpdir], stdout=output)
+
+        self.assertEqual(
+            output.getvalue(),
+            "== Match 1 (Transifex) ==\n"
+            "file_format    : po\n"
+            "filemask       : locales/*.po\n"
+            "name           : překlady\\x1b]0;title\\x07\n"
+            "new_base       : source\\ninjected\\x1b[31m.pot\n\n",
+        )
 
     def test_no_match(self) -> None:
         paths = ["files/document.odt"]
