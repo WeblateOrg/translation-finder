@@ -12,7 +12,7 @@ import tempfile
 from configparser import RawConfigParser
 from io import BytesIO
 from operator import itemgetter
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PurePosixPath
 from time import monotonic
 from typing import TYPE_CHECKING, cast
 from unittest import TestCase
@@ -105,6 +105,21 @@ class DiscoveryTestCase(TestCase):
 
 
 class DiscoveryBaseTest(DiscoveryTestCase):
+    def test_wildcard_replacement_treats_backslashes_literally(self) -> None:
+        checks = (
+            (r"locales/x\g<99>-en.po", r"locales/x\g<99>-*.po"),
+            (r"locales/x\X-en.po", r"locales/x\X-*.po"),
+        )
+        for path, expected in checks:
+            with self.subTest(path=path):
+                pure_path = PurePosixPath(path)
+                finder = Finder(
+                    PurePosixPath(), mock=([(pure_path, pure_path, path)], [])
+                )
+                discovery = BaseDiscovery(finder)
+
+                self.assertEqual(list(discovery.get_masks()), [{"filemask": expected}])
+
     def test_explicit_source_language_template(self) -> None:
         discovery = JSONDiscovery(self.get_finder(["locale/cs.json"]))
         result: ResultDict = {"filemask": "locale/*.json"}
