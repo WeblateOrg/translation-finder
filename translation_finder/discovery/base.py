@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
+from functools import partial
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -33,6 +34,11 @@ TOKEN_SPLIT = re.compile(r"([_.-])")
 LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
+
+
+def _replace_with_wildcard(found: re.Match[str], *, wildcard: str) -> str:
+    """Replace a match while treating the wildcard as literal text."""
+    return f"{found.group(1)}{wildcard}{found.group(2)}"
 
 
 def _trim_incomplete_unicode_tail(content: bytes) -> bytes:
@@ -390,7 +396,8 @@ class BaseDiscovery:
                         if match.findall(current):
                             skip.add(i)
                             mask_parts[i] = match.sub(
-                                f"\\g<1>{wildcard}\\g<2>", current
+                                partial(_replace_with_wildcard, wildcard=wildcard),
+                                current,
                             )
                     mask_parts[pos] = wildcard
                     yield {"filemask": "/".join(mask_parts)}
