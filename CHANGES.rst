@@ -1,14 +1,18 @@
 Changelog
 =========
 
-Unreleased
-----------
+3.5.1
+-----
 
+* Released on 24th September 2026.
 * Prevented crafted filenames containing backslashes from aborting discovery.
 * Escaped non-printable characters in command-line results to prevent terminal
   control sequences and injected output lines.
 * Prevented FIFOs from blocking discovery by skipping special files and
   validating opened files before reading them.
+* Ignored discovery hints that do not match existing files.
+* Fixed Ruby-YAML detection with non-string keys.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.5.0
 -----
