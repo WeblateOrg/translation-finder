@@ -11,6 +11,7 @@ import json
 import tempfile
 from configparser import RawConfigParser
 from io import BytesIO
+from itertools import product
 from operator import itemgetter
 from pathlib import Path, PurePath, PurePosixPath
 from time import monotonic
@@ -23,7 +24,6 @@ from .discovery import files as files_module
 from .discovery import transifex as transifex_module
 from .discovery.base import BaseDiscovery, DiscoveryResult
 from .discovery.files import (
-    YAML_INSPECTION_MAX_DEPTH,
     AndroidDiscovery,
     AppStoreDiscovery,
     ARBDiscovery,
@@ -1902,6 +1902,20 @@ type = PO
             with patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_BYTES", 4):
                 self.assert_discovery(discovery.discover(), [])
 
+    def test_oversized_config_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".tx").mkdir()
+            (root / ".tx" / "config").write_text(
+                "[translation]\nfile_filter = " + " " * 64 + "invalid\n",
+                encoding="utf-8",
+            )
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            with patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_LINE_BYTES", 32):
+                self.assert_discovery(discovery.discover(), [])
+
     def test_config_io_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -2242,26 +2256,6 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
         discovery.adjust_format(result)
         self.assertEqual(result, {"filemask": "translations/*.yml"})
 
-    def test_parser_warning(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
-            (tmppath / "en.yml").write_text("hello: world\n")
-            (tmppath / "cs.yml").write_text("hello: svet\n")
-            discovery = YAMLDiscovery(Finder(tmppath))
-
-            with (
-                patch.object(
-                    files_module.YAML, "load", side_effect=ValueError("broken")
-                ),
-                self.assertWarnsRegex(UserWarning, "Could not parse YAML: broken"),
-            ):
-                results = list(discovery.discover())
-
-        self.assert_discovery(
-            results,
-            [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
-        )
-
     def test_ruby_yaml_without_filemask(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
@@ -2331,19 +2325,55 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
             )
 
-    def test_parser_error_is_ignored(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
-            (tmppath / "en.yml").write_text("en:\n  hello: world\n")
-            discovery = YAMLDiscovery(Finder(tmppath))
-            result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
-
-            with patch.object(
-                files_module.YAML, "load", side_effect=files_module.YAMLError
+    def test_ruby_yaml_header_variants(self) -> None:
+        for key, marker in product(
+            ("en", "'en'", '"en"'), ("---", "--- # translations")
+        ):
+            content = f"%YAML 1.2\n{marker}\n# comment\n{key}: # locale\n  hello: world\n...\n"
+            with (
+                self.subTest(key=key, marker=marker),
+                tempfile.TemporaryDirectory() as tmpdir,
             ):
+                tmppath = Path(tmpdir)
+                (tmppath / "en.yml").write_text(content)
+                discovery = YAMLDiscovery(Finder(tmppath))
+                result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
+
                 discovery.adjust_format(result)
 
-        self.assertNotIn("file_format", result)
+            self.assertEqual(result["file_format"], "ruby-yaml")
+
+    def test_ruby_yaml_inline_root_values(self) -> None:
+        for value in ("{}", "{hello: world}", "&base"):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as tmpdir:
+                tmppath = Path(tmpdir)
+                (tmppath / "en.yml").write_text(f"en: {value}\n")
+                discovery = YAMLDiscovery(Finder(tmppath))
+                result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
+
+                discovery.adjust_format(result)
+
+            self.assertEqual(result["file_format"], "ruby-yaml")
+
+    def test_yaml_content_after_document_end_keeps_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("en:\n  hello: world\n...\ncs:\n")
+            discovery = YAMLDiscovery(Finder(tmppath))
+            result: ResultDict = {
+                "filemask": "*.yml",
+                "file_format": "yaml",
+                "template": "en.yml",
+            }
+
+            discovery.adjust_format(result)
+
+        self.assertEqual(result["file_format"], "yaml")
+
+    def test_additional_root_key_keeps_format(self) -> None:
+        self.assertIsNone(
+            files_module._get_ruby_yaml_root_key("en:\n  hello: world\ncs:\n")
+        )
 
     def test_multi_key_yaml_keeps_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2357,15 +2387,12 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 [{"filemask": "*.yml", "file_format": "yaml", "template": "en.yml"}],
             )
 
-    def test_deep_yaml_keeps_format(self) -> None:
+    def test_deep_yaml_detects_ruby_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             lines = ["en:"]
-            lines.extend(
-                f"{'  ' * (depth + 1)}level_{depth}:"
-                for depth in range(YAML_INSPECTION_MAX_DEPTH + 1)
-            )
-            lines.append(f"{'  ' * (YAML_INSPECTION_MAX_DEPTH + 2)}leaf: value")
+            lines.extend(f"{'  ' * (depth + 1)}level_{depth}:" for depth in range(1000))
+            lines.append(f"{'  ' * 1001}leaf: value")
             (tmppath / "en.yml").write_text("\n".join(lines))
 
             discovery = YAMLDiscovery(Finder(tmppath))
@@ -2376,7 +2403,22 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
             }
             discovery.adjust_format(result)
 
-        self.assertEqual(result["file_format"], "yaml")
+        self.assertEqual(result["file_format"], "ruby-yaml")
+
+    def test_flow_nesting_payload_detects_root_without_parsing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("en: " + "[" * 1000 + "]" * 1000)
+            discovery = YAMLDiscovery(Finder(tmppath))
+            result: ResultDict = {
+                "filemask": "*.yml",
+                "file_format": "yaml",
+                "template": "en.yml",
+            }
+
+            discovery.adjust_format(result)
+
+        self.assertEqual(result["file_format"], "ruby-yaml")
 
 
 class TOMLDiscoveryTest(DiscoveryTestCase):
@@ -2406,29 +2448,31 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
         discovery.adjust_format(result)
         self.assertEqual(result, {"filemask": "translations/*.toml"})
 
-    def test_parser_warning(self) -> None:
+    def test_malformed_toml_keeps_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             (tmppath / "en.toml").write_text("[broken\n")
             (tmppath / "cs.toml").write_text("[broken\n")
 
             discovery = TOMLDiscovery(Finder(tmppath))
-            with self.assertWarnsRegex(UserWarning, "Could not parse TOML"):
-                self.assert_discovery(
-                    discovery.discover(),
-                    [
-                        {
-                            "filemask": "*.toml",
-                            "file_format": "toml",
-                            "template": "en.toml",
-                        },
-                    ],
-                )
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "*.toml",
+                        "file_format": "toml",
+                        "template": "en.toml",
+                    },
+                ],
+            )
 
-    def test_adjust_format_recursion_error_warning(self) -> None:
+    def test_multiline_string_does_not_trigger_detection(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
-            (tmppath / "en.toml").write_text("[a]\nb = 1\n", encoding="utf-8")
+            (tmppath / "en.toml").write_text(
+                "text = '''\n[[messages]]\nid = \"fake\"\n'''\n",
+                encoding="utf-8",
+            )
             discovery = TOMLDiscovery(Finder(tmppath))
             result: ResultDict = {
                 "filemask": "*.toml",
@@ -2436,15 +2480,7 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                 "template": "en.toml",
             }
 
-            with (
-                patch.object(
-                    files_module.tomllib,
-                    "loads",
-                    side_effect=RecursionError("too deep"),
-                ),
-                self.assertWarnsRegex(UserWarning, "Could not parse TOML: too deep"),
-            ):
-                discovery.adjust_format(result)
+            discovery.adjust_format(result)
 
         self.assertEqual(
             result,
@@ -2455,7 +2491,57 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
             },
         )
 
-    def test_deeply_nested_toml_does_not_crash_discovery(self) -> None:
+    def test_escaped_multiline_delimiter_does_not_hide_messages(self) -> None:
+        self.assertTrue(
+            files_module._is_go_i18n_toml(
+                'text = """\nescaped \\""" still text\n"""\n'
+                '[[messages]]\nid = "hello"\n'
+            )
+        )
+
+    def test_toml_lexical_detection(self) -> None:
+        self.assertTrue(
+            files_module._is_go_i18n_toml(
+                'title = "escaped \\" quote" # comment\n'
+                "[[messages]] # comment\n"
+                'description = "Greeting"\n'
+                'id = "hello"\n'
+            )
+        )
+        self.assertFalse(
+            files_module._is_go_i18n_toml(
+                '[[messages]]\n[[messages.metadata]]\nid = "not-first-message"\n'
+            )
+        )
+
+    def test_toml_quoted_keys(self) -> None:
+        for quote in ("'", '"'):
+            with self.subTest(quote=quote):
+                self.assertTrue(
+                    files_module._is_go_i18n_toml(
+                        f"[[{quote}messages{quote}]]\n"
+                        f"{quote}id{quote} = {quote}hello{quote}\n"
+                    )
+                )
+
+    def test_toml_inline_messages(self) -> None:
+        for content in (
+            'messages = [{ id = "hello" }]\n',
+            "'messages' = [\n  { description = 'Greeting',\n    'id' = 'hello' }\n]\n",
+        ):
+            with self.subTest(content=content):
+                self.assertTrue(files_module._is_go_i18n_toml(content))
+
+        for content in (
+            'messages = [{ metadata = { id = "nested" } }]\n',
+            "messages = [\n  { description = 'No identifier' }\n]\n",
+            'messages = ["metadata", { id = "not-first" }]\n',
+            "messages = [{ ]\n",
+        ):
+            with self.subTest(content=content):
+                self.assertFalse(files_module._is_go_i18n_toml(content))
+
+    def test_deeply_nested_toml_does_not_trigger_detection(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
             content = "[a]\nb = " + "[" * 5000 + "]" * 5000 + "\n"
@@ -2463,8 +2549,7 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
             (tmppath / "cs.toml").write_text(content, encoding="utf-8")
             discovery = TOMLDiscovery(Finder(tmppath))
 
-            with self.assertWarnsRegex(UserWarning, "Could not parse TOML"):
-                results = list(discovery.discover())
+            results = list(discovery.discover())
 
         self.assert_discovery(
             results,
@@ -2476,6 +2561,26 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                 },
             ],
         )
+
+    def test_deep_table_many_keys_toml_runtime(self) -> None:
+        depth = 998
+        content = (
+            "["
+            + ".".join(f"h{index}" for index in range(depth))
+            + "]\n"
+            + "".join(f"k{index}=1\n" for index in range(10_000))
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.toml").write_text(content, encoding="utf-8")
+            discovery = TOMLDiscovery(Finder(tmppath))
+
+            start = monotonic()
+            results = list(discovery.discover())
+            duration = monotonic() - start
+
+        self.assertEqual(results[0]["file_format"], "toml")
+        self.assertLess(duration, 1)
 
 
 class ARBDiscoveryTest(DiscoveryTestCase):
@@ -2662,25 +2767,74 @@ class CSVHelperTest(DiscoveryTestCase):
         )
         self.assertIsNone(sample)
 
-    def test_read_csv_rows_with_sniffer_fallback(self) -> None:
-        with patch.object(files_module.csv.Sniffer, "sniff", side_effect=csv.Error):
-            self.assertEqual(
-                self._read_rows("source,target\nHello,Ahoj\n"),
-                [["source", "target"], ["Hello", "Ahoj"]],
-            )
+    def test_detect_csv_delimiters(self) -> None:
+        for delimiter in files_module.CSV_DELIMITERS:
+            with self.subTest(delimiter=delimiter):
+                content = f"source{delimiter}target\nHello{delimiter}Ahoj\n"
+                self.assertEqual(
+                    files_module._detect_csv_dialect(content), (delimiter, '"', False)
+                )
 
-    def test_read_csv_rows_limits_dialect_sniffer_input(self) -> None:
+        sample = "a,b\n" * (files_module.CSV_SAMPLE_ROWS + 1)
+        self.assertEqual(files_module._detect_csv_dialect(sample), (",", '"', False))
+
+    def test_detect_csv_quote_character(self) -> None:
+        content = "source,target\n'hello, world','ahoj, svete'\n"
+        self.assertEqual(files_module._detect_csv_dialect(content), (",", "'", False))
+        self.assertEqual(
+            self._read_rows(content),
+            [["source", "target"], ["hello, world", "ahoj, svete"]],
+        )
+
+    def test_detect_csv_delimiter_does_not_prefer_more_columns(self) -> None:
+        content = 'a;a,b,c\na;"a,b,c"\n'
+        self.assertEqual(files_module._detect_csv_dialect(content), (";", '"', False))
+        self.assertEqual(self._read_rows(content), [["a", "a,b,c"], ["a", "a,b,c"]])
+
+    def test_detect_csv_quote_syntax_before_embedded_delimiter(self) -> None:
+        content = "source,target\n" + "'hello','ahoj'\n" * 70
+        content += "'hello, world','ahoj, svete'\n"
+
+        self.assertGreater(len(content), files_module.CSV_DIALECT_SNIFF_MAX_CHARS)
+        self.assertEqual(
+            files_module._detect_csv_dialect(
+                content[: files_module.CSV_DIALECT_SNIFF_MAX_CHARS]
+            ),
+            (",", "'", False),
+        )
+        self.assertTrue(files_module._is_csv_simple(self._read_rows(content) or []))
+
+    def test_detect_csv_skipinitialspace(self) -> None:
+        content = 'source, target\nfoo, "hello, world"\n'
+        self.assertEqual(files_module._detect_csv_dialect(content), (",", '"', True))
+        self.assertEqual(
+            self._read_rows(content),
+            [["source", "target"], ["foo", "hello, world"]],
+        )
+
+    def test_read_csv_rows_limits_delimiter_sample(self) -> None:
         content = ',"' + "a" * 5 + '",' * 2048
         with patch.object(
-            files_module.csv.Sniffer, "sniff", return_value=csv.excel
-        ) as sniff:
+            files_module,
+            "_detect_csv_dialect",
+            wraps=files_module._detect_csv_dialect,
+        ) as detect:
             self._read_rows(content)
 
-        sniff.assert_called_once()
-        sample = sniff.call_args.args[0]
+        detect.assert_called_once()
+        sample = detect.call_args.args[0]
         self.assertEqual(sample, content[: files_module.CSV_DIALECT_SNIFF_MAX_CHARS])
         self.assertLessEqual(len(sample), 1024)
-        self.assertEqual(sniff.call_args.kwargs, {"delimiters": ",;\t"})
+
+    def test_csv_sniffer_backtracking_payload(self) -> None:
+        iterations = 100
+        content = '"",' * iterations + '"' * iterations + "0" + '"' * iterations + "0"
+
+        start = monotonic()
+        self._read_rows(content)
+        duration = monotonic() - start
+
+        self.assertLess(duration, 0.1)
 
     def test_read_csv_rows_skips_empty_rows(self) -> None:
         self.assertEqual(
@@ -2961,14 +3115,7 @@ class FormatSniffLimitTest(DiscoveryTestCase):
                 "template": "en.yml",
             }
 
-            with (
-                patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32),
-                patch.object(
-                    files_module.YAML,
-                    "load",
-                    side_effect=AssertionError("parser should not run"),
-                ),
-            ):
+            with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
                 discovery.adjust_format(result)
 
         self.assertEqual(result["file_format"], "yaml")
@@ -3048,14 +3195,7 @@ class FormatSniffLimitTest(DiscoveryTestCase):
                 "template": "en.toml",
             }
 
-            with (
-                patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32),
-                patch.object(
-                    files_module.tomllib,
-                    "loads",
-                    side_effect=AssertionError("parser should not run"),
-                ),
-            ):
+            with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
                 discovery.adjust_format(result)
 
         self.assertEqual(result["file_format"], "toml")

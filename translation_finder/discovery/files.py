@@ -9,14 +9,11 @@ from __future__ import annotations
 import csv
 import json
 import re
-import tomllib
 import warnings
 from io import StringIO
+from itertools import product
 from typing import TYPE_CHECKING, ClassVar
 from xml.parsers import expat
-
-from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError, YAMLFutureWarning
 
 from translation_finder.api import register_discovery
 
@@ -46,7 +43,18 @@ GWT_PLURAL_RE = re.compile(r"^[^#!\s][^:=\n]*\[[a-zA-Z_]+\]\s*[:=]", re.MULTILIN
 CSV_DIALECT_SNIFF_MAX_CHARS = 1024
 CSV_SAMPLE_ROWS = 100
 SIMPLE_CSV_COLUMNS = 2
-YAML_INSPECTION_MAX_DEPTH = 128
+CSV_DELIMITERS = ",;\t"
+CSV_QUOTECHARS = "\"'"
+RUBY_YAML_ROOT_RE = re.compile(
+    r'^(?:"(?P<double>[A-Za-z0-9_.@-]+)"|\'(?P<single>[A-Za-z0-9_.@-]+)\'|'
+    r"(?P<plain>[A-Za-z0-9_.@-]+)):(?=[ \t]|$)"
+)
+TOML_MESSAGES_KEY = r'(?:messages|"messages"|\'messages\')'
+TOML_ID_KEY = r'(?:id|"id"|\'id\')'
+TOML_MESSAGES_RE = re.compile(rf"^\s*\[\[\s*{TOML_MESSAGES_KEY}\s*\]\]\s*$")
+TOML_INLINE_MESSAGES_RE = re.compile(rf"^\s*{TOML_MESSAGES_KEY}\s*=\s*\[")
+TOML_TABLE_RE = re.compile(r"^\s*\[")
+TOML_ID_RE = re.compile(rf"\s*{TOML_ID_KEY}\s*=")
 CSV_FIELDNAMES = {
     "context",
     "developer_comments",
@@ -235,16 +243,18 @@ def _read_csv_rows(finder: Finder, path: PurePath) -> list[list[str]] | None:
     if not text or not any(delimiter in text for delimiter in ",;\t"):
         return None
 
-    try:
-        dialect = csv.Sniffer().sniff(
-            text[:CSV_DIALECT_SNIFF_MAX_CHARS], delimiters=",;\t"
-        )
-    except csv.Error:
-        dialect = csv.excel
+    delimiter, quotechar, skipinitialspace = _detect_csv_dialect(
+        text[:CSV_DIALECT_SNIFF_MAX_CHARS]
+    )
 
     rows: list[list[str]] = []
     try:
-        for row in csv.reader(StringIO(text), dialect):
+        for row in csv.reader(
+            StringIO(text),
+            delimiter=delimiter,
+            quotechar=quotechar,
+            skipinitialspace=skipinitialspace,
+        ):
             if not any(row):
                 continue
             rows.append(row)
@@ -253,6 +263,246 @@ def _read_csv_rows(finder: Finder, path: PurePath) -> list[list[str]] | None:
     except csv.Error:
         return None
     return rows
+
+
+def _csv_dialect_syntax_score(
+    sample: str, delimiter: str, quotechar: str, *, skipinitialspace: bool
+) -> tuple[int, int]:
+    """Score quote and whitespace syntax for a possible CSV dialect."""
+    field_prefix = delimiter + (" " if skipinitialspace else "") + quotechar
+    quote_starts = sample.count(field_prefix)
+    quote_starts += sum(
+        line.lstrip(" ").startswith(quotechar)
+        if skipinitialspace
+        else line.startswith(quotechar)
+        for line in sample.splitlines()
+    )
+    delimiter_count = sample.count(delimiter)
+    spaced_delimiters = sample.count(delimiter + " ")
+    spacing_score = 2 * spaced_delimiters - delimiter_count
+    if not skipinitialspace:
+        spacing_score = -spacing_score
+    return quote_starts, spacing_score
+
+
+def _csv_width_counts(
+    sample: str, delimiter: str, quotechar: str, *, skipinitialspace: bool
+) -> dict[int, int]:
+    """Count parsed row widths for a possible CSV dialect."""
+    widths: dict[int, int] = {}
+    try:
+        for position, row in enumerate(
+            csv.reader(
+                StringIO(sample),
+                delimiter=delimiter,
+                quotechar=quotechar,
+                skipinitialspace=skipinitialspace,
+            )
+        ):
+            if position >= CSV_SAMPLE_ROWS:
+                break
+            if any(row):
+                width = len(row)
+                widths[width] = widths.get(width, 0) + 1
+    except csv.Error:
+        return {}
+    return widths
+
+
+def _detect_csv_dialect(sample: str) -> tuple[str, str, bool]:
+    """Detect supported CSV dialect fields without regex-based sniffing."""
+    best_dialect = (",", '"', False)
+    best_score = (0, 0, 0, 0)
+    for delimiter, quotechar, skipinitialspace in product(
+        CSV_DELIMITERS, CSV_QUOTECHARS, (False, True)
+    ):
+        widths = _csv_width_counts(
+            sample,
+            delimiter,
+            quotechar,
+            skipinitialspace=skipinitialspace,
+        )
+        syntax_score = _csv_dialect_syntax_score(
+            sample,
+            delimiter,
+            quotechar,
+            skipinitialspace=skipinitialspace,
+        )
+        for width, count in widths.items():
+            score = (count, -width, *syntax_score)
+            if width > 1 and score > best_score:
+                best_score = score
+                best_dialect = (delimiter, quotechar, skipinitialspace)
+    return best_dialect
+
+
+def _get_ruby_yaml_root_key(content: str) -> str | None:
+    """Return a conventional single Ruby-YAML root key without parsing YAML."""
+    root_key: str | None = None
+    document_ended = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if document_ended:
+            return None
+        if root_key is None:
+            if stripped == "---" or stripped.startswith(("%", "--- #")):
+                continue
+            if line[0].isspace() or not (match := RUBY_YAML_ROOT_RE.match(line)):
+                return None
+            root_key = next(value for value in match.groupdict().values() if value)
+            continue
+        if stripped == "...":
+            document_ended = True
+        elif not line[0].isspace():
+            return None
+    return root_key
+
+
+def _toml_line_code(line: str, multiline_quote: str | None) -> tuple[str, str | None]:
+    """Return TOML syntax outside strings and the multiline string state."""
+    code: list[str] = []
+    position = 0
+    while position < len(line):
+        if multiline_quote is not None:
+            end = _find_toml_multiline_end(line, multiline_quote, position)
+            if end == -1:
+                return "".join(code), multiline_quote
+            position = end + len(multiline_quote)
+            multiline_quote = None
+            continue
+
+        if line[position] == "#":
+            break
+        if line.startswith(('"""', "'''"), position):
+            multiline_quote = line[position : position + 3]
+            position += 3
+            continue
+        if line[position] in "\"'":
+            quote = line[position]
+            start = position
+            position += 1
+            while position < len(line):
+                if quote == '"' and line[position] == "\\":
+                    position += 2
+                elif line[position] == quote:
+                    position += 1
+                    break
+                else:
+                    position += 1
+            value = line[start + 1 : position - 1]
+            code.append(
+                line[start:position] if value in {"id", "messages"} else quote * 2
+            )
+            continue
+        code.append(line[position])
+        position += 1
+    return "".join(code), multiline_quote
+
+
+def _find_toml_multiline_end(line: str, quote: str, start: int) -> int:
+    """Find an unescaped TOML multiline string delimiter."""
+    position = line.find(quote, start)
+    while position != -1 and quote == '"""':
+        backslashes = 0
+        previous = position - 1
+        while previous >= start and line[previous] == "\\":
+            backslashes += 1
+            previous -= 1
+        if backslashes % 2 == 0:
+            break
+        position = line.find(quote, position + 1)
+    return position
+
+
+def _is_go_i18n_toml(content: str) -> bool:
+    """Detect go-i18n TOML using a bounded, linear lexical scan."""
+    in_messages = False
+    at_root = True
+    inline_stack: list[str] | None = None
+    inline_expects_key = False
+    multiline_quote: str | None = None
+    for line in content.splitlines():
+        code, multiline_quote = _toml_line_code(line, multiline_quote)
+        if not code.strip():
+            continue
+        if inline_stack is not None:
+            found, inline_expects_key = _scan_toml_inline_message(
+                code, inline_stack, expects_key=inline_expects_key
+            )
+            if found:
+                return True
+            if not inline_stack:
+                return False
+            continue
+        if not in_messages:
+            if TOML_MESSAGES_RE.fullmatch(code) is not None:
+                in_messages = True
+                continue
+            if at_root and (match := TOML_INLINE_MESSAGES_RE.match(code)):
+                inline_stack = ["["]
+                found, inline_expects_key = _scan_toml_inline_message(
+                    code[match.end() :], inline_stack, expects_key=False
+                )
+                if found:
+                    return True
+                if not inline_stack:
+                    return False
+                continue
+            if TOML_TABLE_RE.match(code):
+                at_root = False
+            continue
+        if (result := _toml_message_table_result(code)) is not None:
+            return result
+    return False
+
+
+def _toml_message_table_result(code: str) -> bool | None:
+    """Return a decision when a go-i18n messages table starts or ends."""
+    if TOML_ID_RE.match(code):
+        return True
+    if TOML_TABLE_RE.match(code):
+        return False
+    return None
+
+
+def _scan_toml_inline_message(
+    code: str, stack: list[str], *, expects_key: bool
+) -> tuple[bool, bool]:
+    """Scan the first table in an inline go-i18n messages array."""
+    closing = {"[": "]", "{": "}"}
+    position = 0
+    while position < len(code):
+        character = code[position]
+        if character.isspace():
+            position += 1
+            continue
+        if stack == ["[", "{"] and expects_key and TOML_ID_RE.match(code, position):
+            return True, False
+        if stack == ["["]:
+            if character != "{":
+                stack.clear()
+                return False, False
+            stack.append(character)
+            expects_key = True
+            position += 1
+            continue
+        if character in closing:
+            stack.append(character)
+        elif character in closing.values():
+            if not stack or closing[stack[-1]] != character:
+                stack.clear()
+                return False, False
+            closes_message = stack == ["[", "{"]
+            stack.pop()
+            if closes_message or not stack:
+                stack.clear()
+                return False, False
+        elif stack == ["[", "{"]:
+            expects_key = character == ","
+        position += 1
+    return False, expects_key
 
 
 def _csv_header(rows: list[list[str]]) -> list[str]:
@@ -954,26 +1204,14 @@ class YAMLDiscovery(BaseDiscovery):
         content = _read_text_sniff_content(self.finder, path)
         if content is None:
             return
-        yaml = YAML()
-        yaml.max_depth = YAML_INSPECTION_MAX_DEPTH
-        try:
-            data = yaml.load(content)
-        except (YAMLError, YAMLFutureWarning):
+        key = _get_ruby_yaml_root_key(content)
+        if key is None:
             return
-        except (OSError, UnicodeError, TypeError, ValueError) as error:
-            # Weird errors can happen when parsing YAML, handle them gracefully, but
-            # emit a warning
-            warnings.warn(f"Could not parse YAML: {error}", stacklevel=0)
-            return
-        if isinstance(data, dict) and len(data) == 1:
-            key = next(iter(data.keys()))
-            if not isinstance(key, str):
-                return
-            if "filemask" in result:
-                if result["filemask"].replace("*", key) == result["template"]:
-                    result["file_format"] = "ruby-yaml"
-            elif key in result["template"]:
+        if "filemask" in result:
+            if result["filemask"].replace("*", key) == result["template"]:
                 result["file_format"] = "ruby-yaml"
+        elif key in result["template"]:
+            result["file_format"] = "ruby-yaml"
 
 
 @register_discovery
@@ -1136,21 +1374,7 @@ class TOMLDiscovery(BaseDiscovery):
             return
 
         content = _read_text_sniff_content(self.finder, path)
-        if content is None:
-            return
-        try:
-            data = tomllib.loads(content)
-        except (tomllib.TOMLDecodeError, OSError, RecursionError) as error:
-            warnings.warn(f"Could not parse TOML: {error}", stacklevel=0)
-            return
-        # go-i18n-toml detection - has messages array with 'id' field
-        messages = data.get("messages") if isinstance(data, dict) else None
-        if (
-            isinstance(messages, list)
-            and len(messages) > 0
-            and isinstance(messages[0], dict)
-            and "id" in messages[0]
-        ):
+        if content is not None and _is_go_i18n_toml(content):
             result["file_format"] = "go-i18n-toml"
 
 

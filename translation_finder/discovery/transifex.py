@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .result import DiscoveryResult, FileFormatParams, ResultDict
 
 TRANSIFEX_CONFIG_MAX_BYTES = 1024 * 1024
+TRANSIFEX_CONFIG_MAX_LINE_BYTES = 4096
 
 
 @register_discovery
@@ -178,6 +179,11 @@ class TransifexDiscovery(BaseDiscovery):
             except OSError:
                 continue
             if len(content) > TRANSIFEX_CONFIG_MAX_BYTES:
+                continue
+            if any(
+                len(line) > TRANSIFEX_CONFIG_MAX_LINE_BYTES
+                for line in content.splitlines()
+            ):
                 continue
             try:
                 config_content = content.decode("utf-8-sig")
