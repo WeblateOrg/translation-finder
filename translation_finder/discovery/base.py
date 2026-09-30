@@ -34,6 +34,7 @@ TOKEN_SPLIT = re.compile(r"([_.-])")
 LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
+ENCODING_SNIFF_MAX_FILES = 10
 
 
 def _replace_with_wildcard(found: re.Match[str], *, wildcard: str) -> str:
@@ -475,25 +476,34 @@ class EncodingDiscovery(BaseDiscovery):
         if "template" in result:
             matches.append(self.finder.mask_matches(result["template"]))
 
+        remaining_bytes = FORMAT_SNIFF_MAX_BYTES
+        sampled_files = 0
         for path in chain(*matches):
+            if remaining_bytes <= 0 or sampled_files >= ENCODING_SNIFF_MAX_FILES:
+                break
             if not isinstance(path, Path):
                 # PurePath only
                 continue
             try:
                 with self.finder.open(path, "rb") as handle:
-                    content = handle.read(FORMAT_SNIFF_MAX_BYTES + 1)
+                    content = handle.read(remaining_bytes + 1)
             except OSError:
                 continue
-            if len(content) > FORMAT_SNIFF_MAX_BYTES:
-                content = _trim_incomplete_unicode_tail(
-                    content[:FORMAT_SNIFF_MAX_BYTES]
-                )
-            detection_result = from_bytes(content).best()
+            sampled_files += 1
+            sampled_bytes = min(len(content), remaining_bytes)
+            remaining_bytes -= sampled_bytes
+            if len(content) > sampled_bytes:
+                content = _trim_incomplete_unicode_tail(content[:sampled_bytes])
+            detection_result = from_bytes(
+                content,
+                cp_isolation=["ascii", *self.encoding_map],
+            ).best()
             if detection_result is None:
                 continue
 
             encoding = detection_result.encoding.lower()
-            return self.encoding_map.get(encoding)
+            if encoding in self.encoding_map:
+                return self.encoding_map[encoding]
         return None
 
     def adjust_encoding(self, result: ResultDict) -> str | None:
