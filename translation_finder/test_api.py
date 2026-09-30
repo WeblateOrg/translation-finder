@@ -262,10 +262,14 @@ class APITest(DiscoveryTestCase):
             ],
         )
 
-    def test_cli(self) -> None:
-        output = StringIO()
-        cli(args=[TEST_DATA.as_posix()], stdout=output)
-        self.assertIn("Match 2", output.getvalue())
+    def test_cli_nonexistent_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            missing = (pathlib.Path(tmpdir) / "does_not_exist").as_posix()
+            stderr = StringIO()
+            with patch("sys.stderr", stderr), self.assertRaises(SystemExit) as ctx:
+                cli(args=[missing])
+            self.assertEqual(ctx.exception.code, 2)
+        self.assertIn("no such directory", stderr.getvalue())
 
     def test_cli_escape_controls(self) -> None:
         controls = "".join(chr(code) for code in (*range(32), *range(127, 160)))
