@@ -68,12 +68,14 @@ def _escape_terminal(value: object) -> str:
         for char in str(value)
     )
 
+
 def existing_directory(value: str) -> str:
     """Validate that a path argument points to an existing directory."""
     if not Path(value).is_dir():
         msg = f"no such directory: {value}"
         raise ArgumentTypeError(msg)
     return value
+
 
 def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
     """Command line execution entry point."""
