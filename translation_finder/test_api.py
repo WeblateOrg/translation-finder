@@ -262,6 +262,11 @@ class APITest(DiscoveryTestCase):
             ],
         )
 
+    def test_cli(self) -> None:
+        output = StringIO()
+        cli(args=[TEST_DATA.as_posix()], stdout=output)
+        self.assertIn("Match 2", output.getvalue())
+        
     def test_cli_nonexistent_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             missing = (pathlib.Path(tmpdir) / "does_not_exist").as_posix()
