@@ -4,8 +4,8 @@ Changelog
 Unreleased
 ----------
 
-* Hardened YAML, TOML, CSV, and Transifex format detection against crafted
-  inputs causing excessive CPU usage.
+* Hardened encoding, YAML, TOML, CSV, and Transifex format detection against
+  crafted inputs causing excessive CPU usage.
 
 3.5.1
 -----

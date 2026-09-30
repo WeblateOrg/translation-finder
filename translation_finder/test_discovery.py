@@ -280,7 +280,9 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             )
 
         self.assertEqual(handle.read_sizes, [5])
-        detect.assert_called_once_with(b"abc")
+        detect.assert_called_once_with(
+            b"abc", cp_isolation=["ascii", "utf_8", "utf_16"]
+        )
 
     def test_encoding_discovery_preserves_complete_sample(self) -> None:
         class Detection:
@@ -303,7 +305,62 @@ class DiscoveryBaseTest(DiscoveryTestCase):
                     discovery.detect_encoding({"filemask": "*.properties"})
                 )
 
-        detect.assert_called_once_with(content)
+        detect.assert_called_once_with(
+            content, cp_isolation=["ascii", "utf_8", "utf_16"]
+        )
+
+    def test_encoding_discovery_uses_non_ascii_translation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_en.properties").write_text("hello=world\n")
+            (tmppath / "messages_fr.properties").write_text(
+                "hello=monde étoilé\n", encoding="utf-8"
+            )
+            discovery = JavaDiscovery(Finder(tmppath))
+
+            self.assertEqual(
+                discovery.detect_encoding({"filemask": "messages_*.properties"}),
+                "utf-8",
+            )
+
+    def test_encoding_discovery_keeps_ascii_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_en.properties").write_text("hello=world\n")
+            (tmppath / "messages_fr.properties").write_text("hello=monde\n")
+            discovery = JavaDiscovery(Finder(tmppath))
+
+            self.assertIsNone(
+                discovery.detect_encoding({"filemask": "messages_*.properties"})
+            )
+
+    def test_encoding_discovery_limits_charset_candidates(self) -> None:
+        class Detection:
+            @staticmethod
+            def best() -> None:
+                return None
+
+        content = b"\x80" * 16
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_en.properties").write_bytes(content)
+            (tmppath / "messages_fr.properties").write_bytes(content)
+            discovery = JavaDiscovery(Finder(tmppath))
+
+            with patch.object(
+                base_module, "from_bytes", return_value=Detection()
+            ) as detect:
+                self.assertIsNone(
+                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                )
+
+        self.assertEqual(detect.call_count, 2)
+        for detector_call in detect.call_args_list:
+            self.assertEqual(detector_call.args, (content,))
+            self.assertEqual(
+                detector_call.kwargs,
+                {"cp_isolation": ["ascii", "utf_8", "utf_16"]},
+            )
 
     def test_trim_incomplete_utf8_tail(self) -> None:
         complete = "Příliš žluťoučký".encode()
@@ -352,6 +409,36 @@ class DiscoveryBaseTest(DiscoveryTestCase):
     def test_trim_incomplete_unicode_tail_preserves_interior_errors(self) -> None:
         content = b"valid\xffinvalid\xe2"
         self.assertEqual(base_module._trim_incomplete_unicode_tail(content), content)
+
+
+class EncodingDiscoveryLimitTest(DiscoveryTestCase):
+    def test_total_sample_size(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_en.properties").write_bytes(b"abcd")
+            (tmppath / "messages_fr.properties").write_text(
+                "hello=monde étoilé\n", encoding="utf-8"
+            )
+            discovery = JavaDiscovery(Finder(tmppath))
+
+            with patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4):
+                self.assertIsNone(
+                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                )
+
+    def test_sampled_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "messages_en.properties").write_text("hello=world\n")
+            (tmppath / "messages_fr.properties").write_text(
+                "hello=monde étoilé\n", encoding="utf-8"
+            )
+            discovery = JavaDiscovery(Finder(tmppath))
+
+            with patch.object(base_module, "ENCODING_SNIFF_MAX_FILES", 1):
+                self.assertIsNone(
+                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                )
 
 
 class GettextTest(DiscoveryTestCase):
