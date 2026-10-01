@@ -72,7 +72,7 @@ def _escape_terminal(value: object) -> str:
 def existing_directory(value: str) -> str:
     """Validate that a path argument points to an existing directory."""
     if not Path(value).is_dir():
-        msg = f"no such directory: {value}"
+        msg = f"no such directory: {_escape_terminal(value)}"
         raise ArgumentTypeError(msg)
     return value
 
