@@ -45,7 +45,7 @@ classifiers = [
 ]
 dependencies = [
   "charset-normalizer>2.0,<4.0",
-  "weblate-language-data>=2026.10"
+  "weblate-language-data>=2026.11"
 ]
 description = "A translation file finder used in Weblate."
 keywords = [
