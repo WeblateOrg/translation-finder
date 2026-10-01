@@ -297,7 +297,7 @@ class APITest(DiscoveryTestCase):
             ),
             error_lines[0],
         )
-        
+
     def test_cli_escape_controls(self) -> None:
         controls = "".join(chr(code) for code in (*range(32), *range(127, 160)))
         value = f"překlady/日本語{controls}\u2028\u2029\u202e\udcff.po"
