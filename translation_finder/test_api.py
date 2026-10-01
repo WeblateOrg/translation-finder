@@ -276,6 +276,28 @@ class APITest(DiscoveryTestCase):
             self.assertEqual(ctx.exception.code, 2)
         self.assertIn("no such directory", stderr.getvalue())
 
+    def test_cli_nonexistent_directory_escapes_controls(self) -> None:
+        # Control characters in the path must not inject lines or terminal
+        # escape sequences into the argparse error output.
+        path = "missing\nINJECTED_LINE\x1b[31m"
+        stderr = StringIO()
+        with patch("sys.stderr", stderr), self.assertRaises(SystemExit) as ctx:
+            cli(args=[path])
+        self.assertEqual(ctx.exception.code, 2)
+
+        message = stderr.getvalue()
+        self.assertNotIn("\x1b", message)
+        error_lines = [
+            line for line in message.splitlines() if "no such directory" in line
+        ]
+        self.assertEqual(len(error_lines), 1, message)
+        self.assertTrue(
+            error_lines[0].endswith(
+                "no such directory: missing\\nINJECTED_LINE\\x1b[31m"
+            ),
+            error_lines[0],
+        )
+        
     def test_cli_escape_controls(self) -> None:
         controls = "".join(chr(code) for code in (*range(32), *range(127, 160)))
         value = f"překlady/日本語{controls}\u2028\u2029\u202e\udcff.po"
