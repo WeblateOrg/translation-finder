@@ -7,7 +7,8 @@
 from __future__ import annotations
 
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
+from pathlib import Path
 from typing import TYPE_CHECKING, TextIO, TypeVar
 
 from translation_finder.discovery.base import BaseDiscovery
@@ -68,6 +69,14 @@ def _escape_terminal(value: object) -> str:
     )
 
 
+def existing_directory(value: str) -> str:
+    """Validate that a path argument points to an existing directory."""
+    if not Path(value).is_dir():
+        msg = f"no such directory: {_escape_terminal(value)}"
+        raise ArgumentTypeError(msg)
+    return value
+
+
 def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
     """Command line execution entry point."""
     stdout = stdout if stdout is not None else sys.stdout
@@ -86,7 +95,11 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
         action="store_true",
     )
     parser.add_argument("--hint", help="File mask hint for the discovery", default=None)
-    parser.add_argument("directory", help="Directory where to perform discovery")
+    parser.add_argument(
+        "directory",
+        help="Directory where to perform discovery",
+        type=existing_directory,
+    )
 
     params = parser.parse_args(args)
 
