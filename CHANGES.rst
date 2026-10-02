@@ -4,8 +4,16 @@ Changelog
 Unreleased
 ----------
 
+3.6.0
+-----
+
+* Released on 2nd October 2026.
 * Hardened encoding, YAML, TOML, CSV, and Transifex format detection against
   crafted inputs causing excessive CPU usage.
+* Reported missing discovery directories as CLI usage errors instead of
+  unhandled exceptions.
+* Updated dependency requirements, test tooling, CI actions, and pre-commit
+  hooks.
 
 3.5.1
 -----
