@@ -24,7 +24,7 @@ test = [
 ]
 types = [
   "ty==0.0.84",
-  "mypy==2.3.1"
+  "mypy==2.4.0"
 ]
 
 [project]
@@ -45,7 +45,7 @@ classifiers = [
 ]
 dependencies = [
   "charset-normalizer>2.0,<4.0",
-  "weblate-language-data>=2026.10"
+  "weblate-language-data>=2026.11"
 ]
 description = "A translation file finder used in Weblate."
 keywords = [
