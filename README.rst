@@ -1,13 +1,5 @@
-.. image:: https://s.weblate.org/cdn/Logo-Darktext-borders.png
-   :alt: Weblate
-   :target: https://weblate.org/
-   :height: 80px
-
-**Weblate is libre software web-based continuous localization system,
-used by over 2500 libre projects and companies in more than 165 countries.**
-
-A translation file finder for `Weblate`_, translation tool with tight version
-control integration.
+Translation Finder
+==================
 
 .. image:: https://img.shields.io/badge/website-weblate.org-blue.svg
     :alt: Website
@@ -29,12 +21,16 @@ control integration.
     :alt: Documentation
     :target: https://docs.weblate.org/
 
-This library is used by `Weblate`_ to discover translation files in a cloned
-repository. It can operate on both file listings and actual filesystem.
-Filesystem access is needed for more accurate detection in some cases
-(detecting encoding or actual syntax of similar files).
-Filesystem discovery indexes only regular files, skipping symbolic links and
-special files such as FIFOs, sockets, and devices.
+Translation file discovery library used by `Weblate`_ to identify translation files and their configuration in source repositories.
+
+Discovery can operate on file listings alone or inspect the filesystem when more accurate detection is needed, such as determining file encoding or distinguishing formats with similar syntax.
+
+.. image:: https://s.weblate.org/cdn/Logo-Darktext-borders.png
+   :target: https://weblate.org/
+   :alt: Weblate
+   :height: 55px
+
+Maintained by `Weblate <https://weblate.org/>`_ — a privacy-respecting localization platform built on open-source foundations.
 
 Usage
 -----
