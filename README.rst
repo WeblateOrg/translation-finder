@@ -35,7 +35,7 @@ Maintained by `Weblate <https://weblate.org/>`_ — a privacy-respecting localiz
 Usage
 -----
 
-In can be used from Python:
+It can be used from Python:
 
 .. code-block:: pycon
 
