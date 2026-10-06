@@ -223,20 +223,6 @@ def _read_text_sniff_content(
     return _decode_content(content)
 
 
-def _iter_result_paths(finder: Finder, result: ResultDict) -> Generator[PurePath]:
-    """Yield unique paths referenced by a discovery result."""
-    seen: set[str] = set()
-    for mask in (result.get("template"), result["filemask"]):
-        if mask is None:
-            continue
-        for path in finder.mask_matches(mask):
-            key = path.as_posix()
-            if key in seen:
-                continue
-            seen.add(key)
-            yield path
-
-
 def _read_csv_rows(finder: Finder, path: PurePath) -> list[list[str]] | None:
     """Parse a small CSV sample."""
     text = _read_text_sample(finder, path)
@@ -550,11 +536,11 @@ def _is_csv_simple(rows: list[list[str]]) -> bool:
     return not header or set(header) <= {"context", "id", "source", "target"}
 
 
-def _detect_csv_format(finder: Finder, result: ResultDict) -> str | None:
+def _detect_csv_format(discovery: BaseDiscovery, result: ResultDict) -> str | None:
     """Detect CSV format variants based on file content."""
     detected_simple = False
-    for path in _iter_result_paths(finder, result):
-        rows = _read_csv_rows(finder, path)
+    for path in discovery._result_paths(result):  # ruff: ignore[private-member-access]
+        rows = _read_csv_rows(discovery.finder, path)
         if rows is None:
             continue
         if _is_csv_multi(rows):
@@ -686,7 +672,7 @@ class CSVDiscovery(MonoTemplateDiscovery):
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
-        detected = _detect_csv_format(self.finder, result)
+        detected = _detect_csv_format(self, result)
         if detected is not None:
             result["file_format"] = detected
 
@@ -876,7 +862,7 @@ class JavaDiscovery(EncodingDiscovery):
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
         self.adjust_encoding(result)
-        for path in _iter_result_paths(self.finder, result):
+        for path in self._result_paths(result):
             content = _read_text_sample(self.finder, path)
             if content is None:
                 continue
@@ -998,7 +984,7 @@ class JSONDiscovery(BaseDiscovery):
 
     def has_template_less_content(self, result: ResultDict) -> bool:
         """Check whether a template-less JSON result looks translatable."""
-        for path in _iter_result_paths(self.finder, result):
+        for path in self._result_paths(result):
             if not hasattr(path, "open"):
                 return True
 
@@ -1298,7 +1284,7 @@ class TXTDiscovery(MonoTemplateDiscovery, EnglishVariantsDiscovery):
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
-        if _detect_csv_format(self.finder, result) == "csv-simple":
+        if _detect_csv_format(self, result) == "csv-simple":
             result["file_format"] = "csv-simple"
 
 
@@ -1509,7 +1495,7 @@ class FlatXMLDiscovery(MonoTemplateDiscovery):
 
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
-        for path in _iter_result_paths(self.finder, result):
+        for path in self._result_paths(result):
             content = _read_text_sample(self.finder, path)
             if content is None or "<xwikidoc" not in content:
                 continue

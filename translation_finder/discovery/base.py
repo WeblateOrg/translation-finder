@@ -9,7 +9,6 @@ from __future__ import annotations
 import fnmatch
 import re
 from functools import partial
-from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
@@ -323,6 +322,26 @@ class BaseDiscovery:
         """Override detected format, based on the file content."""
         return
 
+    def _result_paths(
+        self, result: ResultDict, *, template_first: bool = True
+    ) -> Generator[PurePath]:
+        """Yield unique paths referenced by a discovery result."""
+        seen: set[str] = set()
+        masks = (
+            (result.get("template"), result["filemask"])
+            if template_first
+            else (result["filemask"], result.get("template"))
+        )
+        for mask in masks:
+            if mask is None:
+                continue
+            for path in self.finder.mask_matches(mask):
+                key = path.as_posix()
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield path
+
     def discover(
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
@@ -472,13 +491,9 @@ class EncodingDiscovery(BaseDiscovery):
 
     def detect_encoding(self, result: ResultDict) -> str | None:
         """Detect file encoding and translate it to a Weblate parameter value."""
-        matches = [self.finder.mask_matches(result["filemask"])]
-        if "template" in result:
-            matches.append(self.finder.mask_matches(result["template"]))
-
         remaining_bytes = FORMAT_SNIFF_MAX_BYTES
         sampled_files = 0
-        for path in chain(*matches):
+        for path in self._result_paths(result, template_first=False):
             if remaining_bytes <= 0 or sampled_files >= ENCODING_SNIFF_MAX_FILES:
                 break
             if not isinstance(path, Path):

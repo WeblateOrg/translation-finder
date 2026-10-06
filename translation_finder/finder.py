@@ -10,10 +10,13 @@ import errno
 import operator
 import os
 import re
+from bisect import bisect_left
 from fnmatch import fnmatch, translate
+from itertools import islice
 from os import scandir
 from pathlib import Path, PurePath
 from stat import S_ISREG
+from sys import maxunicode
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
@@ -57,6 +60,7 @@ PathListType = list[PathListItem]
 PathMockType = tuple[PathListType, PathListType]
 LowerPathListItem = tuple[str, str, PurePath]
 FileMatchItem = tuple[str, PurePath]
+FileMatchRange = tuple[list[FileMatchItem], int, int]
 
 
 class Finder:
@@ -104,12 +108,47 @@ class Finder:
         self.files_by_path = dict(self.files)
         self.files_by_name: dict[str, list[FileMatchItem]] = {}
         self.files_by_suffix: dict[str, list[FileMatchItem]] = {}
+        self.files_by_component: dict[str, list[FileMatchItem]] = {}
         for file_item in self.files:
             relative_path = file_item[0]
             filename = relative_path.rsplit("/", 1)[-1]
             self.files_by_name.setdefault(filename, []).append(file_item)
             if suffix := self.get_suffix(filename.lower()):
                 self.files_by_suffix.setdefault(suffix, []).append(file_item)
+            for component in set(relative_path.split("/")):
+                self.files_by_component.setdefault(
+                    os.path.normcase(component), []
+                ).append(file_item)
+        self.files_by_normalized_path = sorted(
+            self.files,
+            key=lambda item: (os.path.normcase(item[0]), item[0]),
+        )
+        self.file_paths = [
+            os.path.normcase(item[0]) for item in self.files_by_normalized_path
+        ]
+        self.files_by_filename = sorted(
+            self.files,
+            key=lambda item: (
+                os.path.normcase(item[0].rsplit("/", 1)[-1]),
+                item[0],
+            ),
+        )
+        self.file_names = [
+            os.path.normcase(item[0].rsplit("/", 1)[-1])
+            for item in self.files_by_filename
+        ]
+        self.files_by_reversed_filename = sorted(
+            self.files,
+            key=lambda item: (
+                os.path.normcase(item[0].rsplit("/", 1)[-1])[::-1],
+                item[0],
+            ),
+        )
+        self.reversed_file_names = [
+            os.path.normcase(item[0].rsplit("/", 1)[-1])[::-1]
+            for item in self.files_by_reversed_filename
+        ]
+        self.mask_matches_cache: dict[str, tuple[PurePath, ...]] = {}
 
     @staticmethod
     def get_suffix(filename: str) -> str | None:
@@ -206,26 +245,80 @@ class Finder:
         """Check whether dir exists."""
         return name in self.dirnames
 
+    @staticmethod
+    def _prefix_range(keys: list[str], prefix: str) -> tuple[int, int]:
+        """Return the slice containing strings which start with prefix."""
+        start = bisect_left(keys, prefix)
+        for position in range(len(prefix) - 1, -1, -1):
+            codepoint = ord(prefix[position])
+            if codepoint < maxunicode:
+                successor = f"{prefix[:position]}{chr(codepoint + 1)}"
+                return start, bisect_left(keys, successor)
+        return start, len(keys)
+
+    def _mask_candidates(self, mask: str) -> FileMatchRange:
+        """Return the narrowest indexed candidate range for a wildcard mask."""
+        options: list[FileMatchRange] = []
+
+        def add(
+            items: list[FileMatchItem], start: int = 0, end: int | None = None
+        ) -> None:
+            options.append((items, start, len(items) if end is None else end))
+
+        filename = mask.rsplit("/", 1)[-1]
+        if "*" not in filename:
+            add(self.files_by_name.get(filename, []))
+
+        if path_prefix := mask.split("*", 1)[0]:
+            start, end = self._prefix_range(
+                self.file_paths, os.path.normcase(path_prefix)
+            )
+            add(self.files_by_normalized_path, start, end)
+
+        if filename_prefix := filename.split("*", 1)[0]:
+            start, end = self._prefix_range(
+                self.file_names, os.path.normcase(filename_prefix)
+            )
+            add(self.files_by_filename, start, end)
+
+        if filename_suffix := filename.rsplit("*", 1)[-1]:
+            start, end = self._prefix_range(
+                self.reversed_file_names, os.path.normcase(filename_suffix)[::-1]
+            )
+            add(self.files_by_reversed_filename, start, end)
+
+        for component in mask.split("/"):
+            if "*" not in component:
+                add(self.files_by_component.get(os.path.normcase(component), []))
+
+        if not options:
+            return self.files, 0, len(self.files)
+        return min(options, key=lambda option: option[2] - option[1])
+
     def mask_matches(self, mask: str) -> Generator[PurePath]:
         """Return all mask matches."""
-        candidates: tuple[FileMatchItem, ...] | list[FileMatchItem]
+        if mask in self.mask_matches_cache:
+            yield from self.mask_matches_cache[mask]
+            return
+
+        result: tuple[PurePath, ...]
         if "*" not in mask:
             match = self.files_by_path.get(mask)
-            candidates = ((mask, match),) if match is not None else ()
+            result = (match,) if match is not None else ()
         else:
-            filename = mask.rsplit("/", 1)[-1]
-            if "*" not in filename:
-                candidates = self.files_by_name.get(filename, [])
-            elif suffix := self.glob_suffix_candidate(filename, magic="*"):
-                candidates = self.files_by_suffix.get(suffix, [])
-            else:
-                candidates = self.files
+            items, start, end = self._mask_candidates(mask)
+            # Avoid dealing [ as a special char
+            escaped_mask = mask.replace("[", "[[]").replace("?", "[?]")
+            matches = [
+                item
+                for item in islice(items, start, end)
+                if fnmatch(item[0], escaped_mask)
+            ]
+            matches.sort(key=operator.itemgetter(0))
+            result = tuple(item[1] for item in matches)
 
-        # Avoid dealing [ as a special char
-        mask = mask.replace("[", "[[]").replace("?", "[?]")
-        for name, path in candidates:
-            if fnmatch(name, mask):
-                yield path
+        self.mask_matches_cache[mask] = result
+        yield from result
 
     def get_lc_candidates(
         self,
