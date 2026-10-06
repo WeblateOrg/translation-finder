@@ -4,11 +4,16 @@ Changelog
 Unreleased
 ----------
 
+3.6.1
+-----
+
+* Released on 6th October 2026.
 * Bounded aggregate multi-file format detection work and avoided reading
   template-less JSON files twice.
-* Prevented Transifex configuration entries from aborting file-listing
-  discovery.
+* Skipped unreadable Transifex configurations in file-listing discovery to
+  prevent them from aborting discovery.
 * Avoided quadratic wildcard matching when inspecting discovered file groups.
+* Updated test tooling, CI tooling, and pre-commit hooks.
 
 3.6.0
 -----
