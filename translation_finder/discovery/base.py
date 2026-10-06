@@ -33,6 +33,7 @@ TOKEN_SPLIT = re.compile(r"([_.-])")
 LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
+FORMAT_SNIFF_MAX_FILES = 10
 ENCODING_SNIFF_MAX_FILES = 10
 
 
