@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Bounded aggregate multi-file format detection work and avoided reading
+  template-less JSON files twice.
 * Prevented Transifex configuration entries from aborting file-listing
   discovery.
 * Avoided quadratic wildcard matching when inspecting discovered file groups.
