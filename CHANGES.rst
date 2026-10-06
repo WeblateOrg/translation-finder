@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* Prevented Transifex configuration entries from aborting file-listing
+  discovery.
+
 3.6.0
 -----
 

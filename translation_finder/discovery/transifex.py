@@ -176,7 +176,7 @@ class TransifexDiscovery(BaseDiscovery):
             try:
                 with self.finder.open(path, "rb") as handle:
                     content = handle.read(TRANSIFEX_CONFIG_MAX_BYTES + 1)
-            except OSError:
+            except (OSError, TypeError):
                 continue
             if len(content) > TRANSIFEX_CONFIG_MAX_BYTES:
                 continue

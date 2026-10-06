@@ -35,6 +35,25 @@ class APITest(DiscoveryTestCase):
             [{"filemask": "locales/*/messages.po", "file_format": "po"}],
         )
 
+    def test_discover_mock_transifex_config(self) -> None:
+        paths = [".tx/config", "locale/en.json", "locale/cs.json"]
+        self.assert_discovery(
+            discover(
+                PurePath(),
+                mock=(
+                    [(PurePath(path), PurePath(path), path) for path in paths],
+                    [],
+                ),
+            ),
+            [
+                {
+                    "filemask": "locale/*.json",
+                    "file_format": "json-nested",
+                    "template": "locale/en.json",
+                },
+            ],
+        )
+
     def test_discover_deeply_nested_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)
