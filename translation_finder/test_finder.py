@@ -13,6 +13,7 @@ from fnmatch import translate
 from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
+from . import finder as finder_module
 from .finder import Finder
 
 
@@ -157,6 +158,44 @@ class FinderTest(TestCase):
                 pathlib.PurePath("locale/messages"),
                 pathlib.PurePath("locale/messages.po"),
             ],
+        )
+
+    def test_mask_matches_caches_complete_matches(self) -> None:
+        finder = self.get_finder(
+            [
+                "messages_cs.json",
+                "messages_custom.json",
+                "unrelated.json",
+            ],
+        )
+
+        with patch.object(
+            finder_module, "fnmatch", wraps=finder_module.fnmatch
+        ) as fnmatch:
+            expected = [
+                pathlib.PurePath("messages_cs.json"),
+                pathlib.PurePath("messages_custom.json"),
+            ]
+            self.assertEqual(list(finder.mask_matches("messages_*.json")), expected)
+            self.assertEqual(list(finder.mask_matches("messages_*.json")), expected)
+
+        self.assertEqual(fnmatch.call_count, 2)
+
+    def test_mask_matches_full_scan_fallback(self) -> None:
+        finder = self.get_finder(["messages", "messages.json"])
+
+        self.assertEqual(
+            list(finder.mask_matches("*")),
+            [pathlib.PurePath("messages"), pathlib.PurePath("messages.json")],
+        )
+
+    def test_mask_matches_max_unicode_prefix(self) -> None:
+        prefix = chr(sys.maxunicode)
+        finder = self.get_finder([f"{prefix}messages.json"])
+
+        self.assertEqual(
+            list(finder.mask_matches(f"{prefix}*")),
+            [pathlib.PurePath(f"{prefix}messages.json")],
         )
 
     def test_unreadable_directories_are_skipped(self) -> None:

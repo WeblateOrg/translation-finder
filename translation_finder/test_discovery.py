@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, cast
 from unittest import TestCase
 from unittest.mock import patch
 
+from . import finder as finder_module
 from .discovery import base as base_module
 from .discovery import files as files_module
 from .discovery import transifex as transifex_module
@@ -409,6 +410,65 @@ class DiscoveryBaseTest(DiscoveryTestCase):
     def test_trim_incomplete_unicode_tail_preserves_interior_errors(self) -> None:
         content = b"valid\xffinvalid\xe2"
         self.assertEqual(base_module._trim_incomplete_unicode_tail(content), content)
+
+
+class DiscoveryPathIndexTest(DiscoveryTestCase):
+    def test_generated_paths_avoid_wildcard_rescans(self) -> None:
+        checks = (
+            (JavaDiscovery, ".properties", "key=value\n", 20),
+            (JSONDiscovery, ".json", "[]\n", 0),
+            (QtDiscovery, ".ts", '<TS version="2.1"></TS>\n', 20),
+        )
+        for discovery_class, suffix, content, result_count in checks:
+            with (
+                self.subTest(discovery=discovery_class.__name__),
+                tempfile.TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                for index in range(20):
+                    (root / f"u{index}_cs{suffix}").write_text(content)
+                finder = Finder(root)
+                discovery = discovery_class(finder)
+
+                with patch.object(
+                    finder_module, "fnmatch", wraps=finder_module.fnmatch
+                ) as fnmatch:
+                    results = list(discovery.discover())
+
+                self.assertEqual(len(results), result_count)
+                self.assertEqual(fnmatch.call_count, 20)
+
+    def test_custom_generated_paths_avoid_wildcard_rescans(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(20):
+                directory = root / f"d{index}" / "en.lproj"
+                directory.mkdir(parents=True)
+                (directory / "messages.strings").write_text("key=value\n")
+            finder = Finder(root)
+            discovery = OSXDiscovery(finder)
+
+            with patch.object(
+                finder_module, "fnmatch", wraps=finder_module.fnmatch
+            ) as fnmatch:
+                results = list(discovery.discover())
+
+            self.assertEqual(len(results), 20)
+            self.assertEqual(fnmatch.call_count, 20)
+
+    def test_generated_paths_are_collected_before_content_detection(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "messages_cs.json").write_text("[]\n")
+            (root / "messages_custom.json").write_text('{"key": "value"}\n')
+            discovery = JSONDiscovery(Finder(root))
+
+            results = list(discovery.discover())
+
+        self.assert_discovery(
+            results,
+            [{"filemask": "messages_*.json", "file_format": "json-nested"}],
+        )
 
 
 class EncodingDiscoveryLimitTest(DiscoveryTestCase):
@@ -1227,6 +1287,25 @@ class OSXTest(DiscoveryTestCase):
                     "template": "pappl/strings/base.strings",
                 },
             ],
+        )
+
+    def test_encoding_uses_non_generator_wildcard_match(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "App" / "Resources"
+            base = root / "Base.lproj"
+            target = root / "fr.lproj"
+            base.mkdir(parents=True)
+            target.mkdir()
+            (base / "Localizable.strings").write_text('"hello" = "world";\n')
+            (target / "Localizable.strings").write_bytes(
+                b"\xff\xfe" + '"hello" = "monde";\n'.encode("utf-16-le")
+            )
+            discovery = OSXDiscovery(Finder(Path(tmpdir)))
+
+            results = list(discovery.discover())
+
+        self.assertEqual(
+            results[0]["file_format_params"], {"strings_encoding": "utf-16"}
         )
 
     def test_base_template_preference(self) -> None:

@@ -6,6 +6,7 @@ Unreleased
 
 * Prevented Transifex configuration entries from aborting file-listing
   discovery.
+* Avoided quadratic wildcard matching when inspecting discovered file groups.
 
 3.6.0
 -----
