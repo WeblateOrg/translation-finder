@@ -14,7 +14,7 @@ from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from . import finder as finder_module
-from .finder import Finder
+from .finder import Finder, MatchBudget
 
 
 class FinderTest(TestCase):
@@ -180,6 +180,64 @@ class FinderTest(TestCase):
             self.assertEqual(list(finder.mask_matches("messages_*.json")), expected)
 
         self.assertEqual(fnmatch.call_count, 2)
+
+    def test_mask_matches_budget(self) -> None:
+        finder = self.get_finder(
+            [
+                "locale/cs/messages.json",
+                "locale/de/messages.json",
+                "locale/en/messages.json",
+            ],
+        )
+        budget = MatchBudget(2)
+
+        with patch.object(
+            finder_module, "fnmatch", wraps=finder_module.fnmatch
+        ) as fnmatch:
+            self.assertEqual(
+                list(finder.mask_matches("*/messages.json", budget=budget)),
+                [
+                    pathlib.PurePath("locale/cs/messages.json"),
+                    pathlib.PurePath("locale/de/messages.json"),
+                ],
+            )
+
+        self.assertEqual(fnmatch.call_count, 2)
+        self.assertTrue(budget.truncated)
+        self.assertNotIn("*/messages.json", finder.mask_matches_cache)
+        self.assertEqual(
+            list(finder.mask_matches("*/messages.json")),
+            [
+                pathlib.PurePath("locale/cs/messages.json"),
+                pathlib.PurePath("locale/de/messages.json"),
+                pathlib.PurePath("locale/en/messages.json"),
+            ],
+        )
+
+        finder = self.get_finder(
+            ["locale/cs/messages.json", "locale/en/messages.json"],
+        )
+        budget = MatchBudget(2)
+
+        self.assertEqual(
+            list(finder.mask_matches("*/messages.json", budget=budget)),
+            [
+                pathlib.PurePath("locale/cs/messages.json"),
+                pathlib.PurePath("locale/en/messages.json"),
+            ],
+        )
+
+        self.assertFalse(budget.truncated)
+        self.assertIn("*/messages.json", finder.mask_matches_cache)
+
+        finder = self.get_finder(["locale/en/messages.json"])
+        budget = MatchBudget(0)
+
+        self.assertEqual(
+            list(finder.mask_matches("locale/en/messages.json", budget=budget)),
+            [pathlib.PurePath("locale/en/messages.json")],
+        )
+        self.assertFalse(budget.truncated)
 
     def test_mask_matches_full_scan_fallback(self) -> None:
         finder = self.get_finder(["messages", "messages.json"])

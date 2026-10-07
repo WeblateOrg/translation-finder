@@ -16,9 +16,11 @@ from typing import TYPE_CHECKING, ClassVar
 from xml.parsers import expat
 
 from translation_finder.api import register_discovery
+from translation_finder.finder import MatchBudget
 
 from .base import (
     FORMAT_SNIFF_MAX_BYTES,
+    FORMAT_SNIFF_MAX_CANDIDATES,
     FORMAT_SNIFF_MAX_FILES,
     BaseDiscovery,
     EncodingDiscovery,
@@ -626,7 +628,7 @@ class QtDiscovery(BaseDiscovery):
 
     def adjust_format(self, result: ResultDict) -> None:
         """Detect legacy Qt Linguist files based on the TS root version."""
-        path = next(iter(self.finder.mask_matches(result["filemask"])), None)
+        path = next(self._result_paths({"filemask": result["filemask"]}), None)
         if path is None:
             return
 
@@ -649,8 +651,7 @@ class XliffDiscovery(BaseDiscovery):
     def adjust_format(self, result: ResultDict) -> None:
         """Override detected format, based on the file content."""
         base = result["template"] if "template" in result else result["filemask"]
-
-        path = next(iter(self.finder.mask_matches(base)), None)
+        path = next(self._result_paths({"filemask": base}), None)
 
         if path is None or not hasattr(path, "open"):
             return
@@ -1019,7 +1020,8 @@ class JSONDiscovery(BaseDiscovery):
     def has_template_less_content(self, result: ResultDict) -> bool:
         """Check whether a template-less JSON result looks translatable."""
         budget = _FormatSniffBudget()
-        for path in self._result_paths(result):
+        match_budget = MatchBudget(FORMAT_SNIFF_MAX_CANDIDATES)
+        for path in self._result_paths(result, match_budget=match_budget):
             if not hasattr(path, "open"):
                 return True
 
@@ -1035,7 +1037,7 @@ class JSONDiscovery(BaseDiscovery):
             data = self._parse_json_data(content)
             if isinstance(data, dict) and self.detect_dict(data) is not None:
                 return True
-        return False
+        return match_budget.truncated
 
     def discover(
         self, *, eager: bool = False, hint: str | None = None

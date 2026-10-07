@@ -63,6 +63,14 @@ FileMatchItem = tuple[str, PurePath]
 FileMatchRange = tuple[list[FileMatchItem], int, int]
 
 
+class MatchBudget:
+    """Bound wildcard candidate evaluations for best-effort matching."""
+
+    def __init__(self, candidates: int) -> None:
+        self.remaining = candidates
+        self.truncated = False
+
+
 class Finder:
     """Finder for files which might be considered translations."""
 
@@ -295,7 +303,9 @@ class Finder:
             return self.files, 0, len(self.files)
         return min(options, key=lambda option: option[2] - option[1])
 
-    def mask_matches(self, mask: str) -> Generator[PurePath]:
+    def mask_matches(
+        self, mask: str, *, budget: MatchBudget | None = None
+    ) -> Generator[PurePath]:
         """Return all mask matches."""
         if mask in self.mask_matches_cache:
             yield from self.mask_matches_cache[mask]
@@ -309,13 +319,23 @@ class Finder:
             items, start, end = self._mask_candidates(mask)
             # Avoid dealing [ as a special char
             escaped_mask = mask.replace("[", "[[]").replace("?", "[?]")
-            matches = [
-                item
-                for item in islice(items, start, end)
-                if fnmatch(item[0], escaped_mask)
-            ]
+            matches = []
+            complete = True
+            for item in islice(items, start, end):
+                if budget is not None:
+                    if budget.remaining <= 0:
+                        budget.truncated = True
+                        complete = False
+                        break
+                    budget.remaining -= 1
+                if fnmatch(item[0], escaped_mask):
+                    matches.append(item)
             matches.sort(key=operator.itemgetter(0))
             result = tuple(item[1] for item in matches)
+
+            if not complete:
+                yield from result
+                return
 
         self.mask_matches_cache[mask] = result
         yield from result

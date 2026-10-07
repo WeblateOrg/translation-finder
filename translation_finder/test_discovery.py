@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, cast
 from unittest import TestCase
 from unittest.mock import patch
 
+from . import api as api_module
 from . import finder as finder_module
 from .discovery import base as base_module
 from .discovery import files as files_module
@@ -263,7 +264,10 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
         class SampleFinder:
             @staticmethod
-            def mask_matches(_mask: str) -> Generator[Path]:
+            def mask_matches(
+                _mask: str, *, budget: object | None = None
+            ) -> Generator[Path]:
+                del budget
                 yield Path("sample.properties")
 
             @staticmethod
@@ -413,6 +417,40 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
 
 class DiscoveryPathIndexTest(DiscoveryTestCase):
+    def test_generated_path_candidate_evaluation_is_linear(self) -> None:
+        count = 30
+        finder = self.get_finder(
+            [f"en/x{index}-en/messages.properties" for index in range(count)]
+        )
+        discovery = JavaDiscovery(finder)
+
+        with (
+            patch.object(base_module, "FORMAT_SNIFF_MAX_CANDIDATES", 5),
+            patch.object(
+                finder_module, "fnmatch", wraps=finder_module.fnmatch
+            ) as fnmatch,
+        ):
+            results = list(discovery.discover())
+
+        self.assertEqual(len(results), count)
+        self.assertEqual(fnmatch.call_count, count * 10)
+
+    def test_api_candidate_evaluation_is_linear(self) -> None:
+        count = 30
+        paths = [f"en/x{index}-en/messages.properties" for index in range(count)]
+        files = [(PurePath(path), PurePath(path), path) for path in paths]
+
+        with (
+            patch.object(base_module, "FORMAT_SNIFF_MAX_CANDIDATES", 5),
+            patch.object(
+                finder_module, "fnmatch", wraps=finder_module.fnmatch
+            ) as fnmatch,
+        ):
+            results = api_module.discover(PurePath(), mock=(files, []))
+
+        self.assertEqual(len(results), count)
+        self.assertEqual(fnmatch.call_count, count * 10)
+
     def test_generated_paths_avoid_wildcard_rescans(self) -> None:
         checks = (
             (JavaDiscovery, ".properties", "key=value\n", 20),
@@ -3270,6 +3308,24 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
             with patch.object(files_module, "FORMAT_SNIFF_MAX_FILES", 1):
                 self.assertTrue(
                     discovery.has_template_less_content({"filemask": "*.json"})
+                )
+
+    def test_template_less_json_keeps_result_when_matching_is_truncated(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(3):
+                path = root / "en" / f"x{index}-en" / "messages.json"
+                path.parent.mkdir(parents=True)
+                path.write_text("[]\n")
+            discovery = JSONDiscovery(Finder(root))
+
+            with patch.object(files_module, "FORMAT_SNIFF_MAX_CANDIDATES", 1):
+                self.assertTrue(
+                    discovery.has_template_less_content(
+                        {"filemask": "*/x2-*/messages.json"}
+                    )
                 )
 
     def test_template_less_json_drops_conclusively_inspected_result(self) -> None:
