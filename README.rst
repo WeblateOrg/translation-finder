@@ -86,4 +86,23 @@ Non-printable characters in command-line results are displayed as visible
 escapes (for example, ``\n`` and ``\x1b``). The Python API returns the original
 values unchanged.
 
+Custom discovery backends
+-------------------------
+
+Custom ``BaseDiscovery`` implementations return ``DiscoveryCandidate`` objects
+from ``get_masks()``. Each candidate associates the result with the paths which
+actually generated it, allowing content detection to inspect the group without
+expanding its wildcard mask again:
+
+.. code-block:: python
+
+   from translation_finder.discovery.base import BaseDiscovery
+   from translation_finder.discovery.result import DiscoveryCandidate
+
+
+   class CustomDiscovery(BaseDiscovery):
+       def get_masks(self, *, eager=False, hint=None):
+           for path in self.filter_files():
+               yield DiscoveryCandidate({"filemask": "locale/*.json"}, [path])
+
 .. _Weblate: https://weblate.org/

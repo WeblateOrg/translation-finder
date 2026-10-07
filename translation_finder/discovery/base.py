@@ -17,9 +17,8 @@ from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
-from translation_finder.finder import MatchBudget
 
-from .result import DiscoveryResult
+from .result import DiscoveryCandidate, DiscoveryResult
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -35,7 +34,6 @@ LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 FORMAT_SNIFF_MAX_FILES = 10
-FORMAT_SNIFF_MAX_CANDIDATES = 100
 ENCODING_SNIFF_MAX_FILES = 10
 
 
@@ -321,52 +319,66 @@ class BaseDiscovery:
         if self.file_format_params is not None and "file_format_params" not in result:
             result["file_format_params"] = self.file_format_params.copy()
 
-    def adjust_format(self, result: ResultDict) -> None:  # ruff:ignore[no-self-use]
+    def adjust_format(  # ruff: ignore[no-self-use]
+        self, candidate: DiscoveryCandidate
+    ) -> None:
         """Override detected format, based on the file content."""
         return
 
     def _result_paths(
         self,
-        result: ResultDict,
+        candidate: DiscoveryCandidate,
         *,
         template_first: bool = True,
-        match_budget: MatchBudget | None = None,
     ) -> Generator[PurePath]:
-        """Yield unique paths referenced by a discovery result."""
-        if match_budget is None:
-            match_budget = MatchBudget(FORMAT_SNIFF_MAX_CANDIDATES)
+        """Yield unique confirmed paths referenced by a discovery candidate."""
+        result = candidate.result
         seen: set[str] = set()
-        masks = (
-            (result.get("template"), result["filemask"])
+        template = result.get("template")
+        files_by_path = getattr(self.finder, "files_by_path", {})
+        template_path = files_by_path.get(template) if template is not None else None
+        paths = (
+            ([template_path] if template_path is not None else []) + candidate.paths
             if template_first
-            else (result["filemask"], result.get("template"))
+            else candidate.paths
+            + ([template_path] if template_path is not None else [])
         )
-        for mask in masks:
-            if mask is None:
+        for path in paths:
+            key = path.as_posix()
+            if key in seen:
                 continue
-            for path in self.finder.mask_matches(mask, budget=match_budget):
-                key = path.as_posix()
-                if key in seen:
-                    continue
-                seen.add(key)
-                yield path
+            seen.add(key)
+            yield path
+
+    def include_candidate(  # ruff: ignore[no-self-use]
+        self, candidate: DiscoveryCandidate, *, eager: bool
+    ) -> bool:
+        """Return whether a fully adjusted candidate should be emitted."""
+        return True
 
     def discover(
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         """Yield translation configurations matching this discovery."""
-        discovered = set()
-        for result in self.get_masks(eager=eager, hint=hint):
-            if result["filemask"] in discovered:
-                continue
+        candidates: dict[str, DiscoveryCandidate] = {}
+        for candidate in self.get_masks(eager=eager, hint=hint):
+            filemask = candidate.result["filemask"]
+            if filemask in candidates:
+                candidates[filemask].merge_paths(candidate.paths)
+            else:
+                candidates[filemask] = candidate
+
+        for candidate in candidates.values():
+            result = candidate.result
             self.fill_in_template(result)
             if self.requires_template and "template" not in result:
                 continue
-            self.adjust_format(result)
+            self.adjust_format(candidate)
             self.fill_in_new_base(result)
             self.fill_in_file_format(result)
             self.fill_in_file_format_params(result)
-            discovered.add(result["filemask"])
+            if not self.include_candidate(candidate, eager=eager):
+                continue
             discovery_result = DiscoveryResult(result)
             discovery_result.meta["discovery"] = self.__class__.__name__
             discovery_result.meta["origin"] = self.origin
@@ -386,9 +398,9 @@ class BaseDiscovery:
         """Filter possible file matches."""
         return self.finder.filter_masks(self.masks_list)
 
-    def get_masks(
+    def get_masks(  # ruff: ignore[too-many-branches]
         self, *, eager: bool = False, hint: str | None = None
-    ) -> Generator[ResultDict]:
+    ) -> Generator[DiscoveryCandidate]:
         """
         Return all file masks found in the directory.
 
@@ -396,11 +408,10 @@ class BaseDiscovery:
         """
         if hint:
             for mask in self.masks_list:
-                if (
-                    fnmatch.fnmatch(hint, mask)
-                    and next(self.finder.mask_matches(hint), None) is not None
-                ):
-                    yield {"filemask": hint}
+                if fnmatch.fnmatch(hint, mask):
+                    paths = list(self.finder.mask_matches(hint))
+                    if paths:
+                        yield DiscoveryCandidate({"filemask": hint}, paths)
         for path in self.filter_files():
             parts = list(path.parts)
             if eager:
@@ -411,7 +422,7 @@ class BaseDiscovery:
                 result: ResultDict = {"filemask": "/".join(parts)}
                 if self.uses_template:
                     result["new_base"] = result["template"] = "/".join(path.parts)
-                yield result
+                yield DiscoveryCandidate(result, [path])
                 continue
             skip = set()
             for pos, part in enumerate(parts):
@@ -429,7 +440,7 @@ class BaseDiscovery:
                                 current,
                             )
                     mask_parts[pos] = wildcard
-                    yield {"filemask": "/".join(mask_parts)}
+                    yield DiscoveryCandidate({"filemask": "/".join(mask_parts)}, [path])
 
 
 class MonoTemplateDiscovery(BaseDiscovery):
@@ -498,11 +509,11 @@ class EncodingDiscovery(BaseDiscovery):
             result["file_format_params"] = params
         params[parameter] = encoding
 
-    def detect_encoding(self, result: ResultDict) -> str | None:
+    def detect_encoding(self, candidate: DiscoveryCandidate) -> str | None:
         """Detect file encoding and translate it to a Weblate parameter value."""
         remaining_bytes = FORMAT_SNIFF_MAX_BYTES
         sampled_files = 0
-        for path in self._result_paths(result, template_first=False):
+        for path in self._result_paths(candidate, template_first=False):
             if remaining_bytes <= 0 or sampled_files >= ENCODING_SNIFF_MAX_FILES:
                 break
             if not isinstance(path, Path):
@@ -530,18 +541,19 @@ class EncodingDiscovery(BaseDiscovery):
                 return self.encoding_map[encoding]
         return None
 
-    def adjust_encoding(self, result: ResultDict) -> str | None:
+    def adjust_encoding(self, candidate: DiscoveryCandidate) -> str | None:
         """Detect and set encoding parameter."""
-        encoding = self.detect_encoding(result)
+        result = candidate.result
+        encoding = self.detect_encoding(candidate)
         if encoding is None:
             self.normalize_encoding_parameters(result)
         else:
             self.set_encoding_parameter(result, encoding)
         return encoding
 
-    def adjust_format(self, result: ResultDict) -> None:
+    def adjust_format(self, candidate: DiscoveryCandidate) -> None:
         """Override detected format, based on the file content."""
-        self.adjust_encoding(result)
+        self.adjust_encoding(candidate)
 
 
 class EnglishVariantsDiscovery(BaseDiscovery):

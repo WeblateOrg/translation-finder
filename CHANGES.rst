@@ -4,8 +4,9 @@ Changelog
 Unreleased
 ----------
 
-* Bounded wildcard candidate evaluation during format detection to prevent
-  crafted file layouts from causing quadratic discovery work.
+* Tracked the files which generate discovery masks, avoiding repeated wildcard
+  expansion during format and encoding detection. Custom discovery backends
+  now yield ``DiscoveryCandidate`` objects from ``get_masks()``.
 
 3.6.1
 -----

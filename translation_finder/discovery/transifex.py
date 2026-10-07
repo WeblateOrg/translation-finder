@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, ClassVar
 from translation_finder.api import register_discovery
 
 from .base import BaseDiscovery
+from .result import DiscoveryCandidate
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -166,7 +167,7 @@ class TransifexDiscovery(BaseDiscovery):
 
     def get_masks(
         self, *, eager: bool = False, hint: str | None = None
-    ) -> Generator[ResultDict]:
+    ) -> Generator[DiscoveryCandidate]:
         """Retuns matches from transifex files."""
         for path in self.finder.filter_files(
             "config",
@@ -199,4 +200,4 @@ class TransifexDiscovery(BaseDiscovery):
             for section in config.sections():
                 result = self.extract_section(config, section)
                 if result:
-                    yield result
+                    yield DiscoveryCandidate(result)
