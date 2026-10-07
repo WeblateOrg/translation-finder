@@ -17,6 +17,7 @@ from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
+from translation_finder.finder import MatchBudget
 
 from .result import DiscoveryResult
 
@@ -34,6 +35,7 @@ LOCALES = {"latn", "cyrl", "hant", "hans"}
 
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 FORMAT_SNIFF_MAX_FILES = 10
+FORMAT_SNIFF_MAX_CANDIDATES = 100
 ENCODING_SNIFF_MAX_FILES = 10
 
 
@@ -324,9 +326,15 @@ class BaseDiscovery:
         return
 
     def _result_paths(
-        self, result: ResultDict, *, template_first: bool = True
+        self,
+        result: ResultDict,
+        *,
+        template_first: bool = True,
+        match_budget: MatchBudget | None = None,
     ) -> Generator[PurePath]:
         """Yield unique paths referenced by a discovery result."""
+        if match_budget is None:
+            match_budget = MatchBudget(FORMAT_SNIFF_MAX_CANDIDATES)
         seen: set[str] = set()
         masks = (
             (result.get("template"), result["filemask"])
@@ -336,7 +344,7 @@ class BaseDiscovery:
         for mask in masks:
             if mask is None:
                 continue
-            for path in self.finder.mask_matches(mask):
+            for path in self.finder.mask_matches(mask, budget=match_budget):
                 key = path.as_posix()
                 if key in seen:
                     continue

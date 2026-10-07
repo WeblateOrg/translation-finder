@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* Bounded wildcard candidate evaluation during format detection to prevent
+  crafted file layouts from causing quadratic discovery work.
+
 3.6.1
 -----
 
