@@ -7,8 +7,12 @@
 from __future__ import annotations
 
 from collections import UserDict
+from dataclasses import dataclass, field
 from functools import total_ordering
-from typing import NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
+
+if TYPE_CHECKING:
+    from pathlib import PurePath
 
 FileFormatParams = dict[str, str | int | bool]
 
@@ -33,6 +37,29 @@ class ResultDict(TypedDict, total=False):
     intermediate: str
     language_regex: str
     new_base: str
+
+
+@dataclass
+class DiscoveryCandidate:
+    """Discovery result under construction with confirmed matching paths."""
+
+    result: ResultDict
+    paths: list[PurePath] = field(default_factory=list)
+    _known_paths: set[PurePath] = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Normalize the initial path list."""
+        paths = self.paths
+        self.paths = []
+        self._known_paths = set()
+        self.merge_paths(paths)
+
+    def merge_paths(self, paths: list[PurePath]) -> None:
+        """Append paths while preserving their order and uniqueness."""
+        for path in paths:
+            if path not in self._known_paths:
+                self.paths.append(path)
+                self._known_paths.add(path)
 
 
 @total_ordering

@@ -63,6 +63,7 @@ from .discovery.files import (
     XLSXDiscovery,
     YAMLDiscovery,
 )
+from .discovery.result import DiscoveryCandidate
 from .discovery.transifex import TransifexDiscovery
 from .finder import Finder
 
@@ -93,6 +94,15 @@ class DiscoveryTestCase(TestCase):
     def get_real_finder() -> Finder:
         return Finder(TEST_DATA)
 
+    @staticmethod
+    def get_candidate(
+        discovery: BaseDiscovery, result: ResultDict
+    ) -> DiscoveryCandidate:
+        """Build a candidate for direct content-detection tests."""
+        mask = result.get("filemask", result.get("template", ""))
+        paths = list(discovery.finder.mask_matches(mask)) if mask else []
+        return DiscoveryCandidate(result, paths)
+
     def assert_discovery(
         self, actual: Iterable[DiscoveryResult], expected: list[ResultDict]
     ) -> None:
@@ -120,7 +130,11 @@ class DiscoveryBaseTest(DiscoveryTestCase):
                 )
                 discovery = BaseDiscovery(finder)
 
-                self.assertEqual(list(discovery.get_masks()), [{"filemask": expected}])
+                candidates = list(discovery.get_masks())
+                self.assertEqual(
+                    [item.result for item in candidates], [{"filemask": expected}]
+                )
+                self.assertEqual(candidates[0].paths, [pure_path])
 
     def test_explicit_source_language_template(self) -> None:
         discovery = JSONDiscovery(self.get_finder(["locale/cs.json"]))
@@ -169,7 +183,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             }
 
             with patch.object(base_module, "from_bytes", return_value=Detection()):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(
             result["file_format_params"],
@@ -221,7 +235,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             result: ResultDict = {"filemask": "messages_*.properties"}
 
             with patch.object(base_module, "from_bytes", return_value=Detection()):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertNotIn("file_format_params", result)
 
@@ -240,8 +254,10 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             finder = Finder(root)
             missing.unlink()
             discovery = JavaDiscovery(finder)
+            result: ResultDict = {"filemask": "*.properties"}
             self.assertEqual(
-                discovery.detect_encoding({"filemask": "*.properties"}), "utf-16"
+                discovery.detect_encoding(self.get_candidate(discovery, result)),
+                "utf-16",
             )
 
     def test_encoding_discovery_reads_bounded_sample(self) -> None:
@@ -276,12 +292,14 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
         handle = TrackingBytesIO(b"abc\xe2\x82\xacrest")
         discovery = JavaDiscovery(cast("Finder", SampleFinder()))
+        result: ResultDict = {"filemask": "*.properties"}
         with (
             patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4),
             patch.object(base_module, "from_bytes", return_value=Detection()) as detect,
         ):
             self.assertEqual(
-                discovery.detect_encoding({"filemask": "*.properties"}), "utf-8"
+                discovery.detect_encoding(self.get_candidate(discovery, result)),
+                "utf-8",
             )
 
         self.assertEqual(handle.read_sizes, [5])
@@ -300,6 +318,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             tmppath = Path(tmpdir)
             (tmppath / "sample.properties").write_bytes(content)
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "*.properties"}
             with (
                 patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4),
                 patch.object(
@@ -307,7 +326,7 @@ class DiscoveryBaseTest(DiscoveryTestCase):
                 ) as detect,
             ):
                 self.assertIsNone(
-                    discovery.detect_encoding({"filemask": "*.properties"})
+                    discovery.detect_encoding(self.get_candidate(discovery, result))
                 )
 
         detect.assert_called_once_with(
@@ -322,9 +341,10 @@ class DiscoveryBaseTest(DiscoveryTestCase):
                 "hello=monde étoilé\n", encoding="utf-8"
             )
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "messages_*.properties"}
 
             self.assertEqual(
-                discovery.detect_encoding({"filemask": "messages_*.properties"}),
+                discovery.detect_encoding(self.get_candidate(discovery, result)),
                 "utf-8",
             )
 
@@ -334,9 +354,10 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             (tmppath / "messages_en.properties").write_text("hello=world\n")
             (tmppath / "messages_fr.properties").write_text("hello=monde\n")
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "messages_*.properties"}
 
             self.assertIsNone(
-                discovery.detect_encoding({"filemask": "messages_*.properties"})
+                discovery.detect_encoding(self.get_candidate(discovery, result))
             )
 
     def test_encoding_discovery_limits_charset_candidates(self) -> None:
@@ -351,12 +372,13 @@ class DiscoveryBaseTest(DiscoveryTestCase):
             (tmppath / "messages_en.properties").write_bytes(content)
             (tmppath / "messages_fr.properties").write_bytes(content)
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "messages_*.properties"}
 
             with patch.object(
                 base_module, "from_bytes", return_value=Detection()
             ) as detect:
                 self.assertIsNone(
-                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                    discovery.detect_encoding(self.get_candidate(discovery, result))
                 )
 
         self.assertEqual(detect.call_count, 2)
@@ -417,6 +439,42 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
 
 class DiscoveryPathIndexTest(DiscoveryTestCase):
+    def test_duplicate_masks_merge_confirmed_paths(self) -> None:
+        class RecordingDiscovery(BaseDiscovery):
+            file_format = "json"
+
+            def __init__(self, finder: Finder) -> None:
+                super().__init__(finder)
+                self.inspected: list[PurePath] = []
+
+            def get_masks(  # ruff: ignore[no-self-use]
+                self, *, eager: bool = False, hint: str | None = None
+            ) -> Generator[DiscoveryCandidate]:
+                del eager, hint
+                result: ResultDict = {"filemask": "locale/*.json"}
+                yield DiscoveryCandidate(result, [PurePath("locale/cs.json")])
+                yield DiscoveryCandidate(
+                    result,
+                    [PurePath("locale/cs.json"), PurePath("locale/de.json")],
+                )
+
+            def adjust_format(self, candidate: DiscoveryCandidate) -> None:
+                self.inspected = list(self._result_paths(candidate))
+
+        discovery = RecordingDiscovery(
+            self.get_finder(["locale/cs.json", "locale/de.json"])
+        )
+
+        results = list(discovery.discover())
+
+        self.assertEqual(
+            discovery.inspected,
+            [PurePath("locale/cs.json"), PurePath("locale/de.json")],
+        )
+        self.assert_discovery(
+            results, [{"filemask": "locale/*.json", "file_format": "json"}]
+        )
+
     def test_generated_path_candidate_evaluation_is_linear(self) -> None:
         count = 30
         finder = self.get_finder(
@@ -424,32 +482,26 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         )
         discovery = JavaDiscovery(finder)
 
-        with (
-            patch.object(base_module, "FORMAT_SNIFF_MAX_CANDIDATES", 5),
-            patch.object(
-                finder_module, "fnmatch", wraps=finder_module.fnmatch
-            ) as fnmatch,
-        ):
+        with patch.object(
+            finder_module, "fnmatch", wraps=finder_module.fnmatch
+        ) as fnmatch:
             results = list(discovery.discover())
 
         self.assertEqual(len(results), count)
-        self.assertEqual(fnmatch.call_count, count * 10)
+        self.assertEqual(fnmatch.call_count, 0)
 
     def test_api_candidate_evaluation_is_linear(self) -> None:
         count = 30
         paths = [f"en/x{index}-en/messages.properties" for index in range(count)]
         files = [(PurePath(path), PurePath(path), path) for path in paths]
 
-        with (
-            patch.object(base_module, "FORMAT_SNIFF_MAX_CANDIDATES", 5),
-            patch.object(
-                finder_module, "fnmatch", wraps=finder_module.fnmatch
-            ) as fnmatch,
-        ):
+        with patch.object(
+            finder_module, "fnmatch", wraps=finder_module.fnmatch
+        ) as fnmatch:
             results = api_module.discover(PurePath(), mock=(files, []))
 
         self.assertEqual(len(results), count)
-        self.assertEqual(fnmatch.call_count, count * 10)
+        self.assertEqual(fnmatch.call_count, 0)
 
     def test_generated_paths_avoid_wildcard_rescans(self) -> None:
         checks = (
@@ -474,7 +526,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
                     results = list(discovery.discover())
 
                 self.assertEqual(len(results), result_count)
-                self.assertEqual(fnmatch.call_count, 20)
+                self.assertEqual(fnmatch.call_count, 0)
 
     def test_custom_generated_paths_avoid_wildcard_rescans(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -492,9 +544,9 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
                 results = list(discovery.discover())
 
             self.assertEqual(len(results), 20)
-            self.assertEqual(fnmatch.call_count, 20)
+            self.assertEqual(fnmatch.call_count, 0)
 
-    def test_generated_paths_are_collected_before_content_detection(self) -> None:
+    def test_incidental_glob_matches_are_not_inspected(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             (root / "messages_cs.json").write_text("[]\n")
@@ -503,10 +555,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
 
             results = list(discovery.discover())
 
-        self.assert_discovery(
-            results,
-            [{"filemask": "messages_*.json", "file_format": "json-nested"}],
-        )
+        self.assert_discovery(results, [])
 
 
 class EncodingDiscoveryLimitTest(DiscoveryTestCase):
@@ -518,10 +567,11 @@ class EncodingDiscoveryLimitTest(DiscoveryTestCase):
                 "hello=monde étoilé\n", encoding="utf-8"
             )
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "messages_*.properties"}
 
             with patch.object(base_module, "FORMAT_SNIFF_MAX_BYTES", 4):
                 self.assertIsNone(
-                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                    discovery.detect_encoding(self.get_candidate(discovery, result))
                 )
 
     def test_sampled_files(self) -> None:
@@ -532,10 +582,11 @@ class EncodingDiscoveryLimitTest(DiscoveryTestCase):
                 "hello=monde étoilé\n", encoding="utf-8"
             )
             discovery = JavaDiscovery(Finder(tmppath))
+            result: ResultDict = {"filemask": "messages_*.properties"}
 
             with patch.object(base_module, "ENCODING_SNIFF_MAX_FILES", 1):
                 self.assertIsNone(
-                    discovery.detect_encoding({"filemask": "messages_*.properties"})
+                    discovery.detect_encoding(self.get_candidate(discovery, result))
                 )
 
 
@@ -1132,8 +1183,8 @@ class QtTest(DiscoveryTestCase):
 
     def test_missing_file_defaults_to_version_2(self) -> None:
         result: ResultDict = {"filemask": "missing.ts"}
-
-        QtDiscovery(self.get_finder([])).adjust_format(result)
+        discovery = QtDiscovery(self.get_finder([]))
+        discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result, {"filemask": "missing.ts"})
 
@@ -1216,7 +1267,7 @@ class AndroidTest(DiscoveryTestCase):
     def test_no_template_adjust_format(self) -> None:
         discovery = AndroidDiscovery(self.get_finder([]))
         result: ResultDict = {"filemask": "app/src/res/main/values-*/strings.xml"}
-        discovery.adjust_format(result)
+        discovery.adjust_format(self.get_candidate(discovery, result))
         self.assertEqual(result, {"filemask": "app/src/res/main/values-*/strings.xml"})
 
     def test_plural_file_is_moko_resource(self) -> None:
@@ -1279,6 +1330,7 @@ class OSXTest(DiscoveryTestCase):
                     "App/Resources/en.lproj/Localizable.strings",
                     "App/Resources/Base.lproj/Other.strings",
                     "App/Resources/ru.lproj/Third.strings",
+                    "App/Resources/invalid.lproj/Fourth.strings",
                 ],
             ),
         )
@@ -1596,7 +1648,7 @@ class XliffTest(DiscoveryTestCase):
     def test_adjust_format_without_matches(self) -> None:
         discovery = XliffDiscovery(self.get_finder([]))
         result: ResultDict = {"filemask": "ghost.xlf"}
-        discovery.adjust_format(result)
+        discovery.adjust_format(self.get_candidate(discovery, result))
         self.assertEqual(result, {"filemask": "ghost.xlf"})
 
     def test_existing_hint(self) -> None:
@@ -1604,7 +1656,7 @@ class XliffTest(DiscoveryTestCase):
         for hint in ("ghost.xlf", "*.xlf"):
             with self.subTest(hint=hint):
                 self.assertEqual(
-                    list(discovery.get_masks(hint=hint)),
+                    [item.result for item in discovery.get_masks(hint=hint)],
                     [{"filemask": hint}],
                 )
 
@@ -1912,7 +1964,7 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                 ),
                 self.assertWarnsRegex(UserWarning, "Could not parse JSON: too deep"),
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(
             result,
@@ -2457,7 +2509,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
     def test_no_template_adjust_format(self) -> None:
         discovery = YAMLDiscovery(self.get_finder([]))
         result: ResultDict = {"filemask": "translations/*.yml"}
-        discovery.adjust_format(result)
+        discovery.adjust_format(self.get_candidate(discovery, result))
         self.assertEqual(result, {"filemask": "translations/*.yml"})
 
     def test_ruby_yaml_without_filemask(self) -> None:
@@ -2468,7 +2520,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
             discovery = YAMLDiscovery(Finder(tmppath))
             result: ResultDict = {"template": "locale/en.yml"}
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2480,7 +2532,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
             discovery = YAMLDiscovery(Finder(tmppath))
             result: ResultDict = {"template": "locale/en.yml"}
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertNotIn("file_format", result)
 
@@ -2491,7 +2543,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
             discovery = YAMLDiscovery(Finder(tmppath))
             result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2513,7 +2565,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                         result["filemask"] = "*.yml"
                     expected = result.copy()
 
-                    discovery.adjust_format(result)
+                    discovery.adjust_format(self.get_candidate(discovery, result))
 
                     self.assertEqual(result, expected)
 
@@ -2543,7 +2595,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 discovery = YAMLDiscovery(Finder(tmppath))
                 result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
 
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
             self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2555,7 +2607,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 discovery = YAMLDiscovery(Finder(tmppath))
                 result: ResultDict = {"filemask": "*.yml", "template": "en.yml"}
 
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
             self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2570,7 +2622,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 "template": "en.yml",
             }
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "yaml")
 
@@ -2605,7 +2657,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 "file_format": "yaml",
                 "template": "en.yml",
             }
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2620,7 +2672,7 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
                 "template": "en.yml",
             }
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "ruby-yaml")
 
@@ -2649,7 +2701,7 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
     def test_no_template_adjust_format(self) -> None:
         discovery = TOMLDiscovery(self.get_finder([]))
         result: ResultDict = {"filemask": "translations/*.toml"}
-        discovery.adjust_format(result)
+        discovery.adjust_format(self.get_candidate(discovery, result))
         self.assertEqual(result, {"filemask": "translations/*.toml"})
 
     def test_malformed_toml_keeps_format(self) -> None:
@@ -2684,7 +2736,7 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
                 "template": "en.toml",
             }
 
-            discovery.adjust_format(result)
+            discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(
             result,
@@ -3208,7 +3260,7 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                     wraps=files_module._read_binary_sniff_sample,
                 ) as read,
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "txt")
         self.assertEqual(read.call_count, 1)
@@ -3233,7 +3285,7 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                     wraps=files_module._read_binary_sniff_sample,
                 ) as read,
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "properties")
         self.assertEqual(read.call_count, 1)
@@ -3260,7 +3312,7 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                     wraps=files_module._read_binary_sniff_sample,
                 ) as read,
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "flatxml")
         self.assertEqual(read.call_count, 1)
@@ -3278,7 +3330,9 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                 wraps=files_module._read_binary_sniff_sample,
             ) as read:
                 self.assertFalse(
-                    discovery.has_template_less_content({"filemask": "*.json"})
+                    discovery.has_template_less_content(
+                        self.get_candidate(discovery, {"filemask": "*.json"})
+                    )
                 )
 
         self.assertEqual(read.call_count, 2)
@@ -3293,7 +3347,9 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                 files_module, "_read_binary_sniff_sample", return_value=None
             ):
                 self.assertFalse(
-                    discovery.has_template_less_content({"filemask": "*.json"})
+                    discovery.has_template_less_content(
+                        self.get_candidate(discovery, {"filemask": "*.json"})
+                    )
                 )
 
     def test_template_less_json_keeps_result_when_file_limit_is_reached(
@@ -3307,12 +3363,12 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_FILES", 1):
                 self.assertTrue(
-                    discovery.has_template_less_content({"filemask": "*.json"})
+                    discovery.has_template_less_content(
+                        self.get_candidate(discovery, {"filemask": "*.json"})
+                    )
                 )
 
-    def test_template_less_json_keeps_result_when_matching_is_truncated(
-        self,
-    ) -> None:
+    def test_template_less_json_uses_confirmed_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             for index in range(3):
@@ -3320,13 +3376,13 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                 path.parent.mkdir(parents=True)
                 path.write_text("[]\n")
             discovery = JSONDiscovery(Finder(root))
+            result: ResultDict = {"filemask": "*/x2-*/messages.json"}
+            candidate = DiscoveryCandidate(
+                result,
+                [discovery.finder.files_by_path["en/x2-en/messages.json"]],
+            )
 
-            with patch.object(files_module, "FORMAT_SNIFF_MAX_CANDIDATES", 1):
-                self.assertTrue(
-                    discovery.has_template_less_content(
-                        {"filemask": "*/x2-*/messages.json"}
-                    )
-                )
+            self.assertFalse(discovery.has_template_less_content(candidate))
 
     def test_template_less_json_drops_conclusively_inspected_result(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -3336,7 +3392,9 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_FILES", 1):
                 self.assertFalse(
-                    discovery.has_template_less_content({"filemask": "*.json"})
+                    discovery.has_template_less_content(
+                        self.get_candidate(discovery, {"filemask": "*.json"})
+                    )
                 )
 
 
@@ -3376,7 +3434,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "xliff2")
         self.assertEqual(result["file_format_params"]["xliff_placeables"], "plain")
@@ -3394,7 +3452,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "xliff")
         self.assertEqual(result["file_format_params"]["xliff_placeables"], "plain")
@@ -3413,7 +3471,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             with patch.object(
                 files_module, "_read_binary_sniff_sample", return_value=None
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "xliff")
 
@@ -3439,7 +3497,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
                     side_effect=AssertionError("parser should not run"),
                 ),
             ):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "json-nested")
 
@@ -3490,7 +3548,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "yaml")
 
@@ -3510,7 +3568,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "php")
 
@@ -3529,7 +3587,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 40):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "laravel")
 
@@ -3550,7 +3608,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "moko-resource")
 
@@ -3570,7 +3628,7 @@ class FormatSniffContentLimitTest(DiscoveryTestCase):
             }
 
             with patch.object(files_module, "FORMAT_SNIFF_MAX_BYTES", 32):
-                discovery.adjust_format(result)
+                discovery.adjust_format(self.get_candidate(discovery, result))
 
         self.assertEqual(result["file_format"], "toml")
 
@@ -3593,7 +3651,7 @@ class PHPDiscoveryTest(DiscoveryTestCase):
     def test_no_template_adjust_format(self) -> None:
         discovery = PHPDiscovery(self.get_finder([]))
         result: ResultDict = {"filemask": "test/*.php"}
-        discovery.adjust_format(result)
+        discovery.adjust_format(self.get_candidate(discovery, result))
         self.assertEqual(result, {"filemask": "test/*.php"})
 
     def test_laravel_plural_detection(self) -> None:
