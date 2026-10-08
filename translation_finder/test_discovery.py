@@ -1085,6 +1085,23 @@ class QtTest(DiscoveryTestCase):
             with self.subTest(content=content):
                 self.assertIsNone(files_module._get_qt_ts_version(content))
 
+    def test_ts_version_rejects_entity_declarations(self) -> None:
+        self.assertIsNone(
+            files_module._get_qt_ts_version(
+                """<!DOCTYPE TS [
+<!ENTITY version "1.1">
+]>
+<TS version="&version;"></TS>
+"""
+            )
+        )
+
+    def test_ts_version_accepts_safe_character_references(self) -> None:
+        self.assertEqual(
+            files_module._get_qt_ts_version('<!DOCTYPE TS><TS version="1&#46;1"></TS>'),
+            "1.1",
+        )
+
     def test_detects_ts_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)

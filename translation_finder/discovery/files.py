@@ -76,6 +76,10 @@ class _QtRootFoundError(Exception):
     """Stop Qt XML parsing after the root element."""
 
 
+class _QtEntityDeclarationError(expat.ExpatError):
+    """Reject custom entities during Qt XML parsing."""
+
+
 def _get_qt_ts_version(content: str) -> str | None:
     """Return the version from a Qt TS root element."""
     version: str | None = None
@@ -87,7 +91,12 @@ def _get_qt_ts_version(content: str) -> str | None:
             version = attributes.get("version")
         raise _QtRootFoundError
 
+    def deny_entity(*_args: object) -> None:
+        """Reject custom entities before Expat can expand them."""
+        raise _QtEntityDeclarationError
+
     parser.StartElementHandler = handle_start
+    parser.EntityDeclHandler = deny_entity
     try:
         parser.Parse(content, False)  # ruff: ignore[boolean-positional-value-in-call]
     except _QtRootFoundError:
