@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Hardened Qt Linguist version detection against XML entity expansion.
+
 3.7.0
 -----
 
