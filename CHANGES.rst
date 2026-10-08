@@ -4,9 +4,15 @@ Changelog
 Unreleased
 ----------
 
+3.7.0
+-----
+
+* Released on 8th October 2026.
 * Tracked the files which generate discovery masks, avoiding repeated wildcard
   expansion during format and encoding detection. Custom discovery backends
   now yield ``DiscoveryCandidate`` objects from ``get_masks()``.
+* Bounded wildcard candidate matching to limit CPU work on crafted file layouts.
+* Updated type-checking tooling and CI actions.
 
 3.6.1
 -----
