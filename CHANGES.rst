@@ -5,6 +5,8 @@ Unreleased
 ----------
 
 * Hardened Qt Linguist version detection against XML entity expansion.
+* Bounded aggregate Transifex configuration parsing to avoid excessive CPU
+  usage on repositories containing many crafted ``.tx/config`` files.
 
 3.7.0
 -----

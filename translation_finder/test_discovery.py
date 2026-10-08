@@ -2189,6 +2189,90 @@ type = PO
             with patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_LINE_BYTES", 32):
                 self.assert_discovery(discovery.discover(), [])
 
+    def test_config_file_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for position in range(3):
+                config_dir = root / str(position) / ".tx"
+                config_dir.mkdir(parents=True)
+                (config_dir / "config").write_text(
+                    f"""
+[translation-{position}]
+file_filter = locales/{position}/<lang>.po
+type = PO
+""",
+                    encoding="utf-8",
+                )
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            with patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_FILES", 2):
+                self.assertEqual(
+                    [candidate.result["name"] for candidate in discovery.get_masks()],
+                    ["translation-0", "translation-1"],
+                )
+
+    def test_unreadable_config_consumes_file_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for position in range(2):
+                config_dir = root / str(position) / ".tx"
+                config_dir.mkdir(parents=True)
+                (config_dir / "config").touch()
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            with (
+                patch.object(transifex_module, "TRANSIFEX_CONFIG_MAX_FILES", 1),
+                patch.object(discovery.finder, "open", side_effect=OSError) as mocked,
+            ):
+                self.assertEqual(list(discovery.get_masks()), [])
+            mocked.assert_called_once()
+
+    def test_config_total_byte_limit_skips_files_that_do_not_fit(self) -> None:
+        configs = {
+            "a": b"[first]\nfile_filter = locales/first/<lang>.po\ntype = PO\n",
+            "b": b"[second]\nfile_filter = locales/second/<lang>.po\ntype = PO\n"
+            + b"# padding\n" * 10,
+            "c": b"[third]\nfile_filter = locales/third/<lang>.po\ntype = PO\n",
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for directory, content in configs.items():
+                config_dir = root / directory / ".tx"
+                config_dir.mkdir(parents=True)
+                (config_dir / "config").write_bytes(content)
+
+            discovery = TransifexDiscovery(Finder(root))
+            total_bytes = len(configs["a"]) + len(configs["c"])
+
+            with patch.object(
+                transifex_module, "TRANSIFEX_CONFIG_TOTAL_MAX_BYTES", total_bytes
+            ):
+                self.assertEqual(
+                    [candidate.result["name"] for candidate in discovery.get_masks()],
+                    ["first", "third"],
+                )
+
+    def test_zero_result_config_consumes_total_byte_limit(self) -> None:
+        attack = b"[s0]\n[s1]\n"
+        valid = b"[translation]\nfile_filter = locales/<lang>.po\ntype = PO\n"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for directory, content in (("a", attack), ("b", valid)):
+                config_dir = root / directory / ".tx"
+                config_dir.mkdir(parents=True)
+                (config_dir / "config").write_bytes(content)
+
+            discovery = TransifexDiscovery(Finder(root))
+
+            with patch.object(
+                transifex_module,
+                "TRANSIFEX_CONFIG_TOTAL_MAX_BYTES",
+                len(attack),
+            ):
+                self.assertEqual(list(discovery.get_masks()), [])
+
     def test_config_io_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
