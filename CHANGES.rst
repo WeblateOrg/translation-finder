@@ -4,9 +4,14 @@ Changelog
 Unreleased
 ----------
 
+3.7.1
+-----
+
+* Released on 8th October 2026.
 * Hardened Qt Linguist version detection against XML entity expansion.
 * Bounded aggregate Transifex configuration parsing to avoid excessive CPU
   usage on repositories containing many crafted ``.tx/config`` files.
+* Verified support for Python 3.15.
 
 3.7.0
 -----
