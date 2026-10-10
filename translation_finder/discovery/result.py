@@ -70,7 +70,6 @@ class DiscoveryResult(UserDict):
     Subclass of a dict with meta dict containing additional information.
     """
 
-    data: ResultDict  # type: ignore[assignment]
     __hash__ = None  # type: ignore[assignment]
 
     def __init__(self, data: ResultDict) -> None:
@@ -83,7 +82,7 @@ class DiscoveryResult(UserDict):
 
     @property
     def _sort_key(self) -> tuple[int, str]:
-        return (self.meta["priority"], self["file_format"])
+        return (self.meta["priority"], self.match["file_format"])
 
     @property
     def match(self) -> ResultDict:
@@ -112,6 +111,6 @@ class DiscoveryResult(UserDict):
 
     def copy(self) -> DiscoveryResult:
         """Create a copy of the result."""
-        result = DiscoveryResult(self.data.copy())
+        result = DiscoveryResult(self.match)
         result.meta = self.meta.copy()
         return result
