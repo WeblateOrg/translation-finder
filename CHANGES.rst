@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* Bounded aggregate content sniffing across all candidates and discovery
+  backends to avoid repeated CPU and I/O work on crafted repositories.
+
 3.7.1
 -----
 

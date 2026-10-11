@@ -181,12 +181,11 @@ class TransifexDiscovery(BaseDiscovery):
         ):
             if config_count >= TRANSIFEX_CONFIG_MAX_FILES:
                 break
-            try:
-                with self.finder.open(path, "rb") as handle:
-                    content = handle.read(TRANSIFEX_CONFIG_MAX_BYTES + 1)
-            except (OSError, TypeError):
+            sample = self._read_run_sniff_sample(path, TRANSIFEX_CONFIG_MAX_BYTES)
+            if sample is None:
                 continue
-            if len(content) > TRANSIFEX_CONFIG_MAX_BYTES:
+            content, complete = sample
+            if not complete:
                 continue
             if len(content) > remaining_bytes:
                 continue

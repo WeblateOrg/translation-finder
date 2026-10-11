@@ -35,6 +35,81 @@ LOCALES = {"latn", "cyrl", "hant", "hans"}
 FORMAT_SNIFF_MAX_BYTES = 1024 * 1024
 FORMAT_SNIFF_MAX_FILES = 10
 ENCODING_SNIFF_MAX_FILES = 10
+DISCOVERY_SNIFF_MAX_BYTES = 64 * 1024 * 1024
+DISCOVERY_SNIFF_MAX_FILES = 512
+
+
+class SniffBudget:
+    """Bound content sniffing and optionally charge a parent budget."""
+
+    def __init__(
+        self,
+        max_bytes: int,
+        max_files: int,
+        *,
+        parent: SniffBudget | None = None,
+    ) -> None:
+        self.remaining_bytes = max_bytes
+        self.remaining_files = max_files
+        self.parent = parent
+
+    @property
+    def exhausted(self) -> bool:
+        """Whether another file can be inspected."""
+        return (
+            self.remaining_bytes <= 0
+            or self.remaining_files <= 0
+            or (self.parent is not None and self.parent.exhausted)
+        )
+
+    def read(
+        self,
+        finder: Finder,
+        path: PurePath,
+        size: int = FORMAT_SNIFF_MAX_BYTES,
+    ) -> tuple[bytes, bool] | None:
+        """Read one sample and charge it to this and all parent budgets."""
+        allowance = self.reserve(size)
+        if allowance is None:
+            return None
+
+        if not hasattr(path, "open"):
+            return None
+        try:
+            with finder.open(path, "rb") as handle:
+                content = handle.read(allowance + 1)
+        except (OSError, TypeError):
+            return None
+
+        sample = content[:allowance]
+        self.charge(len(sample))
+        return sample, len(content) <= allowance
+
+    def reserve(self, size: int) -> int | None:
+        """Reserve one file attempt and return the available byte allowance."""
+        budgets = [self]
+        parent = self.parent
+        while parent is not None:
+            budgets.append(parent)
+            parent = parent.parent
+
+        if any(budget.exhausted for budget in budgets):
+            return None
+
+        allowance = min(size, *(budget.remaining_bytes for budget in budgets))
+        for budget in budgets:
+            budget.remaining_files -= 1
+        return allowance
+
+    def charge(self, size: int) -> None:
+        """Charge sampled bytes to this and all parent budgets."""
+        budgets = [self]
+        parent = self.parent
+        while parent is not None:
+            budgets.append(parent)
+            parent = parent.parent
+        for budget in budgets:
+            budget.remaining_bytes -= size
 
 
 def _replace_with_wildcard(found: re.Match[str], *, wildcard: str) -> str:
@@ -134,10 +209,32 @@ class BaseDiscovery:
     def __init__(self, finder: Finder, source_language: str = "en") -> None:
         self.finder: Finder = finder
         self.source_language: str = source_language
+        self._run_sniff_budget: SniffBudget | None = None
         self._new_base_by_directory: dict[str, tuple[int, PurePath]] | None = None
         self._new_base_by_name: dict[tuple[str, str], tuple[int, PurePath]] | None = (
             None
         )
+
+    def _set_run_sniff_budget(self, budget: SniffBudget) -> None:
+        """Use a shared content-sniffing budget for this discovery run."""
+        self._run_sniff_budget = budget
+
+    def _new_sniff_budget(
+        self,
+        max_bytes: int = FORMAT_SNIFF_MAX_BYTES,
+        max_files: int = FORMAT_SNIFF_MAX_FILES,
+    ) -> SniffBudget:
+        """Create a local sniffing budget linked to the current run."""
+        return SniffBudget(max_bytes, max_files, parent=self._run_sniff_budget)
+
+    def _read_run_sniff_sample(
+        self,
+        path: PurePath,
+        size: int = FORMAT_SNIFF_MAX_BYTES,
+    ) -> tuple[bytes, bool] | None:
+        """Read a sample charged directly to the current run."""
+        budget = self._run_sniff_budget or SniffBudget(size, 1)
+        return budget.read(self.finder, path, size)
 
     @staticmethod
     def is_country_code(code: str) -> bool:
@@ -511,24 +608,21 @@ class EncodingDiscovery(BaseDiscovery):
 
     def detect_encoding(self, candidate: DiscoveryCandidate) -> str | None:
         """Detect file encoding and translate it to a Weblate parameter value."""
-        remaining_bytes = FORMAT_SNIFF_MAX_BYTES
-        sampled_files = 0
+        budget = self._new_sniff_budget(
+            FORMAT_SNIFF_MAX_BYTES, ENCODING_SNIFF_MAX_FILES
+        )
         for path in self._result_paths(candidate, template_first=False):
-            if remaining_bytes <= 0 or sampled_files >= ENCODING_SNIFF_MAX_FILES:
+            if budget.exhausted:
                 break
             if not isinstance(path, Path):
                 # PurePath only
                 continue
-            try:
-                with self.finder.open(path, "rb") as handle:
-                    content = handle.read(remaining_bytes + 1)
-            except OSError:
+            sample = budget.read(self.finder, path)
+            if sample is None:
                 continue
-            sampled_files += 1
-            sampled_bytes = min(len(content), remaining_bytes)
-            remaining_bytes -= sampled_bytes
-            if len(content) > sampled_bytes:
-                content = _trim_incomplete_unicode_tail(content[:sampled_bytes])
+            content, complete = sample
+            if not complete:
+                content = _trim_incomplete_unicode_tail(content)
             detection_result = from_bytes(
                 content,
                 cp_isolation=["ascii", *self.encoding_map],
