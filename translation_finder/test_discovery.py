@@ -3328,6 +3328,7 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                 budget = files_module._FormatSniffBudget()
                 self.assertEqual(budget.read(finder, next(paths)), (b"abc", True))
                 self.assertEqual(budget.read(finder, next(paths)), (b"d", False))
+                self.assertIsNone(budget.read(finder, Path("third.txt")))
 
         self.assertTrue(budget.exhausted)
         self.assertEqual(budget.remaining_bytes, 0)
@@ -3497,6 +3498,103 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
                         self.get_candidate(discovery, {"filemask": "*.json"})
                     )
                 )
+
+
+class GlobalSniffLimitTest(DiscoveryTestCase):
+    def test_child_budget_charges_parent(self) -> None:
+        parent = base_module.SniffBudget(10, 3)
+        child = base_module.SniffBudget(4, 2, parent=parent)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "sample.txt").write_bytes(b"abc")
+            finder = Finder(root)
+            path = next(finder.mask_matches("sample.txt"))
+
+            self.assertEqual(child.read(finder, path), (b"abc", True))
+
+        self.assertEqual(child.remaining_bytes, 1)
+        self.assertEqual(child.remaining_files, 1)
+        self.assertEqual(parent.remaining_bytes, 7)
+        self.assertEqual(parent.remaining_files, 2)
+
+    def test_read_failure_charges_parent_file_limit(self) -> None:
+        parent = base_module.SniffBudget(10, 1)
+        child = base_module.SniffBudget(4, 1, parent=parent)
+
+        with patch.object(Finder, "open", side_effect=OSError):
+            self.assertIsNone(child.read(self.get_finder([]), Path("missing.txt")))
+
+        self.assertTrue(child.exhausted)
+        self.assertTrue(parent.exhausted)
+        self.assertEqual(child.remaining_bytes, 4)
+        self.assertEqual(parent.remaining_bytes, 10)
+
+        self.assertIsNone(child.read(self.get_finder([]), Path("other.txt")))
+
+    def test_binary_sample_skips_mock_path(self) -> None:
+        self.assertIsNone(
+            files_module._read_binary_sample(
+                self.get_finder(["sample.txt"]),
+                PurePath("sample.txt"),
+            )
+        )
+
+    def test_discover_shares_byte_limit_across_candidates_and_backends(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(2):
+                (root / f"messages{index}_cs.properties").write_bytes(b"xxxx")
+            (root / "messages_cs.json").write_text("[]", encoding="utf-8")
+
+            original_open = Finder.open
+            opened: list[str] = []
+
+            def tracked_open(finder: Finder, path: PurePath, mode: str = "r") -> object:
+                self.assertEqual(mode, "rb")
+                opened.append(path.as_posix())
+                return original_open(finder, path, "rb")
+
+            with (
+                patch.object(api_module, "DISCOVERY_SNIFF_MAX_BYTES", 8),
+                patch.object(api_module, "DISCOVERY_SNIFF_MAX_FILES", 512),
+                patch.object(Finder, "open", tracked_open),
+            ):
+                results = api_module.discover(root)
+
+        self.assertEqual(opened, ["messages0_cs.properties"] * 2)
+        self.assertEqual(
+            {result["filemask"] for result in results},
+            {
+                "messages0_*.properties",
+                "messages1_*.properties",
+                "messages_*.json",
+            },
+        )
+
+    def test_discover_shares_file_limit_across_candidates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(2):
+                (root / f"messages{index}_cs.properties").write_bytes(b"xxxx")
+
+            original_open = Finder.open
+            opened: list[str] = []
+
+            def tracked_open(finder: Finder, path: PurePath, mode: str = "r") -> object:
+                self.assertEqual(mode, "rb")
+                opened.append(path.as_posix())
+                return original_open(finder, path, "rb")
+
+            with (
+                patch.object(api_module, "DISCOVERY_SNIFF_MAX_BYTES", 1024),
+                patch.object(api_module, "DISCOVERY_SNIFF_MAX_FILES", 1),
+                patch.object(Finder, "open", tracked_open),
+            ):
+                results = api_module.discover(root)
+
+        self.assertEqual(opened, ["messages0_cs.properties"])
+        self.assertEqual(len(results), 2)
 
 
 class FormatSniffContentLimitTest(DiscoveryTestCase):

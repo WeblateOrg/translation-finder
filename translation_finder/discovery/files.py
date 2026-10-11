@@ -24,6 +24,7 @@ from .base import (
     EncodingDiscovery,
     EnglishVariantsDiscovery,
     MonoTemplateDiscovery,
+    SniffBudget,
 )
 from .result import DiscoveryCandidate
 
@@ -224,25 +225,37 @@ def _read_text_sniff_content(
     return _decode_content(content)
 
 
-class _FormatSniffBudget:
+class _FormatSniffBudget(SniffBudget):
     """Bound aggregate format sniffing across files in one result."""
 
-    def __init__(self) -> None:
-        self.remaining_bytes = FORMAT_SNIFF_MAX_BYTES
-        self.remaining_files = FORMAT_SNIFF_MAX_FILES
+    def __init__(self, *, parent: SniffBudget | None = None) -> None:
+        super().__init__(
+            FORMAT_SNIFF_MAX_BYTES,
+            FORMAT_SNIFF_MAX_FILES,
+            parent=parent,
+        )
 
-    @property
-    def exhausted(self) -> bool:
-        """Whether another file can be inspected."""
-        return self.remaining_bytes <= 0 or self.remaining_files <= 0
-
-    def read(self, finder: Finder, path: PurePath) -> tuple[bytes, bool] | None:
-        """Read one sample and charge it to the budget."""
-        self.remaining_files -= 1
-        sample = _read_binary_sniff_sample(finder, path, self.remaining_bytes)
+    def read(
+        self,
+        finder: Finder,
+        path: PurePath,
+        size: int | None = None,
+    ) -> tuple[bytes, bool] | None:
+        """Read one format sample and charge it to all budgets."""
+        allowance = self.reserve(FORMAT_SNIFF_MAX_BYTES if size is None else size)
+        if allowance is None:
+            return None
+        sample = _read_binary_sniff_sample(finder, path, allowance)
         if sample is not None:
-            self.remaining_bytes -= len(sample[0])
+            self.charge(len(sample[0]))
         return sample
+
+
+def _new_format_sniff_budget(discovery: BaseDiscovery) -> SniffBudget:
+    """Create a per-result format budget linked to the discovery run."""
+    return _FormatSniffBudget(
+        parent=discovery._run_sniff_budget,  # ruff: ignore[private-member-access]
+    )
 
 
 def _parse_csv_rows(text: str) -> list[list[str]] | None:
@@ -570,7 +583,7 @@ def _detect_csv_format(
 ) -> str | None:
     """Detect CSV format variants based on file content."""
     detected_simple = False
-    budget = _FormatSniffBudget()
+    budget = _new_format_sniff_budget(discovery)
     for path in discovery._result_paths(  # ruff: ignore[private-member-access]
         candidate
     ):
@@ -645,9 +658,10 @@ class QtDiscovery(BaseDiscovery):
         if path is None:
             return
 
-        content = _read_text_sample(self.finder, path)
-        if content is None:
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if sample is None:
             return
+        content = _decode_sample_content(sample[0])
 
         version = _get_qt_ts_version(content)
         if version is not None and version.startswith("1."):
@@ -669,7 +683,7 @@ class XliffDiscovery(BaseDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        sample = _read_binary_sniff_sample(self.finder, path)
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
         if sample is None:
             return
         content, _complete = sample
@@ -779,8 +793,8 @@ class AndroidDiscovery(BaseDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        content = _read_binary_sample(self.finder, path)
-        if content is not None and b"<plural " in content:
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if sample is not None and b"<plural " in sample[0]:
             result["file_format"] = "moko-resource"
 
 
@@ -934,7 +948,7 @@ class JavaDiscovery(EncodingDiscovery):
         """Override detected format, based on the file content."""
         result = candidate.result
         self.adjust_encoding(candidate)
-        budget = _FormatSniffBudget()
+        budget = _new_format_sniff_budget(self)
         for path in self._result_paths(candidate):
             if budget.exhausted:
                 break
@@ -1058,14 +1072,14 @@ class JSONDiscovery(BaseDiscovery):
 
     def read_json_data(self, path: PurePath) -> object | None:
         """Read and parse a complete JSON file."""
-        content = _read_binary_sniff_content(self.finder, path)
-        if content is None:
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if sample is None or not sample[1]:
             return None
-        return self._parse_json_data(content)
+        return self._parse_json_data(sample[0])
 
     def has_template_less_content(self, candidate: DiscoveryCandidate) -> bool:
         """Check whether a template-less JSON result looks translatable."""
-        budget = _FormatSniffBudget()
+        budget = _new_format_sniff_budget(self)
         for path in self._result_paths(candidate):
             if not hasattr(path, "open"):
                 return True
@@ -1214,9 +1228,10 @@ class JSONDiscovery(BaseDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        content = _read_binary_sniff_content(self.finder, path)
-        if content is None:
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if sample is None or not sample[1]:
             return
+        content = sample[0]
         try:
             data = json.loads(content.decode())
         except (RecursionError, UnicodeError, ValueError) as error:
@@ -1272,9 +1287,10 @@ class YAMLDiscovery(BaseDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        content = _read_text_sniff_content(self.finder, path)
-        if content is None:
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if sample is None or not sample[1]:
             return
+        content = _decode_content(sample[0])
         key = _get_ruby_yaml_root_key(content)
         if key is None:
             return
@@ -1335,7 +1351,8 @@ class PHPDiscovery(MonoTemplateDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        content = _read_binary_sample(self.finder, path)
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        content = sample[0] if sample is not None else None
         if (
             content is not None
             and b"return [" in content
@@ -1449,8 +1466,12 @@ class TOMLDiscovery(BaseDiscovery):
         if path is None or not hasattr(path, "open"):
             return
 
-        content = _read_text_sniff_content(self.finder, path)
-        if content is not None and _is_go_i18n_toml(content):
+        sample = _new_format_sniff_budget(self).read(self.finder, path)
+        if (
+            sample is not None
+            and sample[1]
+            and _is_go_i18n_toml(_decode_content(sample[0]))
+        ):
             result["file_format"] = "go-i18n-toml"
 
 
@@ -1588,7 +1609,7 @@ class FlatXMLDiscovery(MonoTemplateDiscovery):
     def adjust_format(self, candidate: DiscoveryCandidate) -> None:
         """Override detected format, based on the file content."""
         result = candidate.result
-        budget = _FormatSniffBudget()
+        budget = _new_format_sniff_budget(self)
         for path in self._result_paths(candidate):
             if budget.exhausted:
                 break

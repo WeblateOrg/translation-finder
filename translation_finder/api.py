@@ -11,7 +11,12 @@ from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO, TypeVar
 
-from translation_finder.discovery.base import BaseDiscovery
+from translation_finder.discovery.base import (
+    DISCOVERY_SNIFF_MAX_BYTES,
+    DISCOVERY_SNIFF_MAX_FILES,
+    BaseDiscovery,
+    SniffBudget,
+)
 
 from .finder import Finder
 
@@ -53,9 +58,16 @@ def discover(
     localization tools such as Weblate.
     """
     finder = Finder(root, mock=mock)
+    sniff_budget = SniffBudget(
+        DISCOVERY_SNIFF_MAX_BYTES,
+        DISCOVERY_SNIFF_MAX_FILES,
+    )
     results: list[DiscoveryResult] = []
     for backend in BACKENDS:
         instance = backend(finder, source_language)
+        instance._set_run_sniff_budget(  # ruff: ignore[private-member-access]
+            sniff_budget
+        )
         results.extend(instance.discover(eager=eager, hint=hint))
     results.sort()
     return results
