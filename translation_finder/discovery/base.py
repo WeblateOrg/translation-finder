@@ -53,12 +53,19 @@ class DiscoveryBudget:
         self.remaining_candidates = candidates
         self.truncated = False
 
+    @property
+    def exhausted(self) -> bool:
+        """Whether another candidate can be generated."""
+        return self.remaining_candidates <= 0
+
     def consume_candidate(self) -> bool:
         """Consume one generated candidate when capacity remains."""
-        if self.remaining_candidates <= 0:
+        if self.exhausted:
             self.truncated = True
             return False
         self.remaining_candidates -= 1
+        if self.exhausted:
+            self.truncated = True
         return True
 
 
@@ -338,7 +345,7 @@ class BaseDiscovery:
                     )
         return None
 
-    def fill_in_new_base(  # ruff: ignore[too-many-locals]
+    def fill_in_new_base(  # ruff: ignore[too-many-branches, too-many-locals]
         self, result: ResultDict
     ) -> None:
         """Extend the result for new_base and intermediate parameters."""
@@ -362,6 +369,10 @@ class BaseDiscovery:
         if isinstance(cached_fallback, str):
             best_result = cached_fallback
         find_exact = new_name in (self._new_base_names or set())
+        if not find_fallback and not find_exact:
+            if best_result is not None:
+                result["new_base"] = best_result
+            return
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
@@ -510,14 +521,16 @@ class BaseDiscovery:
             self._run_discovery_budget = budget
         candidates: dict[str, DiscoveryCandidate] = {}
         try:
-            for candidate in self.get_masks(eager=eager, hint=hint):
-                if not budget.consume_candidate():
-                    break
-                filemask = candidate.result["filemask"]
-                if filemask in candidates:
-                    candidates[filemask].merge_paths(candidate.paths)
-                else:
-                    candidates[filemask] = candidate
+            if not budget.exhausted:
+                for candidate in self.get_masks(eager=eager, hint=hint):
+                    budget.consume_candidate()
+                    filemask = candidate.result["filemask"]
+                    if filemask in candidates:
+                        candidates[filemask].merge_paths(candidate.paths)
+                    else:
+                        candidates[filemask] = candidate
+                    if budget.exhausted:
+                        break
 
             for candidate in candidates.values():
                 result = candidate.result

@@ -15,7 +15,7 @@ from itertools import product
 from operator import itemgetter
 from pathlib import Path, PurePath, PurePosixPath
 from time import monotonic
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, SupportsIndex, cast
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -439,6 +439,12 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
 
 class DiscoveryPathIndexTest(DiscoveryTestCase):
+    def test_exhausted_discovery_budget_rejects_candidate(self) -> None:
+        budget = base_module.DiscoveryBudget(0)
+
+        self.assertFalse(budget.consume_candidate())
+        self.assertTrue(budget.truncated)
+
     def test_language_masks_per_path_are_bounded(self) -> None:
         codes = sorted(
             code
@@ -459,14 +465,18 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         self.assertEqual(len(candidates), base_module.MAX_MASKS_PER_PATH)
 
     def test_duplicate_candidates_consume_discovery_budget(self) -> None:
+        generated = 0
+
         class DuplicateDiscovery(BaseDiscovery):
             file_format = "json"
 
             def get_masks(  # ruff: ignore[no-self-use]
                 self, *, eager: bool = False, hint: str | None = None
             ) -> Generator[DiscoveryCandidate]:
+                nonlocal generated
                 del eager, hint
                 for _index in range(base_module.DISCOVERY_MAX_CANDIDATES + 1):
+                    generated += 1
                     yield DiscoveryCandidate(
                         {"filemask": "locale/*.json"},
                         [PurePath("locale/cs.json")],
@@ -478,6 +488,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
             results = list(discovery.discover())
 
         self.assertEqual(len(results), 1)
+        self.assertEqual(generated, base_module.DISCOVERY_MAX_CANDIDATES)
 
     def test_new_base_fallback_is_cached_by_directory(self) -> None:
         discovery = GettextDiscovery(self.get_finder([]))
@@ -498,6 +509,32 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
 
         self.assertEqual(first["new_base"], "locale/messages.pot")
         self.assertEqual(second["new_base"], "locale/messages.pot")
+
+    def test_cached_new_base_without_exact_match_skips_ancestor_walk(self) -> None:
+        class CountingPath(str):  # ruff: ignore[subclass-builtin]
+            __slots__ = ()
+            rsplit_count = 0
+
+            def rsplit(
+                self, sep: str | None = None, maxsplit: SupportsIndex = -1
+            ) -> list[str]:
+                type(self).rsplit_count += 1
+                return super().rsplit(sep, maxsplit)
+
+        discovery = GettextDiscovery(self.get_finder([]))
+        discovery._new_base_by_directory = {
+            "locale": (0, PurePath("locale/messages.pot"))
+        }
+        discovery._new_base_by_name = {}
+        discovery._new_base_names = set()
+        discovery._new_base_fallback_cache = {"locale/deep/*": "locale/messages.pot"}
+        path = CountingPath("locale/deep/*/second.po")
+        result: ResultDict = {"filemask": path}
+
+        discovery.fill_in_new_base(result)
+
+        self.assertEqual(result["new_base"], "locale/messages.pot")
+        self.assertEqual(path.rsplit_count, 2)
 
     def test_new_base_empty_index_skips_ancestor_walk(self) -> None:
         discovery = GettextDiscovery(self.get_finder([]))

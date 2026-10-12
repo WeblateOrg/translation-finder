@@ -74,6 +74,8 @@ def discover(
     results: list[DiscoveryResult] = []
     result_limit_reached = False
     for backend in BACKENDS:
+        if discovery_budget.exhausted:
+            break
         instance = backend(finder, source_language)
         instance._set_run_discovery_budget(  # ruff: ignore[private-member-access]
             discovery_budget
@@ -81,13 +83,19 @@ def discover(
         instance._set_run_sniff_budget(  # ruff: ignore[private-member-access]
             sniff_budget
         )
-        for result in instance.discover(eager=eager, hint=hint):
-            if len(results) >= DISCOVERY_MAX_RESULTS:
-                discovery_budget.truncated = True
-                result_limit_reached = True
+        result_iterator = instance.discover(eager=eager, hint=hint)
+        while len(results) < DISCOVERY_MAX_RESULTS:
+            try:
+                result = next(result_iterator)
+            except StopIteration:
                 break
             results.append(result)
+        if len(results) >= DISCOVERY_MAX_RESULTS:
+            discovery_budget.truncated = True
+            result_limit_reached = True
         if result_limit_reached:
+            if hasattr(result_iterator, "close"):
+                result_iterator.close()
             break
     if discovery_budget.truncated:
         warnings.warn(
