@@ -10,12 +10,12 @@ import tempfile
 import warnings
 from io import StringIO
 from typing import TYPE_CHECKING
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from . import api as api_module
 from .api import cli, discover
 from .discovery.base import BaseDiscovery
-from .discovery.result import DiscoveryResult
+from .discovery.result import DiscoveryCandidate, DiscoveryResult
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
 
@@ -29,12 +29,16 @@ class APITest(DiscoveryTestCase):
     maxDiff = None
 
     def test_discover_limits_results_and_warns_once(self) -> None:
+        generated = 0
+
         class ExpandingDiscovery(BaseDiscovery):
             def discover(  # ruff: ignore[no-self-use]
                 self, *, eager: bool = False, hint: str | None = None
             ) -> Generator[DiscoveryResult]:
+                nonlocal generated
                 del eager, hint
                 for index in range(4):
+                    generated += 1
                     yield DiscoveryResult(
                         {"filemask": f"locale/{index}.json", "file_format": "json"}
                     )
@@ -51,6 +55,38 @@ class APITest(DiscoveryTestCase):
         self.assertEqual(len(caught), 1)
         self.assertIs(caught[0].category, RuntimeWarning)
         self.assertIn("results may be incomplete", str(caught[0].message))
+        self.assertEqual(generated, 2)
+
+    def test_exhausted_candidate_budget_skips_later_backends(self) -> None:
+        generated = 0
+
+        class FirstDiscovery(BaseDiscovery):
+            file_format = "json"
+
+            def get_masks(  # ruff: ignore[no-self-use]
+                self, *, eager: bool = False, hint: str | None = None
+            ) -> Generator[DiscoveryCandidate]:
+                nonlocal generated
+                del eager, hint
+                for index in range(2):
+                    generated += 1
+                    yield DiscoveryCandidate(
+                        {"filemask": f"locale/{index}.json"},
+                        [PurePath(f"locale/{index}.json")],
+                    )
+
+        later_discovery = Mock(side_effect=AssertionError)
+
+        with (
+            patch.object(api_module, "BACKENDS", [FirstDiscovery, later_discovery]),
+            patch.object(api_module, "DISCOVERY_MAX_CANDIDATES", 1),
+            self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"),
+        ):
+            results = discover(PurePath(), mock=([], []))
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(generated, 1)
+        later_discovery.assert_not_called()
 
     def test_discover_nonexistent_hint(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
