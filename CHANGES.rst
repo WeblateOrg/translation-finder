@@ -6,6 +6,8 @@ Unreleased
 
 * Bounded aggregate content sniffing across all candidates and discovery
   backends to avoid repeated CPU and I/O work on crafted repositories.
+* Bounded path-derived mask generation and result growth to prevent excessive
+  CPU and memory use on deeply nested crafted repositories.
 
 3.7.1
 -----

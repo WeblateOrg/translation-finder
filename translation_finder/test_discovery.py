@@ -439,6 +439,77 @@ class DiscoveryBaseTest(DiscoveryTestCase):
 
 
 class DiscoveryPathIndexTest(DiscoveryTestCase):
+    def test_language_masks_per_path_are_bounded(self) -> None:
+        codes = sorted(
+            code
+            for code in base_module.LANGUAGES
+            if BaseDiscovery.is_language_code(code)
+        )[: base_module.MAX_MASKS_PER_PATH + 1]
+        path = PurePath(*codes, "messages.po")
+        discovery = GettextDiscovery(
+            Finder(PurePath(), mock=([(path, path, path.as_posix())], []))
+        )
+
+        with self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"):
+            results = list(discovery.discover())
+
+        self.assertEqual(len(results), base_module.MAX_MASKS_PER_PATH)
+        with self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"):
+            candidates = list(discovery.get_masks())
+        self.assertEqual(len(candidates), base_module.MAX_MASKS_PER_PATH)
+
+    def test_duplicate_candidates_consume_discovery_budget(self) -> None:
+        class DuplicateDiscovery(BaseDiscovery):
+            file_format = "json"
+
+            def get_masks(  # ruff: ignore[no-self-use]
+                self, *, eager: bool = False, hint: str | None = None
+            ) -> Generator[DiscoveryCandidate]:
+                del eager, hint
+                for _index in range(base_module.DISCOVERY_MAX_CANDIDATES + 1):
+                    yield DiscoveryCandidate(
+                        {"filemask": "locale/*.json"},
+                        [PurePath("locale/cs.json")],
+                    )
+
+        discovery = DuplicateDiscovery(self.get_finder(["locale/cs.json"]))
+
+        with self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"):
+            results = list(discovery.discover())
+
+        self.assertEqual(len(results), 1)
+
+    def test_new_base_fallback_is_cached_by_directory(self) -> None:
+        discovery = GettextDiscovery(self.get_finder([]))
+        discovery._new_base_by_directory = {
+            "locale": (0, PurePath("locale/messages.pot"))
+        }
+        discovery._new_base_by_name = {}
+        discovery._new_base_names = set()
+        first: ResultDict = {"filemask": "locale/deep/*/first.po"}
+        second: ResultDict = {"filemask": "locale/deep/*/second.po"}
+
+        discovery.fill_in_new_base(first)
+        self.assertEqual(
+            discovery._new_base_fallback_cache,
+            {"locale/deep/*": "locale/messages.pot"},
+        )
+        discovery.fill_in_new_base(second)
+
+        self.assertEqual(first["new_base"], "locale/messages.pot")
+        self.assertEqual(second["new_base"], "locale/messages.pot")
+
+    def test_new_base_empty_index_skips_ancestor_walk(self) -> None:
+        discovery = GettextDiscovery(self.get_finder([]))
+        discovery._new_base_by_directory = {}
+        discovery._new_base_by_name = {}
+        discovery._new_base_names = set()
+        result: ResultDict = {"filemask": "deeply/nested/*/messages.po"}
+
+        discovery.fill_in_new_base(result)
+
+        self.assertNotIn("new_base", result)
+
     def test_duplicate_masks_merge_confirmed_paths(self) -> None:
         class RecordingDiscovery(BaseDiscovery):
             file_format = "json"
