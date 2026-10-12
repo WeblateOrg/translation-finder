@@ -3,21 +3,54 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """High level API tests."""
 
+from __future__ import annotations
+
 import pathlib
 import tempfile
+import warnings
 from io import StringIO
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
+from . import api as api_module
 from .api import cli, discover
+from .discovery.base import BaseDiscovery
 from .discovery.result import DiscoveryResult
 from .finder import PurePath
 from .test_discovery import DiscoveryTestCase
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 TEST_DATA = pathlib.Path(__file__).parent / "test_data"
 
 
 class APITest(DiscoveryTestCase):
     maxDiff = None
+
+    def test_discover_limits_results_and_warns_once(self) -> None:
+        class ExpandingDiscovery(BaseDiscovery):
+            def discover(  # ruff: ignore[no-self-use]
+                self, *, eager: bool = False, hint: str | None = None
+            ) -> Generator[DiscoveryResult]:
+                del eager, hint
+                for index in range(4):
+                    yield DiscoveryResult(
+                        {"filemask": f"locale/{index}.json", "file_format": "json"}
+                    )
+
+        with (
+            patch.object(api_module, "BACKENDS", [ExpandingDiscovery]),
+            patch.object(api_module, "DISCOVERY_MAX_RESULTS", 2),
+            warnings.catch_warnings(record=True) as caught,
+        ):
+            warnings.simplefilter("always")
+            results = discover(PurePath(), mock=([], []))
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(len(caught), 1)
+        self.assertIs(caught[0].category, RuntimeWarning)
+        self.assertIn("results may be incomplete", str(caught[0].message))
 
     def test_discover_nonexistent_hint(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

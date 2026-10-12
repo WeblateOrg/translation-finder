@@ -94,6 +94,10 @@ from ``get_masks()``. Each candidate associates the result with the paths which
 actually generated it, allowing content detection to inspect the group without
 expanding its wildcard mask again:
 
+Candidate generation and returned results are bounded across each discovery
+run. When these safety limits truncate discovery, the Python API emits a
+``RuntimeWarning`` and returns the results found within the limits.
+
 .. code-block:: python
 
    from translation_finder.discovery.base import BaseDiscovery

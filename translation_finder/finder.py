@@ -212,23 +212,30 @@ class Finder:
 
         It skips excluded files.
         """
-        pending = [root]
+        pending = [(root, Path())]
         while pending:
-            current = pending.pop()
-            child_dirs: list[Path] = []
+            current, current_relative = pending.pop()
+            child_dirs: list[tuple[Path, Path]] = []
             try:
-                self._list_directory(current, files, dirs, child_dirs)
+                self._list_directory(
+                    current,
+                    current_relative,
+                    files,
+                    dirs,
+                    child_dirs,
+                )
             except OSError:
                 if current == root:
                     raise
             pending.extend(reversed(child_dirs))
 
+    @staticmethod
     def _list_directory(
-        self,
         root: PurePath,
+        relative_root: Path,
         files: PathListType,
         dirs: PathListType,
-        child_dirs: list[Path],
+        child_dirs: list[tuple[Path, Path]],
     ) -> None:
         """List entries in a single directory."""
         with scandir(root) as matches:
@@ -240,10 +247,12 @@ class Finder:
                 if any(path.match(exclude) for exclude in EXCLUDES):
                     continue
                 if is_dir:
-                    dirs.append(self.process_path(path))
-                    child_dirs.append(path)
+                    relative = relative_root / path.name
+                    dirs.append((path, relative, relative.as_posix()))
+                    child_dirs.append((path, relative))
                 elif match.is_file(follow_symlinks=False):
-                    files.append(self.process_path(path))
+                    relative = relative_root / path.name
+                    files.append((path, relative, relative.as_posix()))
 
     def has_file(self, name: str) -> bool:
         """Check whether file exists."""

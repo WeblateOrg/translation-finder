@@ -339,7 +339,14 @@ class FinderTest(TestCase):
                 return FakeScandir([FakeEntry(path / "d", is_dir=True)])
             return FakeScandir([FakeEntry(path / "messages.po", is_dir=False)])
 
-        with patch("translation_finder.finder.scandir", side_effect=fake_scandir):
+        with (
+            patch("translation_finder.finder.scandir", side_effect=fake_scandir),
+            patch.object(
+                Finder,
+                "process_path",
+                side_effect=AssertionError("relative paths should be carried"),
+            ),
+        ):
             finder = Finder(root)
 
         deep_file = pathlib.Path(*(["d"] * depth), "messages.po").as_posix()
@@ -393,6 +400,16 @@ class FinderTest(TestCase):
 
 
 class FinderOpenTest(TestCase):
+    def test_process_path(self) -> None:
+        root = pathlib.Path(__file__).parent
+        finder = Finder(root, mock=([], []))
+        absolute = root / "test_finder.py"
+
+        self.assertEqual(
+            finder.process_path(absolute),
+            (absolute, pathlib.Path("test_finder.py"), "test_finder.py"),
+        )
+
     def test_open_regular_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = pathlib.Path(tmpdir)

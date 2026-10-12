@@ -7,14 +7,19 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO, TypeVar
 
 from translation_finder.discovery.base import (
+    DISCOVERY_MAX_CANDIDATES,
+    DISCOVERY_MAX_RESULTS,
     DISCOVERY_SNIFF_MAX_BYTES,
     DISCOVERY_SNIFF_MAX_FILES,
+    DISCOVERY_TRUNCATED_MESSAGE,
     BaseDiscovery,
+    DiscoveryBudget,
     SniffBudget,
 )
 
@@ -56,19 +61,40 @@ def discover(
     The eager mode detects all files in known format regardless their naming.
     Use this in case you want to list all files which can be handled by
     localization tools such as Weblate.
+
+    Discovery is bounded to avoid excessive work on crafted repositories. A
+    RuntimeWarning is emitted when the returned results might be incomplete.
     """
     finder = Finder(root, mock=mock)
+    discovery_budget = DiscoveryBudget(DISCOVERY_MAX_CANDIDATES)
     sniff_budget = SniffBudget(
         DISCOVERY_SNIFF_MAX_BYTES,
         DISCOVERY_SNIFF_MAX_FILES,
     )
     results: list[DiscoveryResult] = []
+    result_limit_reached = False
     for backend in BACKENDS:
         instance = backend(finder, source_language)
+        instance._set_run_discovery_budget(  # ruff: ignore[private-member-access]
+            discovery_budget
+        )
         instance._set_run_sniff_budget(  # ruff: ignore[private-member-access]
             sniff_budget
         )
-        results.extend(instance.discover(eager=eager, hint=hint))
+        for result in instance.discover(eager=eager, hint=hint):
+            if len(results) >= DISCOVERY_MAX_RESULTS:
+                discovery_budget.truncated = True
+                result_limit_reached = True
+                break
+            results.append(result)
+        if result_limit_reached:
+            break
+    if discovery_budget.truncated:
+        warnings.warn(
+            DISCOVERY_TRUNCATED_MESSAGE,
+            RuntimeWarning,
+            stacklevel=2,
+        )
     results.sort()
     return results
 

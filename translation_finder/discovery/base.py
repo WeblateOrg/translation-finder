@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import fnmatch
 import re
+import warnings
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -37,6 +38,28 @@ FORMAT_SNIFF_MAX_FILES = 10
 ENCODING_SNIFF_MAX_FILES = 10
 DISCOVERY_SNIFF_MAX_BYTES = 64 * 1024 * 1024
 DISCOVERY_SNIFF_MAX_FILES = 512
+DISCOVERY_MAX_CANDIDATES = 4096
+DISCOVERY_MAX_RESULTS = 4096
+MAX_MASKS_PER_PATH = 32
+DISCOVERY_TRUNCATED_MESSAGE = (
+    "Translation discovery reached its resource limit; results may be incomplete"
+)
+
+
+class DiscoveryBudget:
+    """Bound generated candidates across one discovery run."""
+
+    def __init__(self, candidates: int = DISCOVERY_MAX_CANDIDATES) -> None:
+        self.remaining_candidates = candidates
+        self.truncated = False
+
+    def consume_candidate(self) -> bool:
+        """Consume one generated candidate when capacity remains."""
+        if self.remaining_candidates <= 0:
+            self.truncated = True
+            return False
+        self.remaining_candidates -= 1
+        return True
 
 
 class SniffBudget:
@@ -209,11 +232,18 @@ class BaseDiscovery:
     def __init__(self, finder: Finder, source_language: str = "en") -> None:
         self.finder: Finder = finder
         self.source_language: str = source_language
+        self._run_discovery_budget: DiscoveryBudget | None = None
         self._run_sniff_budget: SniffBudget | None = None
         self._new_base_by_directory: dict[str, tuple[int, PurePath]] | None = None
         self._new_base_by_name: dict[tuple[str, str], tuple[int, PurePath]] | None = (
             None
         )
+        self._new_base_names: set[str] | None = None
+        self._new_base_fallback_cache: dict[str, str | None] = {}
+
+    def _set_run_discovery_budget(self, budget: DiscoveryBudget) -> None:
+        """Use a shared candidate budget for this discovery run."""
+        self._run_discovery_budget = budget
 
     def _set_run_sniff_budget(self, budget: SniffBudget) -> None:
         """Use a shared content-sniffing budget for this discovery run."""
@@ -308,7 +338,9 @@ class BaseDiscovery:
                     )
         return None
 
-    def fill_in_new_base(self, result: ResultDict) -> None:
+    def fill_in_new_base(  # ruff: ignore[too-many-locals]
+        self, result: ResultDict
+    ) -> None:
         """Extend the result for new_base and intermediate parameters."""
         if self.new_base_mask is None:
             return
@@ -319,24 +351,34 @@ class BaseDiscovery:
                 basename = basename.replace(replacement_match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
-        best_result = None
+        best_result: str | None = None
         new_base_by_directory, new_base_by_name = self._index_new_bases()
+        if not new_base_by_directory:
+            return
+
+        directory_signature = path.rsplit("/", 1)[0] if "/" in path else ""
+        cached_fallback = self._new_base_fallback_cache.get(directory_signature, ...)
+        find_fallback = cached_fallback is ...
+        if isinstance(cached_fallback, str):
+            best_result = cached_fallback
+        find_exact = new_name in (self._new_base_names or set())
 
         while "/" in path:
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
             directories = {path, path_wild}
-            exact_matches = (
-                new_base_by_name[directory, new_name]
-                for directory in directories
-                if (directory, new_name) in new_base_by_name
-            )
-            exact_match = min(exact_matches, default=None)
-            if exact_match is not None:
-                result["new_base"] = "/".join(exact_match[1].parts)
-                return
+            if find_exact:
+                exact_matches = (
+                    new_base_by_name[directory, new_name]
+                    for directory in directories
+                    if (directory, new_name) in new_base_by_name
+                )
+                exact_match = min(exact_matches, default=None)
+                if exact_match is not None:
+                    result["new_base"] = "/".join(exact_match[1].parts)
+                    return
 
-            if best_result is None:
+            if find_fallback and best_result is None:
                 fallback_matches = (
                     new_base_by_directory[directory]
                     for directory in directories
@@ -345,6 +387,9 @@ class BaseDiscovery:
                 fallback_match = min(fallback_matches, default=None)
                 if fallback_match is not None:
                     best_result = "/".join(fallback_match[1].parts)
+
+        if find_fallback:
+            self._new_base_fallback_cache[directory_signature] = best_result
 
         if best_result is not None:
             result["new_base"] = best_result
@@ -359,6 +404,7 @@ class BaseDiscovery:
         if self._new_base_by_directory is None or self._new_base_by_name is None:
             self._new_base_by_directory = {}
             self._new_base_by_name = {}
+            self._new_base_names = set()
             if self.new_base_mask is not None:
                 for position, match in enumerate(
                     self.finder.filter_masks(self.new_base_mask)
@@ -370,6 +416,7 @@ class BaseDiscovery:
                         (directory, match.parts[-1].lower()),
                         candidate,
                     )
+                    self._new_base_names.add(match.parts[-1].lower())
 
         return self._new_base_by_directory, self._new_base_by_name
 
@@ -457,30 +504,46 @@ class BaseDiscovery:
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         """Yield translation configurations matching this discovery."""
+        owns_budget = self._run_discovery_budget is None
+        budget = self._run_discovery_budget or DiscoveryBudget()
+        if owns_budget:
+            self._run_discovery_budget = budget
         candidates: dict[str, DiscoveryCandidate] = {}
-        for candidate in self.get_masks(eager=eager, hint=hint):
-            filemask = candidate.result["filemask"]
-            if filemask in candidates:
-                candidates[filemask].merge_paths(candidate.paths)
-            else:
-                candidates[filemask] = candidate
+        try:
+            for candidate in self.get_masks(eager=eager, hint=hint):
+                if not budget.consume_candidate():
+                    break
+                filemask = candidate.result["filemask"]
+                if filemask in candidates:
+                    candidates[filemask].merge_paths(candidate.paths)
+                else:
+                    candidates[filemask] = candidate
 
-        for candidate in candidates.values():
-            result = candidate.result
-            self.fill_in_template(result)
-            if self.requires_template and "template" not in result:
-                continue
-            self.adjust_format(candidate)
-            self.fill_in_new_base(result)
-            self.fill_in_file_format(result)
-            self.fill_in_file_format_params(result)
-            if not self.include_candidate(candidate, eager=eager):
-                continue
-            discovery_result = DiscoveryResult(result)
-            discovery_result.meta["discovery"] = self.__class__.__name__
-            discovery_result.meta["origin"] = self.origin
-            discovery_result.meta["priority"] = self.priority
-            yield discovery_result
+            for candidate in candidates.values():
+                result = candidate.result
+                self.fill_in_template(result)
+                if self.requires_template and "template" not in result:
+                    continue
+                self.adjust_format(candidate)
+                self.fill_in_new_base(result)
+                self.fill_in_file_format(result)
+                self.fill_in_file_format_params(result)
+                if not self.include_candidate(candidate, eager=eager):
+                    continue
+                discovery_result = DiscoveryResult(result)
+                discovery_result.meta["discovery"] = self.__class__.__name__
+                discovery_result.meta["origin"] = self.origin
+                discovery_result.meta["priority"] = self.priority
+                yield discovery_result
+        finally:
+            if owns_budget:
+                self._run_discovery_budget = None
+                if budget.truncated:
+                    warnings.warn(
+                        DISCOVERY_TRUNCATED_MESSAGE,
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
 
     @property
     def masks_list(self) -> tuple[str, ...]:
@@ -522,21 +585,33 @@ class BaseDiscovery:
                 yield DiscoveryCandidate(result, [path])
                 continue
             skip = set()
+            generated_masks = 0
             for pos, part in enumerate(parts):
                 if pos in skip:
                     continue
                 wildcard = self.get_wildcard(part)
                 if wildcard:
+                    if generated_masks >= MAX_MASKS_PER_PATH:
+                        if self._run_discovery_budget is not None:
+                            self._run_discovery_budget.truncated = True
+                        else:
+                            warnings.warn(
+                                DISCOVERY_TRUNCATED_MESSAGE,
+                                RuntimeWarning,
+                                stacklevel=2,
+                            )
+                        break
                     mask_parts = parts.copy()
                     match = re.compile(f"(^|[._-]){re.escape(part)}($|[._-])")
                     for i, current in enumerate(mask_parts):
-                        if match.findall(current):
+                        if match.search(current):
                             skip.add(i)
                             mask_parts[i] = match.sub(
                                 partial(_replace_with_wildcard, wildcard=wildcard),
                                 current,
                             )
                     mask_parts[pos] = wildcard
+                    generated_masks += 1
                     yield DiscoveryCandidate({"filemask": "/".join(mask_parts)}, [path])
 
 
