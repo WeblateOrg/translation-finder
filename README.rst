@@ -94,9 +94,15 @@ from ``get_masks()``. Each candidate associates the result with the paths which
 actually generated it, allowing content detection to inspect the group without
 expanding its wildcard mask again:
 
-Candidate generation and returned results are bounded across each discovery
-run. When these safety limits truncate discovery, the Python API emits a
-``RuntimeWarning`` and returns the results found within the limits.
+Candidate generation, new-base resolution, and returned results are bounded
+across each discovery run. The returned ``DiscoveryResults`` object behaves as
+a list and exposes ``truncated`` and ``limit_reasons`` attributes. When a
+safety limit truncates discovery, the Python API also emits a
+``RuntimeWarning`` for compatibility.
+
+Calling ``get_masks()`` directly is a low-level interface with only the
+per-path mask limit. Use ``discover()`` for run-wide resource bounds and
+structured limit status.
 
 .. code-block:: python
 

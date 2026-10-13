@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, TextIO, TypeVar
 
 from translation_finder.discovery.base import (
     DISCOVERY_MAX_CANDIDATES,
+    DISCOVERY_MAX_NEW_BASE_CHECKS,
     DISCOVERY_MAX_RESULTS,
     DISCOVERY_SNIFF_MAX_BYTES,
     DISCOVERY_SNIFF_MAX_FILES,
@@ -22,7 +23,7 @@ from translation_finder.discovery.base import (
     DiscoveryBudget,
     SniffBudget,
 )
-from translation_finder.discovery.result import DiscoveryLimit
+from translation_finder.discovery.result import DiscoveryLimit, DiscoveryResults
 
 from .finder import Finder
 
@@ -52,7 +53,7 @@ def discover(
     source_language: str = "en",
     eager: bool = False,
     hint: str | None = None,
-) -> list[DiscoveryResult]:
+) -> DiscoveryResults:
     """
     High level discovery interface.
 
@@ -67,15 +68,17 @@ def discover(
     RuntimeWarning is emitted when the returned results might be incomplete.
     """
     finder = Finder(root, mock=mock)
-    discovery_budget = DiscoveryBudget(DISCOVERY_MAX_CANDIDATES)
+    discovery_budget = DiscoveryBudget(
+        DISCOVERY_MAX_CANDIDATES,
+        DISCOVERY_MAX_NEW_BASE_CHECKS,
+    )
     sniff_budget = SniffBudget(
         DISCOVERY_SNIFF_MAX_BYTES,
         DISCOVERY_SNIFF_MAX_FILES,
     )
     results: list[DiscoveryResult] = []
-    result_limit_reached = False
     for backend in BACKENDS:
-        if discovery_budget.exhausted:
+        if DiscoveryLimit.CANDIDATES in discovery_budget.limit_reasons:
             break
         instance = backend(finder, source_language)
         instance._set_run_discovery_budget(  # ruff: ignore[private-member-access]
@@ -92,9 +95,11 @@ def discover(
                 break
             results.append(result)
         if len(results) >= DISCOVERY_MAX_RESULTS:
+            try:
+                next(result_iterator)
+            except StopIteration:
+                continue
             discovery_budget.reach_limit(DiscoveryLimit.RESULTS)
-            result_limit_reached = True
-        if result_limit_reached:
             if hasattr(result_iterator, "close"):
                 result_iterator.close()
             break
@@ -104,8 +109,12 @@ def discover(
             RuntimeWarning,
             stacklevel=2,
         )
-    results.sort()
-    return results
+    discovery_results = DiscoveryResults(
+        results,
+        limit_reasons=discovery_budget.limit_reasons,
+    )
+    discovery_results.sort()
+    return discovery_results
 
 
 def _escape_terminal(value: object) -> str:

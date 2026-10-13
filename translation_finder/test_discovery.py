@@ -464,6 +464,11 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
             candidates = list(discovery.get_masks())
         self.assertEqual(len(candidates), base_module.MAX_MASKS_PER_PATH)
 
+        files = [(path, path, path.as_posix())]
+        with self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"):
+            api_results = api_module.discover(PurePath(), mock=(files, []))
+        self.assertIn(DiscoveryLimit.MASKS_PER_PATH, api_results.limit_reasons)
+
     def test_duplicate_candidates_consume_discovery_budget(self) -> None:
         generated = 0
 
@@ -488,7 +493,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
             results = list(discovery.discover())
 
         self.assertEqual(len(results), 1)
-        self.assertEqual(generated, base_module.DISCOVERY_MAX_CANDIDATES)
+        self.assertEqual(generated, base_module.DISCOVERY_MAX_CANDIDATES + 1)
 
     def test_new_base_fallback_is_cached_by_directory(self) -> None:
         discovery = GettextDiscovery(self.get_finder([]))

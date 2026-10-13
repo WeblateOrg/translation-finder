@@ -8,8 +8,8 @@ Unreleased
   backends to avoid repeated CPU and I/O work on crafted repositories.
 * Bounded path-derived mask generation and result growth to prevent excessive
   CPU and memory use on deeply nested crafted repositories.
-* Bounded new-base ancestor resolution to avoid repeated work on deeply nested
-  crafted repositories.
+* Bounded new-base ancestor resolution and exposed structured discovery limit
+  status to API callers.
 * Avoided excessive CPU use when detecting go-i18n TOML in files containing
   long lines or dense malformed syntax.
 
