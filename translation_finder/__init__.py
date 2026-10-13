@@ -7,10 +7,16 @@
 from importlib import import_module
 
 from .api import discover
-from .discovery.result import DiscoveryResult
+from .discovery.result import DiscoveryLimit, DiscoveryResult, DiscoveryResults
 from .finder import Finder
 
-__all__ = ("DiscoveryResult", "Finder", "discover")
+__all__ = (
+    "DiscoveryLimit",
+    "DiscoveryResult",
+    "DiscoveryResults",
+    "Finder",
+    "discover",
+)
 
 # Make sure all discovery modules are imported
 import_module("translation_finder.discovery.transifex")  # ruff:ignore[non-empty-init-module]

@@ -79,8 +79,6 @@ class DiscoveryBudget:
             self.reach_limit(DiscoveryLimit.CANDIDATES)
             return False
         self.remaining_candidates -= 1
-        if self.exhausted:
-            self.reach_limit(DiscoveryLimit.CANDIDATES)
         return True
 
     def consume_new_base_check(self) -> bool:
@@ -577,16 +575,14 @@ class BaseDiscovery:
             self._run_discovery_budget = budget
         candidates: dict[str, DiscoveryCandidate] = {}
         try:
-            if not budget.exhausted:
-                for candidate in self.get_masks(eager=eager, hint=hint):
-                    budget.consume_candidate()
-                    filemask = candidate.result["filemask"]
-                    if filemask in candidates:
-                        candidates[filemask].merge_paths(candidate.paths)
-                    else:
-                        candidates[filemask] = candidate
-                    if budget.exhausted:
-                        break
+            for candidate in self.get_masks(eager=eager, hint=hint):
+                if not budget.consume_candidate():
+                    break
+                filemask = candidate.result["filemask"]
+                if filemask in candidates:
+                    candidates[filemask].merge_paths(candidate.paths)
+                else:
+                    candidates[filemask] = candidate
 
             for candidate in candidates.values():
                 result = candidate.result

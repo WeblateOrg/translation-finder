@@ -13,6 +13,7 @@ from functools import total_ordering
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import PurePath
 
 FileFormatParams = dict[str, str | int | bool]
@@ -124,3 +125,21 @@ class DiscoveryResult(UserDict):
         result = DiscoveryResult(self.match)
         result.meta = self.meta.copy()
         return result
+
+
+class DiscoveryResults(list[DiscoveryResult]):  # ruff: ignore[subclass-builtin]
+    """List-compatible discovery results with run-level limit information."""
+
+    def __init__(
+        self,
+        results: Iterable[DiscoveryResult] = (),
+        *,
+        limit_reasons: Iterable[DiscoveryLimit] = (),
+    ) -> None:
+        super().__init__(results)
+        self.limit_reasons = frozenset(limit_reasons)
+
+    @property
+    def truncated(self) -> bool:
+        """Whether a resource limit might have made results incomplete."""
+        return bool(self.limit_reasons)
