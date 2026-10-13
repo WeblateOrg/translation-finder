@@ -58,6 +58,10 @@ TOML_MESSAGES_RE = re.compile(rf"^\s*\[\[\s*{TOML_MESSAGES_KEY}\s*\]\]\s*$")
 TOML_INLINE_MESSAGES_RE = re.compile(rf"^\s*{TOML_MESSAGES_KEY}\s*=\s*\[")
 TOML_TABLE_RE = re.compile(r"^\s*\[")
 TOML_ID_RE = re.compile(rf"\s*{TOML_ID_KEY}\s*=")
+TOML_SPECIAL_RE = re.compile(r"""[#"']""")
+TOML_INLINE_NONSPACE_RE = re.compile(r"\S")
+TOML_INLINE_DELIMITER_RE = re.compile(r"[\[\]{},]")
+TOML_SCAN_MAX_TOKENS = 16_384
 CSV_FIELDNAMES = {
     "context",
     "developer_comments",
@@ -79,6 +83,23 @@ class _QtRootFoundError(Exception):
 
 class _QtEntityDeclarationError(expat.ExpatError):
     """Reject custom entities during Qt XML parsing."""
+
+
+class _TomlScanLimitError(Exception):
+    """Stop TOML format detection after excessive lexical work."""
+
+
+class _TomlScanBudget:
+    """Bound attacker-controlled TOML tokens processed in Python."""
+
+    def __init__(self) -> None:
+        self.remaining = TOML_SCAN_MAX_TOKENS
+
+    def consume(self) -> None:
+        """Charge one lexical token or stop format detection."""
+        if self.remaining <= 0:
+            raise _TomlScanLimitError
+        self.remaining -= 1
 
 
 def _get_qt_ts_version(content: str) -> str | None:
@@ -388,76 +409,120 @@ def _get_ruby_yaml_root_key(content: str) -> str | None:
     return root_key
 
 
-def _toml_line_code(line: str, multiline_quote: str | None) -> tuple[str, str | None]:
+def _toml_line_code(
+    line: str, multiline_quote: str | None, budget: _TomlScanBudget
+) -> tuple[str, str | None]:
     """Return TOML syntax outside strings and the multiline string state."""
     code: list[str] = []
     position = 0
     while position < len(line):
         if multiline_quote is not None:
-            end = _find_toml_multiline_end(line, multiline_quote, position)
+            end = _find_toml_multiline_end(line, multiline_quote, position, budget)
             if end == -1:
                 return "".join(code), multiline_quote
             position = end + len(multiline_quote)
             multiline_quote = None
             continue
 
-        if line[position] == "#":
+        match = TOML_SPECIAL_RE.search(line, position)
+        if match is None:
+            code.append(line[position:])
             break
-        if line.startswith(('"""', "'''"), position):
-            multiline_quote = line[position : position + 3]
-            position += 3
+        marker = match.start()
+        code.append(line[position:marker])
+        budget.consume()
+
+        if line[marker] == "#":
+            break
+        if line.startswith(('"""', "'''"), marker):
+            multiline_quote = line[marker : marker + 3]
+            position = marker + 3
             continue
-        if line[position] in "\"'":
-            quote = line[position]
-            start = position
-            position += 1
-            while position < len(line):
-                if quote == '"' and line[position] == "\\":
-                    position += 2
-                elif line[position] == quote:
-                    position += 1
-                    break
-                else:
-                    position += 1
-            value = line[start + 1 : position - 1]
-            code.append(
-                line[start:position] if value in {"id", "messages"} else quote * 2
-            )
-            continue
-        code.append(line[position])
-        position += 1
+        quote = line[marker]
+        if quote == '"':
+            end = _find_toml_basic_string_end(line, marker + 1, budget)
+        else:
+            end = line.find(quote, marker + 1)
+            if end != -1:
+                budget.consume()
+        position = len(line) if end == -1 else end + 1
+        width = position - marker
+        is_key = (
+            end != -1
+            and width in {4, 10}
+            and line[marker + 1 : end] in {"id", "messages"}
+        )
+        code.append(line[marker:position] if is_key else quote * 2)
     return "".join(code), multiline_quote
 
 
-def _find_toml_multiline_end(line: str, quote: str, start: int) -> int:
+def _toml_trailing_backslashes(
+    line: str, start: int, end: int, budget: _TomlScanBudget
+) -> int:
+    """Count backslashes immediately preceding a delimiter."""
+    count = 0
+    position = end - 1
+    while position >= start and line[position] == "\\":
+        budget.consume()
+        count += 1
+        position -= 1
+    return count
+
+
+def _find_toml_basic_string_end(line: str, start: int, budget: _TomlScanBudget) -> int:
+    """Find an unescaped TOML basic string delimiter."""
+    position = line.find('"', start)
+    while position != -1:
+        budget.consume()
+        if _toml_trailing_backslashes(line, start, position, budget) % 2 == 0:
+            break
+        position = line.find('"', position + 1)
+    return position
+
+
+def _find_toml_multiline_end(
+    line: str, quote: str, start: int, budget: _TomlScanBudget
+) -> int:
     """Find an unescaped TOML multiline string delimiter."""
     position = line.find(quote, start)
     while position != -1 and quote == '"""':
-        backslashes = 0
-        previous = position - 1
-        while previous >= start and line[previous] == "\\":
-            backslashes += 1
-            previous -= 1
-        if backslashes % 2 == 0:
+        budget.consume()
+        if _toml_trailing_backslashes(line, start, position, budget) % 2 == 0:
             break
         position = line.find(quote, position + 1)
+    if position != -1 and quote != '"""':
+        budget.consume()
     return position
 
 
 def _is_go_i18n_toml(content: str) -> bool:
     """Detect go-i18n TOML using a bounded, linear lexical scan."""
+    if "messages" not in content or "id" not in content:
+        return False
+
+    try:
+        return _scan_go_i18n_toml(content, _TomlScanBudget())
+    except _TomlScanLimitError:
+        return False
+
+
+def _scan_go_i18n_toml(content: str, budget: _TomlScanBudget) -> bool:
+    """Scan TOML content for the go-i18n message structure."""
     in_messages = False
     at_root = True
     inline_stack: list[str] | None = None
     inline_expects_key = False
     multiline_quote: str | None = None
     for line in content.splitlines():
-        code, multiline_quote = _toml_line_code(line, multiline_quote)
+        code, multiline_quote = _toml_line_code(line, multiline_quote, budget)
         if not code.strip():
             continue
         if inline_stack is not None:
             found, inline_expects_key = _scan_toml_inline_message(
-                code, inline_stack, expects_key=inline_expects_key
+                code,
+                inline_stack,
+                expects_key=inline_expects_key,
+                budget=budget,
             )
             if found:
                 return True
@@ -471,7 +536,10 @@ def _is_go_i18n_toml(content: str) -> bool:
             if at_root and (match := TOML_INLINE_MESSAGES_RE.match(code)):
                 inline_stack = ["["]
                 found, inline_expects_key = _scan_toml_inline_message(
-                    code[match.end() :], inline_stack, expects_key=False
+                    code[match.end() :],
+                    inline_stack,
+                    expects_key=False,
+                    budget=budget,
                 )
                 if found:
                     return True
@@ -496,16 +564,19 @@ def _toml_message_table_result(code: str) -> bool | None:
 
 
 def _scan_toml_inline_message(
-    code: str, stack: list[str], *, expects_key: bool
+    code: str,
+    stack: list[str],
+    *,
+    expects_key: bool,
+    budget: _TomlScanBudget,
 ) -> tuple[bool, bool]:
     """Scan the first table in an inline go-i18n messages array."""
     closing = {"[": "]", "{": "}"}
     position = 0
-    while position < len(code):
+    while match := TOML_INLINE_NONSPACE_RE.search(code, position):
+        position = match.start()
+        budget.consume()
         character = code[position]
-        if character.isspace():
-            position += 1
-            continue
         if stack == ["[", "{"] and expects_key and TOML_ID_RE.match(code, position):
             return True, False
         if stack == ["["]:
@@ -529,7 +600,12 @@ def _scan_toml_inline_message(
                 return False, False
         elif stack == ["[", "{"]:
             expects_key = character == ","
-        position += 1
+        if character in "[]{},":
+            position += 1
+        elif match := TOML_INLINE_DELIMITER_RE.search(code, position + 1):
+            position = match.start()
+        else:
+            break
     return False, expects_key
 
 
