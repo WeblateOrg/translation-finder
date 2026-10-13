@@ -3006,6 +3006,69 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
             with self.subTest(content=content):
                 self.assertFalse(files_module._is_go_i18n_toml(content))
 
+    def test_long_toml_values(self) -> None:
+        long_value = "x" * (1024 * 1024 - 100)
+
+        self.assertTrue(
+            files_module._is_go_i18n_toml(
+                f'title = "{long_value}"\n[[messages]]\nid = "hello"\n'
+            )
+        )
+        self.assertTrue(
+            files_module._is_go_i18n_toml(
+                f'messages = [{{ description = "{long_value}", id = "hello" }}]\n'
+            )
+        )
+
+    def test_toml_lexical_budget(self) -> None:
+        content = 'title = "messages id"\n[[messages]]\nid = "hello"\n'
+        self.assertTrue(files_module._is_go_i18n_toml(content))
+
+        with patch.object(files_module, "TOML_SCAN_MAX_TOKENS", 1):
+            self.assertFalse(files_module._is_go_i18n_toml(content))
+
+    def test_toml_scanner_termination(self) -> None:
+        self.assertFalse(
+            files_module._is_go_i18n_toml(
+                '[other]\nmessages = [{ id = "not-at-root" }]\n'
+            )
+        )
+
+        stack = ["[", "{"]
+        self.assertEqual(
+            files_module._scan_toml_inline_message(
+                "]", stack, expects_key=False, budget=files_module._TomlScanBudget()
+            ),
+            (False, False),
+        )
+        self.assertEqual(stack, [])
+        self.assertEqual(
+            files_module._scan_toml_inline_message(
+                "description = value",
+                ["[", "{"],
+                expects_key=True,
+                budget=files_module._TomlScanBudget(),
+            ),
+            (False, False),
+        )
+
+    def test_long_toml_lines_runtime(self) -> None:
+        padding = "x" * (1024 * 1024 - 30)
+        contents = (
+            f'"{padding}"',
+            f'"messages id {padding}"',
+            f"messages id {padding}",
+            '"messages id ' + '\\"' * (512 * 1024 - 10) + '"',
+            "messages = [{" + "," * (1024 * 1024 - 30) + 'id = "x"}]',
+        )
+
+        start = monotonic()
+        for content in contents:
+            self.assertFalse(files_module._is_go_i18n_toml(content))
+        duration = monotonic() - start
+
+        self.assertLess(duration, 0.1)
+
     def test_deeply_nested_toml_does_not_trigger_detection(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
