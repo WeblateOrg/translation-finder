@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import UserDict
 from dataclasses import dataclass, field
+from enum import StrEnum
 from functools import total_ordering
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
@@ -15,6 +16,15 @@ if TYPE_CHECKING:
     from pathlib import PurePath
 
 FileFormatParams = dict[str, str | int | bool]
+
+
+class DiscoveryLimit(StrEnum):
+    """Resource limits which can make discovery results incomplete."""
+
+    MASKS_PER_PATH = "masks-per-path"
+    CANDIDATES = "candidates"
+    RESULTS = "results"
+    NEW_BASE_CHECKS = "new-base-checks"
 
 
 class ResultMeta(TypedDict):

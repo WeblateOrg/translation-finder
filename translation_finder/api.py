@@ -22,6 +22,7 @@ from translation_finder.discovery.base import (
     DiscoveryBudget,
     SniffBudget,
 )
+from translation_finder.discovery.result import DiscoveryLimit
 
 from .finder import Finder
 
@@ -91,7 +92,7 @@ def discover(
                 break
             results.append(result)
         if len(results) >= DISCOVERY_MAX_RESULTS:
-            discovery_budget.truncated = True
+            discovery_budget.reach_limit(DiscoveryLimit.RESULTS)
             result_limit_reached = True
         if result_limit_reached:
             if hasattr(result_iterator, "close"):

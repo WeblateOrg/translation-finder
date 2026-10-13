@@ -19,7 +19,7 @@ from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
 
-from .result import DiscoveryCandidate, DiscoveryResult
+from .result import DiscoveryCandidate, DiscoveryLimit, DiscoveryResult
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -40,6 +40,7 @@ DISCOVERY_SNIFF_MAX_BYTES = 64 * 1024 * 1024
 DISCOVERY_SNIFF_MAX_FILES = 512
 DISCOVERY_MAX_CANDIDATES = 4096
 DISCOVERY_MAX_RESULTS = 4096
+DISCOVERY_MAX_NEW_BASE_CHECKS = 65_536
 MAX_MASKS_PER_PATH = 32
 DISCOVERY_TRUNCATED_MESSAGE = (
     "Translation discovery reached its resource limit; results may be incomplete"
@@ -47,11 +48,25 @@ DISCOVERY_TRUNCATED_MESSAGE = (
 
 
 class DiscoveryBudget:
-    """Bound generated candidates across one discovery run."""
+    """Bound path-derived work across one discovery run."""
 
-    def __init__(self, candidates: int = DISCOVERY_MAX_CANDIDATES) -> None:
+    def __init__(
+        self,
+        candidates: int = DISCOVERY_MAX_CANDIDATES,
+        new_base_checks: int = DISCOVERY_MAX_NEW_BASE_CHECKS,
+    ) -> None:
         self.remaining_candidates = candidates
-        self.truncated = False
+        self.remaining_new_base_checks = new_base_checks
+        self.limit_reasons: set[DiscoveryLimit] = set()
+
+    @property
+    def truncated(self) -> bool:
+        """Whether a resource limit might have made results incomplete."""
+        return bool(self.limit_reasons)
+
+    def reach_limit(self, reason: DiscoveryLimit) -> None:
+        """Record that a resource limit affected discovery."""
+        self.limit_reasons.add(reason)
 
     @property
     def exhausted(self) -> bool:
@@ -61,11 +76,19 @@ class DiscoveryBudget:
     def consume_candidate(self) -> bool:
         """Consume one generated candidate when capacity remains."""
         if self.exhausted:
-            self.truncated = True
+            self.reach_limit(DiscoveryLimit.CANDIDATES)
             return False
         self.remaining_candidates -= 1
         if self.exhausted:
-            self.truncated = True
+            self.reach_limit(DiscoveryLimit.CANDIDATES)
+        return True
+
+    def consume_new_base_check(self) -> bool:
+        """Consume one new-base lookup when capacity remains."""
+        if self.remaining_new_base_checks <= 0:
+            self.reach_limit(DiscoveryLimit.NEW_BASE_CHECKS)
+            return False
+        self.remaining_new_base_checks -= 1
         return True
 
 
@@ -245,7 +268,9 @@ class BaseDiscovery:
         self._new_base_by_name: dict[tuple[str, str], tuple[int, PurePath]] | None = (
             None
         )
-        self._new_base_names: set[str] | None = None
+        self._new_bases_by_name: (
+            dict[str, list[tuple[str, tuple[int, PurePath]]]] | None
+        ) = None
         self._new_base_fallback_cache: dict[str, str | None] = {}
 
     def _set_run_discovery_budget(self, budget: DiscoveryBudget) -> None:
@@ -345,9 +370,7 @@ class BaseDiscovery:
                     )
         return None
 
-    def fill_in_new_base(  # ruff: ignore[too-many-branches, too-many-locals]
-        self, result: ResultDict
-    ) -> None:
+    def fill_in_new_base(self, result: ResultDict) -> None:
         """Extend the result for new_base and intermediate parameters."""
         if self.new_base_mask is None:
             return
@@ -359,51 +382,71 @@ class BaseDiscovery:
         new_name = self.new_base_mask.replace("*", basename).lower()
 
         best_result: str | None = None
-        new_base_by_directory, new_base_by_name = self._index_new_bases()
+        new_base_by_directory, _new_base_by_name = self._index_new_bases()
         if not new_base_by_directory:
             return
 
         directory_signature = path.rsplit("/", 1)[0] if "/" in path else ""
+        exact_complete, exact_result = self._find_exact_new_base(
+            directory_signature, new_name
+        )
+        if not exact_complete:
+            return
+        if exact_result is not None:
+            result["new_base"] = exact_result
+            return
+
         cached_fallback = self._new_base_fallback_cache.get(directory_signature, ...)
-        find_fallback = cached_fallback is ...
-        if isinstance(cached_fallback, str):
-            best_result = cached_fallback
-        find_exact = new_name in (self._new_base_names or set())
-        if not find_fallback and not find_exact:
-            if best_result is not None:
-                result["new_base"] = best_result
+        if cached_fallback is not ...:
+            if isinstance(cached_fallback, str):
+                result["new_base"] = cached_fallback
             return
 
         while "/" in path:
+            if (
+                self._run_discovery_budget is not None
+                and not self._run_discovery_budget.consume_new_base_check()
+            ):
+                return
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
             directories = {path, path_wild}
-            if find_exact:
-                exact_matches = (
-                    new_base_by_name[directory, new_name]
-                    for directory in directories
-                    if (directory, new_name) in new_base_by_name
-                )
-                exact_match = min(exact_matches, default=None)
-                if exact_match is not None:
-                    result["new_base"] = "/".join(exact_match[1].parts)
-                    return
+            fallback_matches = (
+                new_base_by_directory[directory]
+                for directory in directories
+                if directory in new_base_by_directory
+            )
+            fallback_match = min(fallback_matches, default=None)
+            if fallback_match is not None:
+                best_result = "/".join(fallback_match[1].parts)
+                break
 
-            if find_fallback and best_result is None:
-                fallback_matches = (
-                    new_base_by_directory[directory]
-                    for directory in directories
-                    if directory in new_base_by_directory
-                )
-                fallback_match = min(fallback_matches, default=None)
-                if fallback_match is not None:
-                    best_result = "/".join(fallback_match[1].parts)
-
-        if find_fallback:
-            self._new_base_fallback_cache[directory_signature] = best_result
+        self._new_base_fallback_cache[directory_signature] = best_result
 
         if best_result is not None:
             result["new_base"] = best_result
+
+    def _find_exact_new_base(
+        self, directory_signature: str, new_name: str
+    ) -> tuple[bool, str | None]:
+        """Find the nearest exact new base without walking every ancestor."""
+        candidates = (self._new_bases_by_name or {}).get(new_name, ())
+        if not candidates:
+            return True, None
+
+        path_wild = directory_signature.replace("*", "")
+        for directory, candidate in candidates:
+            if (
+                self._run_discovery_budget is not None
+                and not self._run_discovery_budget.consume_new_base_check()
+            ):
+                return False, None
+            if any(
+                path == directory or path.startswith(f"{directory}/")
+                for path in (directory_signature, path_wild)
+            ):
+                return True, "/".join(candidate[1].parts)
+        return True, None
 
     def _index_new_bases(
         self,
@@ -412,10 +455,14 @@ class BaseDiscovery:
         dict[tuple[str, str], tuple[int, PurePath]],
     ]:
         """Index possible new-base files for repeated constant-time lookups."""
-        if self._new_base_by_directory is None or self._new_base_by_name is None:
+        if (
+            self._new_base_by_directory is None
+            or self._new_base_by_name is None
+            or self._new_bases_by_name is None
+        ):
             self._new_base_by_directory = {}
             self._new_base_by_name = {}
-            self._new_base_names = set()
+            self._new_bases_by_name = {}
             if self.new_base_mask is not None:
                 for position, match in enumerate(
                     self.finder.filter_masks(self.new_base_mask)
@@ -423,11 +470,20 @@ class BaseDiscovery:
                     directory = "/".join(match.parts[:-1]).lower()
                     candidate = (position, match)
                     self._new_base_by_directory.setdefault(directory, candidate)
-                    self._new_base_by_name.setdefault(
-                        (directory, match.parts[-1].lower()),
-                        candidate,
+                    name = match.parts[-1].lower()
+                    key = (directory, name)
+                    if key not in self._new_base_by_name:
+                        self._new_base_by_name[key] = candidate
+                        self._new_bases_by_name.setdefault(name, []).append(
+                            (directory, candidate)
+                        )
+                for candidates in self._new_bases_by_name.values():
+                    candidates.sort(
+                        key=lambda item: (
+                            -(item[0].count("/") + bool(item[0])),
+                            item[1][0],
+                        )
                     )
-                    self._new_base_names.add(match.parts[-1].lower())
 
         return self._new_base_by_directory, self._new_base_by_name
 
@@ -606,7 +662,9 @@ class BaseDiscovery:
                 if wildcard:
                     if generated_masks >= MAX_MASKS_PER_PATH:
                         if self._run_discovery_budget is not None:
-                            self._run_discovery_budget.truncated = True
+                            self._run_discovery_budget.reach_limit(
+                                DiscoveryLimit.MASKS_PER_PATH
+                            )
                         else:
                             warnings.warn(
                                 DISCOVERY_TRUNCATED_MESSAGE,
