@@ -9,6 +9,7 @@ from __future__ import annotations
 import fnmatch
 import re
 import warnings
+from dataclasses import dataclass, fields
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -47,14 +48,41 @@ DISCOVERY_TRUNCATED_MESSAGE = (
 )
 
 
+@dataclass(frozen=True)
+class DiscoveryLimits:
+    """Discovery resource bounds; None disables an individual limit."""
+
+    max_candidates: int | None = DISCOVERY_MAX_CANDIDATES
+    max_results: int | None = DISCOVERY_MAX_RESULTS
+    max_new_base_checks: int | None = DISCOVERY_MAX_NEW_BASE_CHECKS
+    max_masks_per_path: int | None = MAX_MASKS_PER_PATH
+    sniff_max_bytes: int | None = DISCOVERY_SNIFF_MAX_BYTES
+    sniff_max_files: int | None = DISCOVERY_SNIFF_MAX_FILES
+
+    def __post_init__(self) -> None:
+        """Reject negative resource bounds."""
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if value is not None and value < 0:
+                msg = f"{field.name} must be nonnegative or None"
+                raise ValueError(msg)
+
+    @classmethod
+    def unlimited(cls) -> DiscoveryLimits:
+        """Disable discovery budgets, retaining internal parser safeguards."""
+        return cls(**dict.fromkeys(field.name for field in fields(cls)))
+
+
 class DiscoveryBudget:
     """Bound path-derived work across one discovery run."""
 
     def __init__(
         self,
-        candidates: int = DISCOVERY_MAX_CANDIDATES,
-        new_base_checks: int = DISCOVERY_MAX_NEW_BASE_CHECKS,
+        candidates: int | None = DISCOVERY_MAX_CANDIDATES,
+        new_base_checks: int | None = DISCOVERY_MAX_NEW_BASE_CHECKS,
+        masks_per_path: int | None = MAX_MASKS_PER_PATH,
     ) -> None:
+        self.max_masks_per_path = masks_per_path
         self.remaining_candidates = candidates
         self.remaining_new_base_checks = new_base_checks
         self.limit_reasons: set[DiscoveryLimit] = set()
@@ -71,22 +99,27 @@ class DiscoveryBudget:
     @property
     def exhausted(self) -> bool:
         """Whether another candidate can be generated."""
-        return self.remaining_candidates <= 0
+        return self.remaining_candidates is not None and self.remaining_candidates <= 0
 
     def consume_candidate(self) -> bool:
         """Consume one generated candidate when capacity remains."""
         if self.exhausted:
             self.reach_limit(DiscoveryLimit.CANDIDATES)
             return False
-        self.remaining_candidates -= 1
+        if self.remaining_candidates is not None:
+            self.remaining_candidates -= 1
         return True
 
     def consume_new_base_check(self) -> bool:
         """Consume one new-base lookup when capacity remains."""
-        if self.remaining_new_base_checks <= 0:
+        if (
+            self.remaining_new_base_checks is not None
+            and self.remaining_new_base_checks <= 0
+        ):
             self.reach_limit(DiscoveryLimit.NEW_BASE_CHECKS)
             return False
-        self.remaining_new_base_checks -= 1
+        if self.remaining_new_base_checks is not None:
+            self.remaining_new_base_checks -= 1
         return True
 
 
@@ -95,8 +128,8 @@ class SniffBudget:
 
     def __init__(
         self,
-        max_bytes: int,
-        max_files: int,
+        max_bytes: int | None,
+        max_files: int | None,
         *,
         parent: SniffBudget | None = None,
     ) -> None:
@@ -108,8 +141,8 @@ class SniffBudget:
     def exhausted(self) -> bool:
         """Whether another file can be inspected."""
         return (
-            self.remaining_bytes <= 0
-            or self.remaining_files <= 0
+            (self.remaining_bytes is not None and self.remaining_bytes <= 0)
+            or (self.remaining_files is not None and self.remaining_files <= 0)
             or (self.parent is not None and self.parent.exhausted)
         )
 
@@ -147,9 +180,19 @@ class SniffBudget:
         if any(budget.exhausted for budget in budgets):
             return None
 
-        allowance = min(size, *(budget.remaining_bytes for budget in budgets))
+        allowance = min(
+            [
+                size,
+                *[
+                    budget.remaining_bytes
+                    for budget in budgets
+                    if budget.remaining_bytes is not None
+                ],
+            ]
+        )
         for budget in budgets:
-            budget.remaining_files -= 1
+            if budget.remaining_files is not None:
+                budget.remaining_files -= 1
         return allowance
 
     def charge(self, size: int) -> None:
@@ -160,7 +203,8 @@ class SniffBudget:
             budgets.append(parent)
             parent = parent.parent
         for budget in budgets:
-            budget.remaining_bytes -= size
+            if budget.remaining_bytes is not None:
+                budget.remaining_bytes -= size
 
 
 def _replace_with_wildcard(found: re.Match[str], *, wildcard: str) -> str:
@@ -656,7 +700,12 @@ class BaseDiscovery:
                     continue
                 wildcard = self.get_wildcard(part)
                 if wildcard:
-                    if generated_masks >= MAX_MASKS_PER_PATH:
+                    mask_limit = (
+                        self._run_discovery_budget.max_masks_per_path
+                        if self._run_discovery_budget is not None
+                        else MAX_MASKS_PER_PATH
+                    )
+                    if mask_limit is not None and generated_masks >= mask_limit:
                         if self._run_discovery_budget is not None:
                             self._run_discovery_budget.reach_limit(
                                 DiscoveryLimit.MASKS_PER_PATH
