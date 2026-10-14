@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+3.8.0
+-----
+
+* Released on 14th October 2026.
 * Added configurable discovery budgets and ``--unlimited`` to the CLI and
   Python API. CLI truncation now prints a warning to stderr and exits with
   status 3; the high-level API reports structured status without emitting
@@ -17,6 +21,7 @@ Unreleased
   status to API callers.
 * Avoided excessive CPU use when detecting go-i18n TOML in files containing
   long lines or dense malformed syntax.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.7.1
 -----
