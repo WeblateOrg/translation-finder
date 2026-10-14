@@ -8,12 +8,14 @@ from __future__ import annotations
 import pathlib
 import tempfile
 import warnings
+from dataclasses import FrozenInstanceError, fields
 from io import StringIO
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 from . import api as api_module
-from .api import cli, discover
+from .api import DiscoveryLimits, cli, discover
+from .discovery import base as base_module
 from .discovery.base import BaseDiscovery
 from .discovery.files import GettextDiscovery
 from .discovery.result import (
@@ -34,7 +36,7 @@ TEST_DATA = pathlib.Path(__file__).parent / "test_data"
 class APITest(DiscoveryTestCase):
     maxDiff = None
 
-    def test_discover_limits_results_and_warns_once(self) -> None:
+    def test_discover_limits_results_without_warning(self) -> None:
         generated = 0
 
         class ExpandingDiscovery(BaseDiscovery):
@@ -51,16 +53,15 @@ class APITest(DiscoveryTestCase):
 
         with (
             patch.object(api_module, "BACKENDS", [ExpandingDiscovery]),
-            patch.object(api_module, "DISCOVERY_MAX_RESULTS", 2),
             warnings.catch_warnings(record=True) as caught,
         ):
-            warnings.simplefilter("always")
-            results = discover(PurePath(), mock=([], []))
+            warnings.simplefilter("error")
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits(max_results=2)
+            )
 
         self.assertEqual(len(results), 2)
-        self.assertEqual(len(caught), 1)
-        self.assertIs(caught[0].category, RuntimeWarning)
-        self.assertIn("results may be incomplete", str(caught[0].message))
+        self.assertEqual(caught, [])
         self.assertEqual(generated, 3)
         self.assertIsInstance(results, DiscoveryResults)
         self.assertTrue(results.truncated)
@@ -83,11 +84,12 @@ class APITest(DiscoveryTestCase):
 
         with (
             patch.object(api_module, "BACKENDS", [ExactDiscovery]),
-            patch.object(api_module, "DISCOVERY_MAX_RESULTS", 2),
             warnings.catch_warnings(record=True) as caught,
         ):
-            warnings.simplefilter("always")
-            results = discover(PurePath(), mock=([], []))
+            warnings.simplefilter("error")
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits(max_results=2)
+            )
 
         self.assertEqual(len(results), 2)
         self.assertEqual(generated, 2)
@@ -117,10 +119,10 @@ class APITest(DiscoveryTestCase):
 
         with (
             patch.object(api_module, "BACKENDS", [FirstDiscovery, later_discovery]),
-            patch.object(api_module, "DISCOVERY_MAX_CANDIDATES", 1),
-            self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"),
         ):
-            results = discover(PurePath(), mock=([], []))
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits(max_candidates=1)
+            )
 
         self.assertEqual(len(results), 1)
         self.assertEqual(generated, 2)
@@ -146,11 +148,12 @@ class APITest(DiscoveryTestCase):
 
         with (
             patch.object(api_module, "BACKENDS", [ExactDiscovery]),
-            patch.object(api_module, "DISCOVERY_MAX_CANDIDATES", 1),
             warnings.catch_warnings(record=True) as caught,
         ):
-            warnings.simplefilter("always")
-            results = discover(PurePath(), mock=([], []))
+            warnings.simplefilter("error")
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits(max_candidates=1)
+            )
 
         self.assertEqual(len(results), 1)
         self.assertEqual(generated, 1)
@@ -181,10 +184,10 @@ class APITest(DiscoveryTestCase):
                 "BACKENDS",
                 [SingleCandidateDiscovery, SingleCandidateDiscovery],
             ),
-            patch.object(api_module, "DISCOVERY_MAX_CANDIDATES", 1),
-            self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"),
         ):
-            results = discover(PurePath(), mock=([], []))
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits(max_candidates=1)
+            )
 
         self.assertEqual(len(results), 1)
         self.assertEqual(generated, 2)
@@ -197,10 +200,12 @@ class APITest(DiscoveryTestCase):
 
         with (
             patch.object(api_module, "BACKENDS", [GettextDiscovery]),
-            patch.object(api_module, "DISCOVERY_MAX_NEW_BASE_CHECKS", 0),
-            self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"),
         ):
-            results = discover(PurePath(), mock=(files, []))
+            results = discover(
+                PurePath(),
+                mock=(files, []),
+                limits=DiscoveryLimits(max_new_base_checks=0),
+            )
 
         self.assertEqual(len(results), 1)
         self.assertNotIn("new_base", results[0])
@@ -518,7 +523,9 @@ class APITest(DiscoveryTestCase):
         result = DiscoveryResult({"filemask": value})
         result.meta["origin"] = value
         output = StringIO()
-        with patch("translation_finder.api.discover", return_value=[result]):
+        with patch(
+            "translation_finder.api.discover", return_value=DiscoveryResults([result])
+        ):
             self.assertEqual(cli(args=["."], stdout=output), 0)
 
         lines = output.getvalue().splitlines()
@@ -591,3 +598,203 @@ class APITest(DiscoveryTestCase):
                 },
             ],
         )
+
+
+class DiscoveryLimitsTest(DiscoveryTestCase):
+    def test_limits_configuration(self) -> None:
+        defaults = DiscoveryLimits()
+        self.assertEqual(
+            [getattr(defaults, field.name) for field in fields(defaults)],
+            [4096, 4096, 65536, 32, 67108864, 512],
+        )
+        for field in fields(defaults):
+            with (
+                self.subTest(field=field.name),
+                self.assertRaisesRegex(ValueError, field.name),
+            ):
+                DiscoveryLimits(**{field.name: -1})
+            with self.assertRaises(FrozenInstanceError):
+                setattr(defaults, field.name, 1)
+        unlimited = DiscoveryLimits.unlimited()
+        self.assertTrue(
+            all(getattr(unlimited, field.name) is None for field in fields(unlimited))
+        )
+
+    def test_cli_limit_configuration(self) -> None:
+        for field in fields(DiscoveryLimits):
+            option = "--" + field.name.replace("_", "-")
+            for value in (0, 1, 100000000):
+                with (
+                    self.subTest(option=option, value=value),
+                    patch.object(
+                        api_module, "discover", return_value=DiscoveryResults()
+                    ) as discovery,
+                ):
+                    self.assertEqual(
+                        cli(args=[".", option, str(value)], stdout=StringIO()), 0
+                    )
+                    self.assertEqual(
+                        discovery.call_args.kwargs["limits"],
+                        DiscoveryLimits(**{field.name: value}),
+                    )
+        for args, expected in (
+            (["."], DiscoveryLimits()),
+            ([".", "--unlimited"], DiscoveryLimits.unlimited()),
+        ):
+            with (
+                self.subTest(args=args),
+                patch.object(
+                    api_module, "discover", return_value=DiscoveryResults()
+                ) as discovery,
+            ):
+                self.assertEqual(cli(args=args, stdout=StringIO()), 0)
+                self.assertEqual(discovery.call_args.kwargs["limits"], expected)
+
+    def test_cli_invalid_limits(self) -> None:
+        for field in fields(DiscoveryLimits):
+            option = "--" + field.name.replace("_", "-")
+            for arguments in (
+                [option, "-1"],
+                [option, "bad"],
+                ["--unlimited", option, "0"],
+                [option, "1", "--unlimited"],
+            ):
+                with (
+                    self.subTest(arguments=arguments),
+                    patch("sys.stderr", StringIO()),
+                    self.assertRaises(SystemExit) as error,
+                ):
+                    cli(args=[".", *arguments])
+                self.assertEqual(error.exception.code, 2)
+
+    def test_cli_truncation(self) -> None:
+        output, stderr = StringIO(), StringIO()
+        result = DiscoveryResult({"filemask": "locale/*.po", "file_format": "po"})
+        with (
+            patch.object(
+                api_module,
+                "discover",
+                return_value=DiscoveryResults(
+                    [result],
+                    limit_reasons=[DiscoveryLimit.RESULTS, DiscoveryLimit.CANDIDATES],
+                ),
+            ),
+            patch("sys.stderr", stderr),
+        ):
+            self.assertEqual(cli(args=["."], stdout=output), 3)
+        self.assertIn("Match 1", output.getvalue())
+        self.assertEqual(
+            stderr.getvalue(),
+            "warning: Translation discovery reached its resource limit; results may be incomplete (limits: candidates, results)\n",
+        )
+
+    def test_cli_result_limit(self) -> None:
+        output, stderr = StringIO(), StringIO()
+        with patch("sys.stderr", stderr), warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(
+                cli(args=[str(TEST_DATA), "--max-results", "1"], stdout=output), 3
+            )
+        self.assertIn("Match 1", output.getvalue())
+        self.assertNotIn("Match 2", output.getvalue())
+        self.assertIn("limits: results", stderr.getvalue())
+
+    def test_discover_unlimited_across_backends(self) -> None:
+        class ExpandingDiscovery(BaseDiscovery):
+            file_format = "po"
+
+            def get_masks(
+                self, *, eager: bool = False, hint: str | None = None
+            ) -> Generator[DiscoveryCandidate]:
+                for index in range(4100):
+                    yield DiscoveryCandidate(
+                        {"filemask": f"{self.source_language}/{index}.po"}, []
+                    )
+
+        with patch.object(
+            api_module, "BACKENDS", [ExpandingDiscovery, ExpandingDiscovery]
+        ):
+            results = discover(
+                PurePath(), mock=([], []), limits=DiscoveryLimits.unlimited()
+            )
+        self.assertEqual(len(results), 8200)
+        self.assertFalse(results.truncated)
+
+    def test_discover_zero_limits(self) -> None:
+        for field, reason in (
+            ("max_results", DiscoveryLimit.RESULTS),
+            ("max_candidates", DiscoveryLimit.CANDIDATES),
+            ("max_masks_per_path", DiscoveryLimit.MASKS_PER_PATH),
+        ):
+            with self.subTest(field=field):
+                path = PurePath("locale/cs/messages.po")
+                with patch.object(api_module, "BACKENDS", [GettextDiscovery]):
+                    results = discover(
+                        PurePath(),
+                        mock=([(path, path, path.as_posix())], []),
+                        limits=DiscoveryLimits(**{field: 0}),
+                    )
+                self.assertIn(reason, results.limit_reasons)
+                self.assertEqual(len(results), 0)
+
+    def test_unlimited_masks_and_new_base(self) -> None:
+        codes = sorted(
+            code
+            for code in base_module.LANGUAGES
+            if BaseDiscovery.is_language_code(code)
+        )[:33]
+        path = PurePath(*codes, "messages.po")
+        template = PurePath("messages.pot")
+        files = [(entry, entry, entry.as_posix()) for entry in (path, template)]
+        with patch.object(api_module, "BACKENDS", [GettextDiscovery]):
+            results = discover(
+                PurePath(), mock=(files, []), limits=DiscoveryLimits.unlimited()
+            )
+        self.assertEqual(len(results), 33)
+        paths = [PurePath("locale/cs/messages.po"), PurePath("locale/messages.pot")]
+        with patch.object(api_module, "BACKENDS", [GettextDiscovery]):
+            results = discover(
+                PurePath(),
+                mock=([(entry, entry, entry.as_posix()) for entry in paths], []),
+                limits=DiscoveryLimits.unlimited(),
+            )
+        self.assertEqual(results[0]["new_base"], "locale/messages.pot")
+        self.assertFalse(results.truncated)
+
+    def test_unlimited_sniff_budget_retains_local_bounds(self) -> None:
+        parent = base_module.SniffBudget(None, None)
+        child = base_module.SniffBudget(10, 2, parent=parent)
+        self.assertEqual(child.reserve(20), 10)
+        child.charge(4)
+        self.assertEqual(child.reserve(20), 6)
+        self.assertTrue(child.exhausted)
+        self.assertFalse(parent.exhausted)
+        self.assertIsNone(parent.remaining_bytes)
+        self.assertIsNone(parent.remaining_files)
+        self.assertIsNone(child.reserve(20))
+        budget = base_module.DiscoveryBudget(None, None)
+        self.assertTrue(budget.consume_candidate())
+        self.assertTrue(budget.consume_new_base_check())
+        self.assertFalse(budget.truncated)
+
+    def test_sniff_limits_zero_and_unlimited(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            for language in ("en", "cs"):
+                (root / f"messages_{language}.json").write_text(
+                    '[ {"id": "hello", "translation": "Hello"} ]', encoding="utf-8"
+                )
+            for limits in (
+                DiscoveryLimits(sniff_max_bytes=0),
+                DiscoveryLimits(sniff_max_files=0),
+            ):
+                with (
+                    self.subTest(limits=limits),
+                    patch.object(api_module.Finder, "open", side_effect=AssertionError),
+                ):
+                    results = discover(root, limits=limits)
+                self.assertEqual(results[0]["file_format"], "json-nested")
+                self.assertFalse(results.truncated)
+            results = discover(root, limits=DiscoveryLimits.unlimited())
+            self.assertEqual(results[0]["file_format"], "go-i18n-json")
+            self.assertFalse(results.truncated)

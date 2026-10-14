@@ -465,8 +465,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         self.assertEqual(len(candidates), base_module.MAX_MASKS_PER_PATH)
 
         files = [(path, path, path.as_posix())]
-        with self.assertWarnsRegex(RuntimeWarning, "results may be incomplete"):
-            api_results = api_module.discover(PurePath(), mock=(files, []))
+        api_results = api_module.discover(PurePath(), mock=(files, []))
         self.assertIn(DiscoveryLimit.MASKS_PER_PATH, api_results.limit_reasons)
 
     def test_duplicate_candidates_consume_discovery_budget(self) -> None:
@@ -577,6 +576,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         self.assertTrue(
             all(result.get("new_base") == "locale/messages.pot" for result in results)
         )
+        assert budget.remaining_new_base_checks is not None  # ruff: ignore[assert]
         self.assertEqual(
             10_000 - budget.remaining_new_base_checks,
             count + directory.count("/") + 1,
@@ -3842,11 +3842,15 @@ class GlobalSniffLimitTest(DiscoveryTestCase):
                 return original_open(finder, path, "rb")
 
             with (
-                patch.object(api_module, "DISCOVERY_SNIFF_MAX_BYTES", 8),
-                patch.object(api_module, "DISCOVERY_SNIFF_MAX_FILES", 512),
                 patch.object(Finder, "open", tracked_open),
             ):
-                results = api_module.discover(root)
+                results = api_module.discover(
+                    root,
+                    limits=api_module.DiscoveryLimits(
+                        sniff_max_bytes=8, sniff_max_files=512
+                    ),
+                )
+                self.assertFalse(results.truncated)
 
         self.assertEqual(opened, ["messages0_cs.properties"] * 2)
         self.assertEqual(
@@ -3873,11 +3877,15 @@ class GlobalSniffLimitTest(DiscoveryTestCase):
                 return original_open(finder, path, "rb")
 
             with (
-                patch.object(api_module, "DISCOVERY_SNIFF_MAX_BYTES", 1024),
-                patch.object(api_module, "DISCOVERY_SNIFF_MAX_FILES", 1),
                 patch.object(Finder, "open", tracked_open),
             ):
-                results = api_module.discover(root)
+                results = api_module.discover(
+                    root,
+                    limits=api_module.DiscoveryLimits(
+                        sniff_max_bytes=1024, sniff_max_files=1
+                    ),
+                )
+                self.assertFalse(results.truncated)
 
         self.assertEqual(opened, ["messages0_cs.properties"])
         self.assertEqual(len(results), 2)

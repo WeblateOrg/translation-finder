@@ -4,6 +4,11 @@ Changelog
 Unreleased
 ----------
 
+* Added configurable discovery budgets and ``--unlimited`` to the CLI and
+  Python API. CLI truncation now prints a warning to stderr and exits with
+  status 3; the high-level API reports structured status without emitting
+  ``RuntimeWarning``.
+
 * Bounded aggregate content sniffing across all candidates and discovery
   backends to avoid repeated CPU and I/O work on crafted repositories.
 * Bounded path-derived mask generation and result growth to prevent excessive

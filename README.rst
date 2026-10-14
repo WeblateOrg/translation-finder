@@ -86,6 +86,39 @@ Non-printable characters in command-line results are displayed as visible
 escapes (for example, ``\n`` and ``\x1b``). The Python API returns the original
 values unchanged.
 
+Discovery limits
+----------------
+
+The CLI accepts nonnegative integer limits. Zero permits no work for that
+budget. Defaults are:
+
+* ``--max-candidates``: 4096 generated candidates across all backends.
+* ``--max-results``: 4096 returned matches.
+* ``--max-new-base-checks``: 65536 new-base lookups across all backends.
+* ``--max-masks-per-path``: 32 generated masks per path.
+* ``--sniff-max-bytes``: 67108864 bytes (64 MiB) sampled across the run.
+* ``--sniff-max-files``: 512 content-sniffing file attempts across the run.
+
+For example, ``weblate-discover --max-results 10000 translations/`` raises
+only the result limit. ``weblate-discover --unlimited translations/`` disables
+all six discovery budgets; it cannot be combined with individual limit options.
+Internal parser safeguards and per-result format and encoding sampling limits
+remain active.
+
+The CLI prints collected matches to stdout, including partial results. If
+candidate, result, new-base, or per-path mask limits cause truncation, it prints
+one warning with the limit reasons to stderr and exits with status 3. Complete
+discovery exits with status 0; invalid arguments exit with status 2.
+Sniff-budget exhaustion uses best-effort detection and does not itself report
+truncation.
+
+Python callers can import ``DiscoveryLimits`` from ``translation_finder.api``
+and pass it as the keyword-only ``limits`` argument to ``discover()``. Defaults
+match the CLI; a field set to ``None`` disables that limit, and
+``DiscoveryLimits.unlimited()`` disables all six. Negative values raise
+``ValueError``. Inspect ``results.truncated`` and ``results.limit_reasons`` for
+truncation; high-level discovery does not emit Python warnings.
+
 Custom discovery backends
 -------------------------
 
@@ -96,9 +129,8 @@ expanding its wildcard mask again:
 
 Candidate generation, new-base resolution, and returned results are bounded
 across each discovery run. The returned ``DiscoveryResults`` object behaves as
-a list and exposes ``truncated`` and ``limit_reasons`` attributes. When a
-safety limit truncates discovery, the Python API also emits a
-``RuntimeWarning`` for compatibility.
+a list and exposes ``truncated`` and ``limit_reasons`` attributes. These report whether a safety limit made results potentially
+incomplete, without emitting a Python warning.
 
 Calling ``get_masks()`` directly is a low-level interface with only the
 per-path mask limit. Use ``discover()`` for run-wide resource bounds and
