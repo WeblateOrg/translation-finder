@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from translation_finder.finder import Finder
 
-    from .result import DiscoveryResult, ResultDict
+    from .result import DiscoveryResult, FileFormatParams, ResultDict
 
 # Anchoring limits matching to one attempt per line, while the atomic group
 # prevents retrying the match from every subsequent ``=>`` on that line.
@@ -906,7 +906,7 @@ class OSXDiscovery(EncodingDiscovery):
     """OSX string properties files discovery."""
 
     file_format: ClassVar[str] = "strings"
-    file_format_params: ClassVar[dict[str, str | int | bool]] = {
+    file_format_params: ClassVar[FileFormatParams | None] = {
         "strings_encoding": "utf-8",
     }
     encoding_parameter: ClassVar[str] = "strings_encoding"
