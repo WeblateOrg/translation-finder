@@ -314,6 +314,7 @@ class BaseDiscovery:
             dict[str, list[tuple[str, tuple[int, PurePath]]]] | None
         ) = None
         self._new_base_fallback_cache: dict[str, str | None] = {}
+        self._new_base_candidates: dict[str, list[PurePath]] = {}
 
     def _set_run_discovery_budget(self, budget: DiscoveryBudget) -> None:
         """Use a shared candidate budget for this discovery run."""
@@ -423,33 +424,37 @@ class BaseDiscovery:
                 basename = basename.replace(replacement_match, replacement)
         new_name = self.new_base_mask.replace("*", basename).lower()
 
-        best_result: str | None = None
         new_base_by_directory, _new_base_by_name = self._index_new_bases()
         if not new_base_by_directory:
             return
 
         directory_signature = path.rsplit("/", 1)[0] if "/" in path else ""
-        exact_complete, exact_result = self._find_exact_new_base(
-            directory_signature, new_name
-        )
-        if not exact_complete:
+        complete, best_result = self._find_exact_new_base(directory_signature, new_name)
+        if complete and best_result is None:
+            complete, best_result = self._find_preferred_new_base(result)
+        if not complete:
             return
-        if exact_result is not None:
-            result["new_base"] = exact_result
-            return
+        if best_result is None:
+            best_result = self._find_fallback_new_base(path, directory_signature)
+        if best_result is not None:
+            result["new_base"] = best_result
 
+    def _find_fallback_new_base(
+        self, path: str, directory_signature: str
+    ) -> str | None:
+        """Find the first eligible file in the nearest directory, caching misses."""
         cached_fallback = self._new_base_fallback_cache.get(directory_signature, ...)
         if cached_fallback is not ...:
-            if isinstance(cached_fallback, str):
-                result["new_base"] = cached_fallback
-            return
+            return cached_fallback if isinstance(cached_fallback, str) else None
 
+        best_result: str | None = None
+        new_base_by_directory = self._new_base_by_directory or {}
         while "/" in path:
             if (
                 self._run_discovery_budget is not None
                 and not self._run_discovery_budget.consume_new_base_check()
             ):
-                return
+                return None
             path = path.rsplit("/", 1)[0]
             path_wild = path.replace("*", "")
             directories = {path, path_wild}
@@ -464,9 +469,37 @@ class BaseDiscovery:
                 break
 
         self._new_base_fallback_cache[directory_signature] = best_result
+        return best_result
 
-        if best_result is not None:
-            result["new_base"] = best_result
+    def _find_preferred_new_base(self, result: ResultDict) -> tuple[bool, str | None]:
+        """Prefer a known template, then translations from the same group."""
+        by_name = self._new_base_by_name or {}
+        template = result.get("template")
+        if template is not None:
+            if (
+                self._run_discovery_budget is not None
+                and not self._run_discovery_budget.consume_new_base_check()
+            ):
+                return False, None
+            directory, _separator, name = template.rpartition("/")
+            if (directory, name.lower()) in by_name:
+                return True, template
+
+        best: tuple[int, PurePath] | None = None
+        if self.new_base_mask in self.masks_list:
+            for path in self._new_base_candidates.get(result["filemask"], ()):
+                if (
+                    self._run_discovery_budget is not None
+                    and not self._run_discovery_budget.consume_new_base_check()
+                ):
+                    return False, None
+                directory, _separator, name = path.as_posix().rpartition("/")
+                candidate = by_name.get((directory, name.lower()))
+                if candidate is not None:
+                    candidate = (candidate[0], path)
+                    if best is None or candidate < best:
+                        best = candidate
+        return True, best[1].as_posix() if best is not None else None
 
     def _find_exact_new_base(
         self, directory_signature: str, new_name: str
@@ -509,7 +542,8 @@ class BaseDiscovery:
                 for position, match in enumerate(
                     self.finder.filter_masks(self.new_base_mask)
                 ):
-                    directory = "/".join(match.parts[:-1]).lower()
+                    # Separate case-distinct trees; only normalize filenames.
+                    directory = "/".join(match.parts[:-1])
                     candidate = (position, match)
                     self._new_base_by_directory.setdefault(directory, candidate)
                     name = match.parts[-1].lower()
@@ -628,6 +662,9 @@ class BaseDiscovery:
                 else:
                     candidates[filemask] = candidate
 
+            self._new_base_candidates = {
+                filemask: candidate.paths for filemask, candidate in candidates.items()
+            }
             for candidate in candidates.values():
                 result = candidate.result
                 self.fill_in_template(result)
@@ -645,6 +682,7 @@ class BaseDiscovery:
                 discovery_result.meta["priority"] = self.priority
                 yield discovery_result
         finally:
+            self._new_base_candidates = {}
             if owns_budget:
                 self._run_discovery_budget = None
                 if budget.truncated:

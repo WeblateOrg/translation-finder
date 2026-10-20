@@ -4,6 +4,13 @@ Changelog
 Unreleased
 ----------
 
+* Prefer known source templates and translations from the same discovered
+  filemask when choosing files for new translations, avoiding unrelated Qt
+  catalogs in shared directories.
+* Fix template lookup in directories containing uppercase characters.
+* Document the distinct roles of ``template`` and ``new_base`` in discovery
+  results, including examples for Gettext, Qt, PHP, and Laravel.
+
 3.8.0
 -----
 

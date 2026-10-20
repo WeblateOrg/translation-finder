@@ -1,0 +1,237 @@
+[
+  {
+    "project": "qbittorrent/qBittorrent",
+    "revision": "846f97e0638a70c7174427d0a77bda5730c5e864",
+    "files": [
+      "src/lang/qbittorrent_ar.ts",
+      "src/lang/qbittorrent_en.ts",
+      "src/webui/www/translations/webui_ar.ts",
+      "src/webui/www/translations/webui_en.ts"
+    ],
+    "expected": [
+      {
+        "filemask": "src/lang/qbittorrent_*.ts",
+        "file_format": "ts",
+        "template": "src/lang/qbittorrent_en.ts",
+        "new_base": "src/lang/qbittorrent_en.ts"
+      },
+      {
+        "filemask": "src/webui/www/translations/webui_*.ts",
+        "file_format": "ts",
+        "template": "src/webui/www/translations/webui_en.ts",
+        "new_base": "src/webui/www/translations/webui_en.ts"
+      }
+    ]
+  },
+  {
+    "project": "keepassxreboot/keepassxc",
+    "revision": "6c686af43816b14ffb63ac8991cd49ab90f8750c",
+    "files": [
+      "share/translations/keepassxc_ar.ts",
+      "share/translations/keepassxc_en.ts"
+    ],
+    "expected": [
+      {
+        "filemask": "share/translations/keepassxc_*.ts",
+        "file_format": "ts",
+        "template": "share/translations/keepassxc_en.ts",
+        "new_base": "share/translations/keepassxc_en.ts"
+      }
+    ]
+  },
+  {
+    "project": "wireshark/wireshark",
+    "revision": "92d3a9e8b6d3c9a56c7aa0db04ca9539bb9e427c",
+    "files": [
+      "ui/qt/wireshark_ca.ts",
+      "ui/qt/wireshark_en.ts",
+      "ui/stratoshark/stratoshark_en.ts"
+    ],
+    "expected": [
+      {
+        "filemask": "ui/qt/wireshark_*.ts",
+        "file_format": "ts",
+        "template": "ui/qt/wireshark_en.ts",
+        "new_base": "ui/qt/wireshark_en.ts"
+      },
+      {
+        "filemask": "ui/stratoshark/stratoshark_*.ts",
+        "file_format": "ts",
+        "template": "ui/stratoshark/stratoshark_en.ts",
+        "new_base": "ui/stratoshark/stratoshark_en.ts"
+      }
+    ]
+  },
+  {
+    "project": "transmission/transmission",
+    "revision": "85278c4d6e6166f2b028d7c55c8c42cb57af1155",
+    "files": [
+      "qt/translations/transmission_af.ts",
+      "qt/translations/transmission_en.ts"
+    ],
+    "expected": [
+      {
+        "filemask": "qt/translations/transmission_*.ts",
+        "file_format": "ts",
+        "template": "qt/translations/transmission_en.ts",
+        "new_base": "qt/translations/transmission_en.ts"
+      }
+    ]
+  },
+  {
+    "project": "qt/qttranslations",
+    "revision": "cec63c428254d664aa5ac28803b462ae4dcdd88f",
+    "files": [
+      "translations/assistant_ar.ts",
+      "translations/assistant_de.ts",
+      "translations/designer_ar.ts",
+      "translations/designer_de.ts",
+      "translations/linguist_ar.ts",
+      "translations/linguist_de.ts",
+      "translations/qt_help_ar.ts",
+      "translations/qt_help_de.ts",
+      "translations/qtbase_ar.ts",
+      "translations/qtbase_de.ts"
+    ],
+    "expected": [
+      {
+        "filemask": "translations/assistant_*.ts",
+        "file_format": "ts",
+        "new_base": "translations/assistant_ar.ts"
+      },
+      {
+        "filemask": "translations/designer_*.ts",
+        "file_format": "ts",
+        "new_base": "translations/designer_ar.ts"
+      },
+      {
+        "filemask": "translations/linguist_*.ts",
+        "file_format": "ts",
+        "new_base": "translations/linguist_ar.ts"
+      },
+      {
+        "filemask": "translations/qt_help_*.ts",
+        "file_format": "ts",
+        "new_base": "translations/qt_help_ar.ts"
+      },
+      {
+        "filemask": "translations/qtbase_*.ts",
+        "file_format": "ts",
+        "new_base": "translations/qtbase_ar.ts"
+      }
+    ]
+  },
+  {
+    "project": "NickeManarin/ScreenToGif",
+    "revision": "a4d0a67c2131cd048ceec86cd40afc2f1a06f2fd",
+    "files": [
+      "ScreenToGif/Resources/Localization/StringResources.ar.xaml",
+      "ScreenToGif/Resources/Localization/StringResources.en.xaml",
+      "ScreenToGif/Resources/Localization/StringResources.fr.xaml"
+    ],
+    "expected": [
+      {
+        "filemask": "ScreenToGif/Resources/Localization/StringResources.*.xaml",
+        "file_format": "resourcedictionary",
+        "template": "ScreenToGif/Resources/Localization/StringResources.en.xaml",
+        "new_base": "ScreenToGif/Resources/Localization/StringResources.en.xaml"
+      }
+    ]
+  },
+  {
+    "project": "Flow-Launcher/Flow.Launcher",
+    "revision": "3b89277c65981c8228f2c0525270a5a716506cca",
+    "files": [
+      "Flow.Launcher/Languages/ar.xaml",
+      "Flow.Launcher/Languages/en.xaml",
+      "Flow.Launcher/Languages/fr.xaml",
+      "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/ar.xaml",
+      "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/en.xaml",
+      "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/fr.xaml"
+    ],
+    "expected": [
+      {
+        "filemask": "Flow.Launcher/Languages/*.xaml",
+        "file_format": "resourcedictionary",
+        "template": "Flow.Launcher/Languages/en.xaml",
+        "new_base": "Flow.Launcher/Languages/en.xaml"
+      },
+      {
+        "filemask": "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/*.xaml",
+        "file_format": "resourcedictionary",
+        "template": "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/en.xaml",
+        "new_base": "Plugins/Flow.Launcher.Plugin.BrowserBookmark/Languages/en.xaml"
+      }
+    ]
+  },
+  {
+    "project": "vslavik/poedit",
+    "revision": "3a11d020e98cd2c19eb8b13bebebef572dfcc339",
+    "files": [
+      "locales/cs.po",
+      "locales/poedit.pot",
+      "locales/poedit-quicklook.pot"
+    ],
+    "expected": [
+      {
+        "filemask": "locales/*.po",
+        "file_format": "po",
+        "new_base": "locales/poedit-quicklook.pot"
+      }
+    ]
+  },
+  {
+    "project": "godotengine/godot",
+    "revision": "469659e0617345149cd1eaec2e643d61d130aa6a",
+    "files": [
+      "editor/translations/editor/cs.po",
+      "editor/translations/extractable/cs.po",
+      "editor/translations/extractable/extractable.pot",
+      "editor/translations/properties/cs.po"
+    ],
+    "expected": [
+      {
+        "filemask": "editor/translations/editor/*.po",
+        "file_format": "po"
+      },
+      {
+        "filemask": "editor/translations/extractable/*.po",
+        "file_format": "po",
+        "new_base": "editor/translations/extractable/extractable.pot"
+      },
+      {
+        "filemask": "editor/translations/properties/*.po",
+        "file_format": "po"
+      }
+    ]
+  },
+  {
+    "project": "kovidgoyal/calibre-translations",
+    "revision": "e9065709ca3342c588cee7a1432b59cb7c04531c",
+    "files": [
+      "calibre/cs.po",
+      "calibre/main.pot",
+      "manual/catalogs.pot",
+      "manual/conversion.pot",
+      "manual/cs/catalogs.po",
+      "manual/cs/conversion.po"
+    ],
+    "expected": [
+      {
+        "filemask": "calibre/*.po",
+        "file_format": "po",
+        "new_base": "calibre/main.pot"
+      },
+      {
+        "filemask": "manual/*/catalogs.po",
+        "file_format": "po",
+        "new_base": "manual/catalogs.pot"
+      },
+      {
+        "filemask": "manual/*/conversion.po",
+        "file_format": "po",
+        "new_base": "manual/conversion.pot"
+      }
+    ]
+  }
+]
