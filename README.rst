@@ -161,15 +161,22 @@ budget. Defaults are:
 * ``--max-masks-per-path``: 32 generated masks per path.
 * ``--sniff-max-bytes``: 67108864 bytes (64 MiB) sampled across the run.
 * ``--sniff-max-files``: 512 content-sniffing file attempts across the run.
+* ``--max-files``: 100000 indexed files.
+* ``--max-dirs``: 20000 indexed directories.
+* ``--max-depth``: 64 directory levels below the root.
+* ``--max-entries``: 150000 directory entries examined, including excluded
+  entries and symlinks.
+* ``--max-match-checks``: 65536 wildcard hint candidate evaluations.
 
 For example, ``weblate-discover --max-results 10000 translations/`` raises
 only the result limit. ``weblate-discover --unlimited translations/`` disables
-all six discovery budgets; it cannot be combined with individual limit options.
+all discovery budgets; it cannot be combined with individual limit options.
 Internal parser safeguards and per-result format and encoding sampling limits
 remain active.
 
 The CLI prints collected matches to stdout, including partial results. If
-candidate, result, new-base, or per-path mask limits cause truncation, it prints
+candidate, result, new-base, per-path mask, Finder, or wildcard matching limits
+cause truncation, it prints
 one warning with the limit reasons to stderr and exits with status 3. Complete
 discovery exits with status 0; invalid arguments exit with status 2.
 Sniff-budget exhaustion uses best-effort detection and does not itself report
@@ -178,9 +185,12 @@ truncation.
 Python callers can import ``DiscoveryLimits`` from ``translation_finder.api``
 and pass it as the keyword-only ``limits`` argument to ``discover()``. Defaults
 match the CLI; a field set to ``None`` disables that limit, and
-``DiscoveryLimits.unlimited()`` disables all six. Negative values raise
+``DiscoveryLimits.unlimited()`` disables all limits. Negative values raise
 ``ValueError``. Inspect ``results.truncated`` and ``results.limit_reasons`` for
 truncation; high-level discovery does not emit Python warnings.
+``max_results=0`` returns before scanning the tree and conservatively reports
+truncation. Direct ``Finder`` use has the same scan and matching defaults and
+exposes ``limit_reasons``; pass ``None`` for a limit to disable it.
 
 Custom discovery backends
 -------------------------

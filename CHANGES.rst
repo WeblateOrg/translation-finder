@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Bound Finder enumeration, indexing depth, and wildcard hint matching on
+  crafted repositories; report partial discovery through limit reasons.
 * Prefer known source templates and translations from the same discovered
   filemask when choosing files for new translations, avoiding unrelated Qt
   catalogs in shared directories.

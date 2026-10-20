@@ -19,6 +19,13 @@ from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
 from translation_finder.data import LANGUAGES_BLACKLIST
+from translation_finder.finder import (
+    DEFAULT_MAX_DEPTH,
+    DEFAULT_MAX_DIRS,
+    DEFAULT_MAX_ENTRIES,
+    DEFAULT_MAX_FILES,
+    DEFAULT_MAX_MATCH_CHECKS,
+)
 
 from .result import DiscoveryCandidate, DiscoveryLimit, DiscoveryResult
 
@@ -58,6 +65,11 @@ class DiscoveryLimits:
     max_masks_per_path: int | None = MAX_MASKS_PER_PATH
     sniff_max_bytes: int | None = DISCOVERY_SNIFF_MAX_BYTES
     sniff_max_files: int | None = DISCOVERY_SNIFF_MAX_FILES
+    max_files: int | None = DEFAULT_MAX_FILES
+    max_dirs: int | None = DEFAULT_MAX_DIRS
+    max_depth: int | None = DEFAULT_MAX_DEPTH
+    max_entries: int | None = DEFAULT_MAX_ENTRIES
+    max_match_checks: int | None = DEFAULT_MAX_MATCH_CHECKS
 
     def __post_init__(self) -> None:
         """Reject negative resource bounds."""

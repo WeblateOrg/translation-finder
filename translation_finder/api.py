@@ -9,6 +9,7 @@ from __future__ import annotations
 import sys
 from argparse import ArgumentParser, ArgumentTypeError
 from dataclasses import fields
+from os import scandir
 from pathlib import Path
 from typing import TYPE_CHECKING, TextIO, TypeVar
 
@@ -64,8 +65,21 @@ def discover(  # ruff: ignore[too-many-arguments]
     Discovery is bounded to avoid excessive work on crafted repositories.
     Inspect truncated and limit_reasons on the returned results for limit status.
     """
-    finder = Finder(root, mock=mock)
     limits = limits if limits is not None else DiscoveryLimits()
+    if limits.max_results == 0:
+        if mock is None:
+            with scandir(root):
+                pass
+        return DiscoveryResults(limit_reasons=[DiscoveryLimit.RESULTS])
+    finder = Finder(
+        root,
+        mock=mock,
+        max_files=limits.max_files,
+        max_dirs=limits.max_dirs,
+        max_depth=limits.max_depth,
+        max_entries=limits.max_entries,
+        max_match_checks=limits.max_match_checks,
+    )
     discovery_budget = DiscoveryBudget(
         limits.max_candidates, limits.max_new_base_checks, limits.max_masks_per_path
     )
@@ -99,7 +113,7 @@ def discover(  # ruff: ignore[too-many-arguments]
             break
     discovery_results = DiscoveryResults(
         results,
-        limit_reasons=discovery_budget.limit_reasons,
+        limit_reasons=discovery_budget.limit_reasons | finder.limit_reasons,
     )
     discovery_results.sort()
     return discovery_results
