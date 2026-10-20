@@ -14,10 +14,11 @@ from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from . import finder as finder_module
-from .finder import Finder, MatchBudget
+from .discovery.result import DiscoveryLimit
+from .finder import Finder, MatchBudget, PathMockType
 
 
-class FinderTest(TestCase):
+class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
     @staticmethod
     def get_finder(paths: list[str]) -> Finder:
         return Finder(
@@ -347,11 +348,115 @@ class FinderTest(TestCase):
                 side_effect=AssertionError("relative paths should be carried"),
             ),
         ):
-            finder = Finder(root)
+            finder = Finder(root, max_depth=None)
 
         deep_file = pathlib.Path(*(["d"] * depth), "messages.po").as_posix()
         self.assertEqual(len(finder.dirnames), depth)
         self.assertTrue(finder.has_file(deep_file))
+
+    def test_file_and_entry_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            for name in ("a.po", "b.po", "c.po"):
+                (root / name).touch()
+            exact = Finder(root, max_files=3, max_entries=3)
+            self.assertEqual(len(exact.files), 3)
+            self.assertFalse(exact.limit_reasons)
+
+            files = Finder(root, max_files=2)
+            self.assertEqual(len(files.files), 2)
+            self.assertEqual(files.limit_reasons, {DiscoveryLimit.FILES})
+
+            entries = Finder(root, max_entries=2)
+            self.assertEqual(len(entries.files), 2)
+            self.assertEqual(entries.limit_reasons, {DiscoveryLimit.ENTRIES})
+
+    def test_entry_limit_counts_excluded_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            for index in range(3):
+                (root / f"excluded_{index}.swp").touch()
+            finder = Finder(root, max_entries=2)
+        self.assertEqual(finder.files, [])
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.ENTRIES})
+
+    def test_entry_limit_counts_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            target = root / "target.po"
+            target.touch()
+            for index in range(3):
+                (root / f"link{index}").symlink_to(target)
+            finder = Finder(root, max_entries=2)
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.ENTRIES})
+
+    def test_directory_and_depth_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "a" / "b").mkdir(parents=True)
+            (root / "c").mkdir()
+            (root / "a" / "b" / "messages.po").touch()
+
+            dirs = Finder(root, max_dirs=1)
+            self.assertEqual(len(dirs.dirnames), 1)
+            self.assertEqual(dirs.limit_reasons, {DiscoveryLimit.DIRS})
+
+            depth = Finder(root, max_depth=1)
+            self.assertFalse(depth.has_file("a/b/messages.po"))
+            self.assertEqual(depth.limit_reasons, {DiscoveryLimit.DEPTH})
+
+            complete = Finder(root, max_depth=2)
+            self.assertTrue(complete.has_file("a/b/messages.po"))
+            self.assertFalse(complete.limit_reasons)
+
+    def test_mock_limits_bound_component_index(self) -> None:
+        paths = [pathlib.PurePath("/".join([f"d{i}" for i in range(70)]), "x.po")]
+        files = [(path, path, path.as_posix()) for path in paths]
+        finder = Finder(pathlib.PurePath(), mock=(files, []))
+        self.assertFalse(finder.files)
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.DEPTH})
+        unlimited = Finder(pathlib.PurePath(), mock=(files, []), max_depth=None)
+        self.assertEqual(len(unlimited.files_by_component), 71)
+
+    def test_mock_count_limits(self) -> None:
+        path = pathlib.PurePath("a")
+        item = (path, path, path.as_posix())
+        cases: tuple[tuple[PathMockType, dict[str, int], DiscoveryLimit], ...] = (
+            (([], [item]), {"max_entries": 0}, DiscoveryLimit.ENTRIES),
+            (([], [item, item]), {"max_dirs": 1}, DiscoveryLimit.DIRS),
+            (
+                ([], [(path / "b", path / "b", "a/b")]),
+                {"max_depth": 1},
+                DiscoveryLimit.DEPTH,
+            ),
+            (([item], []), {"max_entries": 0}, DiscoveryLimit.ENTRIES),
+            (([item, item], []), {"max_files": 1}, DiscoveryLimit.FILES),
+        )
+        for mock, limits, reason in cases:
+            with self.subTest(limits=limits):
+                finder = Finder(pathlib.PurePath(), mock=mock, **limits)
+                self.assertEqual(finder.limit_reasons, {reason})
+
+    def test_negative_finder_limits(self) -> None:
+        for name in (
+            "max_files",
+            "max_dirs",
+            "max_depth",
+            "max_entries",
+            "max_match_checks",
+        ):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, name):
+                Finder(pathlib.PurePath(), mock=([], []), **{name: -1})
+
+    def test_default_match_budget_reports_truncation(self) -> None:
+        paths = ["a.po", "b.po", "c.po"]
+        files = [
+            (pathlib.PurePath(path), pathlib.PurePath(path), path) for path in paths
+        ]
+        finder = Finder(pathlib.PurePath(), mock=(files, []), max_match_checks=2)
+        self.assertEqual(len(list(finder.mask_matches("*.po"))), 2)
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.MATCH_CHECKS})
+        self.assertNotIn("*.po", finder.mask_matches_cache)
 
     def test_unreadable_root_is_reported(self) -> None:
         root = pathlib.Path("root")

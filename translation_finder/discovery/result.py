@@ -26,6 +26,11 @@ class DiscoveryLimit(StrEnum):
     CANDIDATES = "candidates"
     RESULTS = "results"
     NEW_BASE_CHECKS = "new-base-checks"
+    FILES = "files"
+    DIRS = "dirs"
+    DEPTH = "depth"
+    ENTRIES = "entries"
+    MATCH_CHECKS = "match-checks"
 
 
 class ResultMeta(TypedDict):

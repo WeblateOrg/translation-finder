@@ -24,7 +24,7 @@ from .discovery.result import (
     DiscoveryResult,
     DiscoveryResults,
 )
-from .finder import PurePath
+from .finder import PathMockType, PurePath
 from .test_discovery import DiscoveryTestCase
 
 if TYPE_CHECKING:
@@ -605,7 +605,19 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
         defaults = DiscoveryLimits()
         self.assertEqual(
             [getattr(defaults, field.name) for field in fields(defaults)],
-            [4096, 4096, 65536, 32, 67108864, 512],
+            [
+                4096,
+                4096,
+                65536,
+                32,
+                67108864,
+                512,
+                100000,
+                20000,
+                64,
+                150000,
+                65536,
+            ],
         )
         for field in fields(defaults):
             with (
@@ -736,6 +748,62 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
                     )
                 self.assertIn(reason, results.limit_reasons)
                 self.assertEqual(len(results), 0)
+
+    def test_zero_results_skips_finder_and_validates_root(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            patch.object(api_module, "Finder", side_effect=AssertionError),
+        ):
+            results = discover(tmpdir, limits=DiscoveryLimits(max_results=0))
+            self.assertEqual(results.limit_reasons, {DiscoveryLimit.RESULTS})
+            self.assertTrue(results.truncated)
+            with self.assertRaises(FileNotFoundError):
+                discover(
+                    pathlib.Path(tmpdir) / "missing",
+                    limits=DiscoveryLimits(max_results=0),
+                )
+            stderr = StringIO()
+            with patch("sys.stderr", stderr):
+                status = cli(
+                    args=[
+                        tmpdir,
+                        *(
+                            item
+                            for field in fields(DiscoveryLimits)
+                            for item in ("--" + field.name.replace("_", "-"), "0")
+                        ),
+                    ],
+                    stdout=StringIO(),
+                )
+            self.assertEqual(status, 3)
+            self.assertIn("limits: results", stderr.getvalue())
+
+    def test_finder_limit_reason_reaches_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "messages_en.po").touch()
+            (root / "messages_cs.po").touch()
+            limits = DiscoveryLimits(max_files=1)
+            results = discover(root, limits=limits)
+            self.assertIn(DiscoveryLimit.FILES, results.limit_reasons)
+            self.assertTrue(results.truncated)
+            stderr = StringIO()
+            with patch("sys.stderr", stderr):
+                status = cli(args=[tmpdir, "--max-files", "1"], stdout=StringIO())
+            self.assertEqual(status, 3)
+            self.assertIn("limits: files", stderr.getvalue())
+
+    def test_hint_matching_reports_limit(self) -> None:
+        paths = [PurePath(f"messages_{language}.po") for language in ("en", "cs", "de")]
+        mock: PathMockType = ([(path, path, path.as_posix()) for path in paths], [])
+        with patch.object(api_module, "BACKENDS", [GettextDiscovery]):
+            results = discover(
+                PurePath(),
+                mock=mock,
+                hint="*.po",
+                limits=DiscoveryLimits(max_match_checks=1),
+            )
+        self.assertIn(DiscoveryLimit.MATCH_CHECKS, results.limit_reasons)
 
     def test_unlimited_masks_and_new_base(self) -> None:
         codes = sorted(

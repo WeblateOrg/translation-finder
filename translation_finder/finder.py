@@ -19,6 +19,8 @@ from stat import S_ISREG
 from sys import maxunicode
 from typing import TYPE_CHECKING, overload
 
+from translation_finder.discovery.result import DiscoveryLimit
+
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
     from io import FileIO, TextIOWrapper
@@ -62,11 +64,17 @@ LowerPathListItem = tuple[str, str, PurePath]
 FileMatchItem = tuple[str, PurePath]
 FileMatchRange = tuple[list[FileMatchItem], int, int]
 
+DEFAULT_MAX_FILES = 100_000
+DEFAULT_MAX_DIRS = 20_000
+DEFAULT_MAX_DEPTH = 64
+DEFAULT_MAX_ENTRIES = 150_000
+DEFAULT_MAX_MATCH_CHECKS = 65_536
+
 
 class MatchBudget:
     """Bound wildcard candidate evaluations for best-effort matching."""
 
-    def __init__(self, candidates: int) -> None:
+    def __init__(self, candidates: int | None) -> None:
         self.remaining = candidates
         self.truncated = False
 
@@ -74,20 +82,43 @@ class MatchBudget:
 class Finder:
     """Finder for files which might be considered translations."""
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments]
         self,
         root: PurePath | str,
         mock: PathMockType | None = None,
+        *,
+        max_files: int | None = DEFAULT_MAX_FILES,
+        max_dirs: int | None = DEFAULT_MAX_DIRS,
+        max_depth: int | None = DEFAULT_MAX_DEPTH,
+        max_entries: int | None = DEFAULT_MAX_ENTRIES,
+        max_match_checks: int | None = DEFAULT_MAX_MATCH_CHECKS,
     ) -> None:
+        for name, value in (
+            ("max_files", max_files),
+            ("max_dirs", max_dirs),
+            ("max_depth", max_depth),
+            ("max_entries", max_entries),
+            ("max_match_checks", max_match_checks),
+        ):
+            if value is not None and value < 0:
+                msg = f"{name} must be nonnegative or None"
+                raise ValueError(msg)
         if not isinstance(root, PurePath):
             root = Path(root)
         self.root = root
+        self.max_files = max_files
+        self.max_dirs = max_dirs
+        self.max_depth = max_depth
+        self.max_entries = max_entries
+        self._entries_seen = 0
+        self._walk_limit_reasons: set[DiscoveryLimit] = set()
+        self.match_budget = MatchBudget(max_match_checks)
         if mock is None:
             files: PathListType = []
             dirs: PathListType = []
             self.list_files(root, files, dirs)
         else:
-            files, dirs = mock
+            files, dirs = self._limit_mock(mock)
         # For the has_file/has_dir
         self.filenames = {relative_path for absolute, relative, relative_path in files}
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
@@ -158,6 +189,48 @@ class Finder:
         ]
         self.mask_matches_cache: dict[str, tuple[PurePath, ...]] = {}
 
+    @property
+    def limit_reasons(self) -> frozenset[DiscoveryLimit]:
+        """Limits that may have left this Finder's results incomplete."""
+        reasons = self._walk_limit_reasons.copy()
+        if self.match_budget.truncated:
+            reasons.add(DiscoveryLimit.MATCH_CHECKS)
+        return frozenset(reasons)
+
+    def _consume_entry(self) -> bool:
+        """Count an entry before applying exclusions or type filters."""
+        if self.max_entries is not None and self._entries_seen >= self.max_entries:
+            self._walk_limit_reasons.add(DiscoveryLimit.ENTRIES)
+            return False
+        self._entries_seen += 1
+        return True
+
+    def _limit_mock(self, mock: PathMockType) -> PathMockType:
+        """Apply the same indexing bounds to supplied file listings."""
+        files: PathListType = []
+        dirs: PathListType = []
+        for absolute, relative, path in mock[1]:
+            if not self._consume_entry():
+                return files, dirs
+            if self.max_depth is not None and path.count("/") + 1 > self.max_depth:
+                self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
+                continue
+            if self.max_dirs is not None and len(dirs) >= self.max_dirs:
+                self._walk_limit_reasons.add(DiscoveryLimit.DIRS)
+                return files, dirs
+            dirs.append((absolute, relative, path))
+        for absolute, relative, path in mock[0]:
+            if not self._consume_entry():
+                break
+            if self.max_depth is not None and path.count("/") > self.max_depth:
+                self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
+                continue
+            if self.max_files is not None and len(files) >= self.max_files:
+                self._walk_limit_reasons.add(DiscoveryLimit.FILES)
+                break
+            files.append((absolute, relative, path))
+        return files, dirs
+
     @staticmethod
     def get_suffix(filename: str) -> str | None:
         """Return the final file suffix usable for candidate narrowing."""
@@ -217,7 +290,7 @@ class Finder:
             current, current_relative = pending.pop()
             child_dirs: list[tuple[Path, Path]] = []
             try:
-                self._list_directory(
+                complete = self._list_directory(
                     current,
                     current_relative,
                     files,
@@ -227,19 +300,24 @@ class Finder:
             except OSError:
                 if current == root:
                     raise
+                continue
+            if not complete:
+                break
             pending.extend(reversed(child_dirs))
 
-    @staticmethod
     def _list_directory(
+        self,
         root: PurePath,
         relative_root: Path,
         files: PathListType,
         dirs: PathListType,
         child_dirs: list[tuple[Path, Path]],
-    ) -> None:
+    ) -> bool:
         """List entries in a single directory."""
         with scandir(root) as matches:
             for match in matches:
+                if not self._consume_entry():
+                    return False
                 if match.is_symlink():
                     continue
                 is_dir = match.is_dir(follow_symlinks=False)
@@ -248,11 +326,24 @@ class Finder:
                     continue
                 if is_dir:
                     relative = relative_root / path.name
+                    if (
+                        self.max_depth is not None
+                        and len(relative.parts) > self.max_depth
+                    ):
+                        self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
+                        continue
+                    if self.max_dirs is not None and len(dirs) >= self.max_dirs:
+                        self._walk_limit_reasons.add(DiscoveryLimit.DIRS)
+                        return False
                     dirs.append((path, relative, relative.as_posix()))
                     child_dirs.append((path, relative))
                 elif match.is_file(follow_symlinks=False):
+                    if self.max_files is not None and len(files) >= self.max_files:
+                        self._walk_limit_reasons.add(DiscoveryLimit.FILES)
+                        return False
                     relative = relative_root / path.name
                     files.append((path, relative, relative.as_posix()))
+        return True
 
     def has_file(self, name: str) -> bool:
         """Check whether file exists."""
@@ -316,6 +407,8 @@ class Finder:
         self, mask: str, *, budget: MatchBudget | None = None
     ) -> Generator[PurePath]:
         """Return all mask matches."""
+        if budget is None:
+            budget = self.match_budget
         if mask in self.mask_matches_cache:
             yield from self.mask_matches_cache[mask]
             return
@@ -331,7 +424,7 @@ class Finder:
             matches = []
             complete = True
             for item in islice(items, start, end):
-                if budget is not None:
+                if budget.remaining is not None:
                     if budget.remaining <= 0:
                         budget.truncated = True
                         complete = False
