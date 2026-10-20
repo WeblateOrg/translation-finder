@@ -86,6 +86,69 @@ Non-printable characters in command-line results are displayed as visible
 escapes (for example, ``\n`` and ``\x1b``). The Python API returns the original
 values unchanged.
 
+Discovery result fields
+-----------------------
+
+Each result describes a suggested configuration. Paths are relative to the
+discovery root, and ``filemask`` identifies the translation files belonging to
+that configuration. Two optional fields describe files with different roles:
+
+``template``
+   The source file containing string definitions for a monolingual
+   configuration. This maps to Weblate's `Monolingual base language file`_.
+   Translations are interpreted using the string definitions in this file.
+
+``new_base``
+   The file used to create translation files for additional languages. This
+   maps to Weblate's `Template for new translations`_. It can be an untranslated
+   source file, a Gettext POT file, or an existing bilingual translation whose
+   translations will be cleared when creating the new language file.
+   Setting ``new_base`` alone does not make a configuration monolingual.
+
+For example, the Gettext result in the usage example has only ``new_base``:
+``locales/messages.pot`` supplies the messages for new languages, while existing
+PO files contain their own source strings. Similarly, Qt's translation
+repository can produce this bilingual configuration, using an existing Arabic
+translation to create new languages:
+
+.. code-block:: python
+
+   {
+       "file_format": "ts",
+       "filemask": "translations/designer_*.ts",
+       "new_base": "translations/designer_ar.ts",
+   }
+
+Both fields can refer to the same file. For example, the PHP and Laravel
+fixtures use their English source files both to define strings and to create
+new language files:
+
+.. code-block:: pycon
+
+   >>> pprint(sorted(
+   ...     (r["file_format"], r["template"], r["new_base"])
+   ...     for r in results if r["file_format"] in {"php", "laravel"}
+   ... ))
+   [('laravel', 'laravel/en.php', 'laravel/en.php'),
+    ('php', 'php/en.php', 'php/en.php')]
+
+Either field can appear independently, both can appear, or both can be absent.
+An absent field means discovery did not provide that setting; it does not
+necessarily mean the format does not support it. Discovery backends may also
+read settings from repository configuration, such as Transifex configuration.
+
+Filename-based discovery first looks for an exact name derived from the
+filemask for ``new_base``. Otherwise, it prefers a discovered ``template`` when
+that file is eligible for creating translations. Formats using the same file
+extension for sources and translations then prefer a translation from the same
+discovered filemask. If those checks do not identify a file, discovery retains
+a deterministic fallback from the nearest directory containing an eligible
+file. These are heuristics: review suggestions when a directory contains
+unrelated catalogs or several possible templates.
+
+.. _Monolingual base language file: https://docs.weblate.org/en/latest/admin/projects.html#monolingual-base-language-file
+.. _Template for new translations: https://docs.weblate.org/en/latest/admin/projects.html#template-for-new-translations
+
 Discovery limits
 ----------------
 

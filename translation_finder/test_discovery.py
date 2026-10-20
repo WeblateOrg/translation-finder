@@ -1227,6 +1227,179 @@ class GettextTest(DiscoveryTestCase):
         )
 
 
+class NewBaseMatchingTest(DiscoveryTestCase):
+    def test_case_distinct_gettext_directories(self) -> None:
+        for translation, mask, templates in (
+            ("cs.po", "*.po", {"Foo": "Upper.pot", "foo": "Lower.pot"}),
+            ("deep/cs.po", "deep/*.po", {"Foo": "Upper.pot", "foo": "Lower.pot"}),
+            (
+                "cs/messages.po",
+                "*/messages.po",
+                {"Foo": "Messages.pot", "foo": "Messages.pot"},
+            ),
+        ):
+            paths = [
+                path
+                for directory, template in templates.items()
+                for path in (f"{directory}/{translation}", f"{directory}/{template}")
+            ]
+            for files in (paths, paths[::-1]):
+                with self.subTest(translation=translation, files=files):
+                    # Preserve case-sensitive repository paths on Windows too.
+                    finder = Finder(
+                        PurePosixPath(),
+                        mock=(
+                            [
+                                (PurePosixPath(path), PurePosixPath(path), path)
+                                for path in files
+                            ],
+                            [],
+                        ),
+                    )
+                    self.assert_discovery(
+                        GettextDiscovery(finder).discover(),
+                        [
+                            {
+                                "filemask": f"{directory}/{mask}",
+                                "file_format": "po",
+                                "new_base": f"{directory}/{template}",
+                            }
+                            for directory, template in templates.items()
+                        ],
+                    )
+
+    def test_case_distinct_translation_trees(self) -> None:
+        for language in ("en", "cs"):
+            paths = [f"{directory}/app_{language}.ts" for directory in ("Foo", "foo")]
+            for files in (paths, paths[::-1]):
+                with self.subTest(language=language, files=files):
+                    # Model a case-sensitive repository on Windows as well.
+                    finder = Finder(
+                        PurePosixPath(),
+                        mock=(
+                            [
+                                (PurePosixPath(path), PurePosixPath(path), path)
+                                for path in files
+                            ],
+                            [],
+                        ),
+                    )
+                    discovery = QtDiscovery(finder)
+                    expected: list[ResultDict] = []
+                    for directory in ("Foo", "foo"):
+                        result: ResultDict = {
+                            "filemask": f"{directory}/app_*.ts",
+                            "file_format": "ts",
+                            "new_base": f"{directory}/app_{language}.ts",
+                        }
+                        if language == "en":
+                            result["template"] = result["new_base"]
+                        expected.append(result)
+                    self.assert_discovery(discovery.discover(), expected)
+
+    def test_real_projects(self) -> None:
+        # Representative filename samples, not complete repository snapshots.
+        # Each fixture records its upstream repository and immutable revision.
+        fixtures = json.loads((TEST_DATA / "new-base-projects.json").read_text())
+        backends = {
+            "ts": QtDiscovery,
+            "po": GettextDiscovery,
+            "resourcedictionary": ResourceDictionaryDiscovery,
+        }
+        for fixture in fixtures:
+            for paths in (fixture["files"], fixture["files"][::-1]):
+                with self.subTest(project=fixture["project"], paths=paths):
+                    backend = backends[fixture["expected"][0]["file_format"]]
+                    discovery = backend(self.get_finder(paths))
+                    self.assert_discovery(discovery.discover(), fixture["expected"])
+
+    def test_template_preference_respects_budget(self) -> None:
+        discovery = QtDiscovery(self.get_finder(["App/app_ar.ts", "App/app_en.ts"]))
+        discovery._set_run_discovery_budget(
+            base_module.DiscoveryBudget(new_base_checks=0)
+        )
+
+        results = list(discovery.discover())
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["template"], "App/app_en.ts")
+        self.assertNotIn("new_base", results[0])
+        self.assertEqual(discovery._new_base_fallback_cache, {})
+        self.assertEqual(discovery._new_base_candidates, {})
+
+    def test_group_preference_does_not_use_partial_lookup(self) -> None:
+        discovery = QtDiscovery(self.get_finder(["app_ar.ts", "app_de.ts"]))
+        budget = base_module.DiscoveryBudget(new_base_checks=1)
+        discovery._set_run_discovery_budget(budget)
+
+        results = list(discovery.discover())
+
+        self.assertEqual(len(results), 1)
+        self.assertNotIn("new_base", results[0])
+        self.assertEqual(budget.limit_reasons, {DiscoveryLimit.NEW_BASE_CHECKS})
+        self.assertEqual(discovery._new_base_fallback_cache, {})
+        self.assertEqual(discovery._new_base_candidates, {})
+
+    def test_uppercase_directory_exact_and_fallback(self) -> None:
+        discovery = GettextDiscovery(self.get_finder(["Locale/Messages.pot"]))
+        for mask in ("Locale/*/Messages.po", "Locale/*/Other.po"):
+            with self.subTest(mask=mask):
+                result: ResultDict = {"filemask": mask}
+                discovery.fill_in_new_base(result)
+                self.assertEqual(result["new_base"], "Locale/Messages.pot")
+
+    def test_root_template(self) -> None:
+        discovery = QtDiscovery(self.get_finder(["ar.ts", "en.ts"]))
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "*.ts",
+                    "file_format": "ts",
+                    "template": "en.ts",
+                    "new_base": "en.ts",
+                }
+            ],
+        )
+
+    def test_exact_name_precedes_known_template(self) -> None:
+        discovery = QtDiscovery(
+            self.get_finder(["App/app_.ts", "App/app_cs.ts", "App/app_en.ts"])
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "App/app_*.ts",
+                    "file_format": "ts",
+                    "template": "App/app_en.ts",
+                    "new_base": "App/app_.ts",
+                }
+            ],
+        )
+
+    def test_gettext_template_does_not_replace_pot(self) -> None:
+        discovery = GettextDiscovery(
+            self.get_finder(["locale/en.po", "locale/fr.po", "locale/messages.pot"])
+        )
+        self.assert_discovery(
+            discovery.discover(),
+            [
+                {
+                    "filemask": "locale/*.po",
+                    "file_format": "po",
+                    "new_base": "locale/messages.pot",
+                },
+                {
+                    "filemask": "locale/*.po",
+                    "file_format": "po-mono",
+                    "template": "locale/en.po",
+                    "new_base": "locale/messages.pot",
+                },
+            ],
+        )
+
+
 class QtTest(DiscoveryTestCase):
     def test_basic(self) -> None:
         discovery = QtDiscovery(
@@ -1382,6 +1555,7 @@ class QtTest(DiscoveryTestCase):
                         {
                             "filemask": "*.ts",
                             "file_format": "ts1",
+                            "new_base": "cs.ts",
                         },
                     ],
                 )
@@ -1397,6 +1571,7 @@ class QtTest(DiscoveryTestCase):
                     {
                         "filemask": "*.ts",
                         "file_format": "ts",
+                        "new_base": "cs.ts",
                     },
                 ],
             )
@@ -1415,6 +1590,7 @@ class QtTest(DiscoveryTestCase):
                     {
                         "filemask": "*.ts",
                         "file_format": "ts",
+                        "new_base": "cs.ts",
                     },
                 ],
             )
@@ -1877,6 +2053,7 @@ class ResourceDictionaryTest(DiscoveryTestCase):
                     "filemask": "Languages/*.xaml",
                     "file_format": "resourcedictionary",
                     "template": "Languages/en.xaml",
+                    "new_base": "Languages/en.xaml",
                 },
             ],
         )
