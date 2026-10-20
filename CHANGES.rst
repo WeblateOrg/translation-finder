@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+3.9.0
+-----
+
+* Released on 20th October 2026.
 * Bound Finder enumeration, indexing depth, and wildcard hint matching on
   crafted repositories; report partial discovery through limit reasons.
 * Prefer known source templates and translations from the same discovered
@@ -12,6 +16,7 @@ Unreleased
 * Fix template lookup in directories containing uppercase characters.
 * Document the distinct roles of ``template`` and ``new_base`` in discovery
   results, including examples for Gettext, Qt, PHP, and Laravel.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.8.0
 -----
