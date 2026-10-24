@@ -59,7 +59,7 @@ repos:
   - id: rumdl
   - id: rumdl-fmt
 - repo: https://github.com/abravalheri/validate-pyproject
-  rev: '0.26'
+  rev: 'v0.27'
   hooks:
   - id: validate-pyproject
 - repo: https://github.com/pappasam/toml-sort
