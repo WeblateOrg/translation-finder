@@ -25,6 +25,7 @@ from translation_finder.finder import (
     DEFAULT_MAX_ENTRIES,
     DEFAULT_MAX_FILES,
     DEFAULT_MAX_MATCH_CHECKS,
+    DEFAULT_MAX_PATH_LENGTH,
 )
 
 from .result import DiscoveryCandidate, DiscoveryLimit, DiscoveryResult
@@ -69,6 +70,7 @@ class DiscoveryLimits:
     max_dirs: int | None = DEFAULT_MAX_DIRS
     max_depth: int | None = DEFAULT_MAX_DEPTH
     max_entries: int | None = DEFAULT_MAX_ENTRIES
+    max_path_length: int | None = DEFAULT_MAX_PATH_LENGTH
     max_match_checks: int | None = DEFAULT_MAX_MATCH_CHECKS
 
     def __post_init__(self) -> None:

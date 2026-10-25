@@ -78,6 +78,7 @@ def discover(  # ruff: ignore[too-many-arguments]
         max_dirs=limits.max_dirs,
         max_depth=limits.max_depth,
         max_entries=limits.max_entries,
+        max_path_length=limits.max_path_length,
         max_match_checks=limits.max_match_checks,
     )
     discovery_budget = DiscoveryBudget(

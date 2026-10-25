@@ -931,9 +931,13 @@ class OSXDiscovery(EncodingDiscovery):
         groups: dict[tuple[tuple[str, ...], str], list[tuple[str, PurePath]]] = {}
         for path in self.finder.filter_files(
             r".*\.strings",
-            r".*/.*\.lproj",
             candidate_suffixes=(".strings",),
         ):
+            parent = path.parent
+            if "/" not in parent.as_posix() or not parent.name.lower().endswith(
+                ".lproj"
+            ):
+                continue
             locale = path.parts[-2][:-6]
             if locale.lower() != "base" and not self.is_language_code(locale):
                 continue

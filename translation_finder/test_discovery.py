@@ -1745,6 +1745,8 @@ class OSXTest(DiscoveryTestCase):
                     "App/Resources/Base.lproj/Other.strings",
                     "App/Resources/ru.lproj/Third.strings",
                     "App/Resources/invalid.lproj/Fourth.strings",
+                    "en.lproj/Root.strings",
+                    "App/en.lproj/Nested/Skipped.strings",
                 ],
             ),
         )
