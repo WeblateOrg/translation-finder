@@ -68,6 +68,7 @@ DEFAULT_MAX_FILES = 100_000
 DEFAULT_MAX_DIRS = 20_000
 DEFAULT_MAX_DEPTH = 64
 DEFAULT_MAX_ENTRIES = 150_000
+DEFAULT_MAX_PATH_LENGTH = 4096
 DEFAULT_MAX_MATCH_CHECKS = 65_536
 
 
@@ -77,6 +78,16 @@ class MatchBudget:
     def __init__(self, candidates: int | None) -> None:
         self.remaining = candidates
         self.truncated = False
+
+    def consume(self) -> bool:
+        """Consume one match evaluation when capacity remains."""
+        if self.remaining is None:
+            return True
+        if self.remaining <= 0:
+            self.truncated = True
+            return False
+        self.remaining -= 1
+        return True
 
 
 class Finder:
@@ -91,6 +102,7 @@ class Finder:
         max_dirs: int | None = DEFAULT_MAX_DIRS,
         max_depth: int | None = DEFAULT_MAX_DEPTH,
         max_entries: int | None = DEFAULT_MAX_ENTRIES,
+        max_path_length: int | None = DEFAULT_MAX_PATH_LENGTH,
         max_match_checks: int | None = DEFAULT_MAX_MATCH_CHECKS,
     ) -> None:
         for name, value in (
@@ -98,6 +110,7 @@ class Finder:
             ("max_dirs", max_dirs),
             ("max_depth", max_depth),
             ("max_entries", max_entries),
+            ("max_path_length", max_path_length),
             ("max_match_checks", max_match_checks),
         ):
             if value is not None and value < 0:
@@ -110,6 +123,7 @@ class Finder:
         self.max_dirs = max_dirs
         self.max_depth = max_depth
         self.max_entries = max_entries
+        self.max_path_length = max_path_length
         self._entries_seen = 0
         self._walk_limit_reasons: set[DiscoveryLimit] = set()
         self.match_budget = MatchBudget(max_match_checks)
@@ -205,6 +219,13 @@ class Finder:
         self._entries_seen += 1
         return True
 
+    def _path_length_allowed(self, path: str) -> bool:
+        """Check and report the configured relative path length limit."""
+        if self.max_path_length is not None and len(path) > self.max_path_length:
+            self._walk_limit_reasons.add(DiscoveryLimit.PATH_LENGTH)
+            return False
+        return True
+
     def _limit_mock(self, mock: PathMockType) -> PathMockType:
         """Apply the same indexing bounds to supplied file listings."""
         files: PathListType = []
@@ -212,6 +233,8 @@ class Finder:
         for absolute, relative, path in mock[1]:
             if not self._consume_entry():
                 return files, dirs
+            if not self._path_length_allowed(path):
+                continue
             if self.max_depth is not None and path.count("/") + 1 > self.max_depth:
                 self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
                 continue
@@ -222,6 +245,8 @@ class Finder:
         for absolute, relative, path in mock[0]:
             if not self._consume_entry():
                 break
+            if not self._path_length_allowed(path):
+                continue
             if self.max_depth is not None and path.count("/") > self.max_depth:
                 self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
                 continue
@@ -326,6 +351,9 @@ class Finder:
                     continue
                 if is_dir:
                     relative = relative_root / path.name
+                    relative_path = relative.as_posix()
+                    if not self._path_length_allowed(relative_path):
+                        continue
                     if (
                         self.max_depth is not None
                         and len(relative.parts) > self.max_depth
@@ -335,14 +363,17 @@ class Finder:
                     if self.max_dirs is not None and len(dirs) >= self.max_dirs:
                         self._walk_limit_reasons.add(DiscoveryLimit.DIRS)
                         return False
-                    dirs.append((path, relative, relative.as_posix()))
+                    dirs.append((path, relative, relative_path))
                     child_dirs.append((path, relative))
                 elif match.is_file(follow_symlinks=False):
                     if self.max_files is not None and len(files) >= self.max_files:
                         self._walk_limit_reasons.add(DiscoveryLimit.FILES)
                         return False
                     relative = relative_root / path.name
-                    files.append((path, relative, relative.as_posix()))
+                    relative_path = relative.as_posix()
+                    if not self._path_length_allowed(relative_path):
+                        continue
+                    files.append((path, relative, relative_path))
         return True
 
     def has_file(self, name: str) -> bool:
@@ -424,12 +455,9 @@ class Finder:
             matches = []
             complete = True
             for item in islice(items, start, end):
-                if budget.remaining is not None:
-                    if budget.remaining <= 0:
-                        budget.truncated = True
-                        complete = False
-                        break
-                    budget.remaining -= 1
+                if not budget.consume():
+                    complete = False
+                    break
                 if fnmatch(item[0], escaped_mask):
                     matches.append(item)
             matches.sort(key=operator.itemgetter(0))
@@ -503,9 +531,14 @@ class Finder:
             candidate_names,
             candidate_suffixes,
         ):
-            if dirglob_re and not dirglob_re.fullmatch(directory):
-                continue
+            if dirglob_re:
+                if not self.match_budget.consume():
+                    break
+                if not dirglob_re.fullmatch(directory):
+                    continue
 
+            if not self.match_budget.consume():
+                break
             if fileglob_re.fullmatch(filename):
                 yield path
 

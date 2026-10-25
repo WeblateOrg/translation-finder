@@ -166,7 +166,9 @@ budget. Defaults are:
 * ``--max-depth``: 64 directory levels below the root.
 * ``--max-entries``: 150000 directory entries examined, including excluded
   entries and symlinks.
-* ``--max-match-checks``: 65536 wildcard hint candidate evaluations.
+* ``--max-path-length``: 4096 characters in an indexed relative path.
+* ``--max-match-checks``: 65536 regular expression and wildcard candidate
+  evaluations.
 
 For example, ``weblate-discover --max-results 10000 translations/`` raises
 only the result limit. ``weblate-discover --unlimited translations/`` disables

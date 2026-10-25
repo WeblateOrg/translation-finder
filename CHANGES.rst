@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* Bounded regular expression matching and mock path length to avoid excessive
+  CPU use on crafted directory trees.
+
 3.9.0
 -----
 

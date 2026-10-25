@@ -112,6 +112,46 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
         self.assertEqual(actual, expected)
 
+    def test_filter_files_uses_shared_match_budget(self) -> None:
+        finder = self.get_finder(
+            [
+                "a/strings.xml",
+                "b/strings.xml",
+                "c/strings.xml",
+            ]
+        )
+        finder.match_budget = MatchBudget(2)
+        self.assertEqual(
+            list(
+                finder.filter_files(
+                    r"strings\.xml",
+                    r".*/values",
+                    candidate_names=("strings.xml",),
+                )
+            ),
+            [],
+        )
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.MATCH_CHECKS})
+
+        matching = self.get_finder(["app/values/strings.xml"])
+        matching.match_budget = MatchBudget(2)
+        self.assertEqual(
+            list(
+                matching.filter_files(
+                    r"strings\.xml",
+                    r".*/values",
+                    candidate_names=("strings.xml",),
+                )
+            ),
+            [pathlib.PurePath("app/values/strings.xml")],
+        )
+        self.assertFalse(matching.limit_reasons)
+        self.assertEqual(
+            list(matching.filter_files(r"strings\.xml")),
+            [],
+        )
+        self.assertEqual(matching.limit_reasons, {DiscoveryLimit.MATCH_CHECKS})
+
     def test_filter_masks_fallback_matches_filter_files(self) -> None:
         finder = self.get_finder(
             [
@@ -431,6 +471,8 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             ),
             (([item], []), {"max_entries": 0}, DiscoveryLimit.ENTRIES),
             (([item, item], []), {"max_files": 1}, DiscoveryLimit.FILES),
+            (([], [item]), {"max_path_length": 0}, DiscoveryLimit.PATH_LENGTH),
+            (([item], []), {"max_path_length": 0}, DiscoveryLimit.PATH_LENGTH),
         )
         for mock, limits, reason in cases:
             with self.subTest(limits=limits):
@@ -443,10 +485,49 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             "max_dirs",
             "max_depth",
             "max_entries",
+            "max_path_length",
             "max_match_checks",
         ):
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, name):
                 Finder(pathlib.PurePath(), mock=([], []), **{name: -1})
+
+    def test_path_length_limit(self) -> None:
+        accepted_path = pathlib.PurePath("a" * 4096)
+        rejected_path = pathlib.PurePath("a" * 4097)
+        finder = Finder(
+            pathlib.PurePath(),
+            mock=(
+                [
+                    (accepted_path, accepted_path, accepted_path.as_posix()),
+                    (rejected_path, rejected_path, rejected_path.as_posix()),
+                ],
+                [],
+            ),
+        )
+        self.assertTrue(finder.has_file(accepted_path.as_posix()))
+        self.assertFalse(finder.has_file(rejected_path.as_posix()))
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.PATH_LENGTH})
+
+        unlimited = Finder(
+            pathlib.PurePath(),
+            mock=(
+                [(rejected_path, rejected_path, rejected_path.as_posix())],
+                [],
+            ),
+            max_path_length=None,
+        )
+        self.assertTrue(unlimited.has_file(rejected_path.as_posix()))
+
+    def test_path_length_limit_during_walk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "long").mkdir()
+            (root / "wide.po").touch()
+            finder = Finder(root, max_path_length=3)
+
+        self.assertFalse(finder.files)
+        self.assertFalse(finder.dirnames)
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.PATH_LENGTH})
 
     def test_default_match_budget_reports_truncation(self) -> None:
         paths = ["a.po", "b.po", "c.po"]
