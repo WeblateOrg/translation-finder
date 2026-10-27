@@ -3319,6 +3319,16 @@ class TOMLDiscoveryTest(DiscoveryTestCase):
         with patch.object(files_module, "TOML_SCAN_MAX_TOKENS", 1):
             self.assertFalse(files_module._is_go_i18n_toml(content))
 
+    def test_toml_special_free_lines_use_budget(self) -> None:
+        content = "messages\nid\n" + "a\n" * (1024 * 1024 // 2)
+
+        with patch.object(
+            files_module, "_toml_line_code", wraps=files_module._toml_line_code
+        ) as scan_line:
+            self.assertFalse(files_module._is_go_i18n_toml(content))
+
+        self.assertEqual(scan_line.call_count, files_module.TOML_SCAN_MAX_TOKENS)
+
     def test_toml_scanner_termination(self) -> None:
         self.assertFalse(
             files_module._is_go_i18n_toml(
