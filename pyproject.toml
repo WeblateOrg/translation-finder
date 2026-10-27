@@ -18,7 +18,7 @@ pre-commit = [
 ]
 test = [
   "hypothesis==6.170.10",
-  "pytest==9.1.1",
+  "pytest==9.2.0",
   "pytest-cov==7.1.0",
   "pytest-github-actions-annotate-failures==0.4.2"
 ]
