@@ -6,6 +6,7 @@ Unreleased
 
 * Bounded regular expression matching and mock path length to avoid excessive
   CPU use on crafted directory trees.
+* Bounded go-i18n TOML detection work on files with many special-free lines.
 
 3.9.0
 -----

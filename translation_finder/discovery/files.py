@@ -90,13 +90,13 @@ class _TomlScanLimitError(Exception):
 
 
 class _TomlScanBudget:
-    """Bound attacker-controlled TOML tokens processed in Python."""
+    """Bound attacker-controlled TOML lines and tokens processed in Python."""
 
     def __init__(self) -> None:
         self.remaining = TOML_SCAN_MAX_TOKENS
 
     def consume(self) -> None:
-        """Charge one lexical token or stop format detection."""
+        """Charge one line or lexical token, or stop format detection."""
         if self.remaining <= 0:
             raise _TomlScanLimitError
         self.remaining -= 1
@@ -514,6 +514,7 @@ def _scan_go_i18n_toml(content: str, budget: _TomlScanBudget) -> bool:
     inline_expects_key = False
     multiline_quote: str | None = None
     for line in content.splitlines():
+        budget.consume()
         code, multiline_quote = _toml_line_code(line, multiline_quote, budget)
         if not code.strip():
             continue
