@@ -657,7 +657,7 @@ class BaseDiscovery:
         """Return whether a fully adjusted candidate should be emitted."""
         return True
 
-    def discover(
+    def discover(  # ruff: ignore[too-many-branches]
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryResult]:
         """Yield translation configurations matching this discovery."""
@@ -665,6 +665,11 @@ class BaseDiscovery:
         budget = self._run_discovery_budget or DiscoveryBudget()
         if owns_budget:
             self._run_discovery_budget = budget
+        owns_sniff_budget = self._run_sniff_budget is None
+        if owns_sniff_budget:
+            self._run_sniff_budget = SniffBudget(
+                DISCOVERY_SNIFF_MAX_BYTES, DISCOVERY_SNIFF_MAX_FILES
+            )
         candidates: dict[str, DiscoveryCandidate] = {}
         try:
             for candidate in self.get_masks(eager=eager, hint=hint):
@@ -697,6 +702,8 @@ class BaseDiscovery:
                 yield discovery_result
         finally:
             self._new_base_candidates = {}
+            if owns_sniff_budget:
+                self._run_sniff_budget = None
             if owns_budget:
                 self._run_discovery_budget = None
                 if budget.truncated:

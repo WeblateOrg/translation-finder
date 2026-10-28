@@ -193,6 +193,7 @@ truncation; high-level discovery does not emit Python warnings.
 ``max_results=0`` returns before scanning the tree and conservatively reports
 truncation. Direct ``Finder`` use has the same scan and matching defaults and
 exposes ``limit_reasons``; pass ``None`` for a limit to disable it.
+Direct backend ``discover()`` calls also use the default run-wide sniff limits.
 
 Custom discovery backends
 -------------------------

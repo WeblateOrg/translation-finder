@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ----------
 
+* Bound aggregate content sniffing when discovery backends are used directly.
 * Bounded regular expression matching and mock path length to avoid excessive
   CPU use on crafted directory trees.
 * Bounded go-i18n TOML detection work on files with many special-free lines.
