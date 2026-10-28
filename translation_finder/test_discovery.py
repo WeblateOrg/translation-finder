@@ -3791,6 +3791,73 @@ class FormatSniffLimitTest(DiscoveryTestCase):
 
 
 class AggregateFormatSniffLimitTest(DiscoveryTestCase):
+    def test_direct_discovery_shares_sniff_byte_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(3):
+                (root / f"messages{index}_cs.properties").write_bytes(b"a=xy")
+            discovery = JavaDiscovery(Finder(root))
+            original_open = Finder.open
+            opened: list[PurePath] = []
+
+            def tracked_open(finder: Finder, path: PurePath, mode: str = "r") -> object:
+                self.assertEqual(mode, "rb")
+                opened.append(path)
+                return original_open(finder, path, "rb")
+
+            with (
+                patch.object(base_module, "DISCOVERY_SNIFF_MAX_BYTES", 8),
+                patch.object(Finder, "open", tracked_open),
+            ):
+                self.assertEqual(len(list(discovery.discover())), 3)
+                self.assertIsNone(discovery._run_sniff_budget)
+                self.assertEqual(len(list(discovery.discover())), 3)
+
+        self.assertEqual(len(opened), 4)
+        self.assertEqual(opened[0], opened[1])
+        self.assertEqual(opened[2], opened[3])
+
+    def test_direct_discovery_shares_sniff_file_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            for index in range(2):
+                (root / f"messages{index}_cs.properties").write_bytes(b"a=xy")
+            discovery = JavaDiscovery(Finder(root))
+            discovery._set_run_discovery_budget(base_module.DiscoveryBudget())
+            with (
+                patch.object(base_module, "DISCOVERY_SNIFF_MAX_FILES", 1),
+                patch.object(Finder, "open", wraps=discovery.finder.open) as opened,
+            ):
+                self.assertEqual(len(list(discovery.discover())), 2)
+            self.assertEqual(opened.call_count, 1)
+            self.assertIsNone(discovery._run_sniff_budget)
+
+    def test_direct_discovery_preserves_injected_sniff_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "messages_cs.properties").write_bytes(b"a=xy")
+            discovery = JavaDiscovery(Finder(root))
+            discovery._set_run_discovery_budget(base_module.DiscoveryBudget())
+            budget = base_module.SniffBudget(4, 1)
+            discovery._set_run_sniff_budget(budget)
+            iterator = discovery.discover()
+            next(iterator)
+            iterator.close()
+
+        self.assertIs(discovery._run_sniff_budget, budget)
+        self.assertTrue(budget.exhausted)
+
+    def test_direct_discovery_clears_owned_sniff_budget_on_close(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "messages_cs.properties").write_bytes(b"a=xy")
+            discovery = JavaDiscovery(Finder(root))
+            iterator = discovery.discover()
+            next(iterator)
+            self.assertIsNotNone(discovery._run_sniff_budget)
+            iterator.close()
+        self.assertIsNone(discovery._run_sniff_budget)
+
     def test_format_sniff_budget_limits_total_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
