@@ -62,6 +62,9 @@ TOML_SPECIAL_RE = re.compile(r"""[#"']""")
 TOML_INLINE_NONSPACE_RE = re.compile(r"\S")
 TOML_INLINE_DELIMITER_RE = re.compile(r"[\[\]{},]")
 TOML_SCAN_MAX_TOKENS = 16_384
+JSON_DETECT_MAX_DICTS = 4096
+JSON_DETECT_MAX_ENTRIES = 8192
+JSON_DETECT_MAX_DEPTH = 2048
 CSV_FIELDNAMES = {
     "context",
     "developer_comments",
@@ -1178,8 +1181,10 @@ class JSONDiscovery(BaseDiscovery):
             if not complete:
                 return True
             data = self._parse_json_data(content)
-            if isinstance(data, dict) and self.detect_dict(data) is not None:
-                return True
+            if isinstance(data, dict):
+                detected, incomplete = self._detect_dict_with_status(data)
+                if detected is not None or incomplete:
+                    return True
         return False
 
     def include_candidate(self, candidate: DiscoveryCandidate, *, eager: bool) -> bool:
@@ -1229,25 +1234,6 @@ class JSONDiscovery(BaseDiscovery):
         return None
 
     @staticmethod
-    def _iter_nested_dicts(data: dict, level: int) -> Generator[tuple[dict, int]]:
-        seen: set[int] = set()
-        stack = [(data, level)]
-
-        while stack:
-            current, current_level = stack.pop()
-            current_id = id(current)
-            if current_id in seen:
-                continue
-            seen.add(current_id)
-            yield current, current_level
-
-            stack.extend(
-                (value, current_level + 1)
-                for value in current.values()
-                if isinstance(value, dict)
-            )
-
-    @staticmethod
     def _detect_i18next_format(key: str, value: str) -> str | None:
         if key.endswith(("_one", "_many", "_other")):
             return "i18nextv4"
@@ -1255,27 +1241,50 @@ class JSONDiscovery(BaseDiscovery):
             return "i18next"
         return None
 
-    def _detect_nested_format(self, data: dict, level: int) -> str | None:
+    def _detect_nested_format(  # ruff: ignore[too-many-branches, too-many-return-statements]
+        self, data: dict, level: int
+    ) -> tuple[str | None, bool]:
         i18next = False
         i18nextv4 = False
         all_strings = True
+        seen: set[int] = set()
+        stack = [(data, level)]
+        inspected_entries = 0
 
-        for current, current_level in self._iter_nested_dicts(data, level):
+        while stack:
+            current, current_level = stack.pop()
+            current_id = id(current)
+            if current_id in seen:
+                continue
+            if (
+                current_level > JSON_DETECT_MAX_DEPTH
+                or len(seen) >= JSON_DETECT_MAX_DICTS
+            ):
+                return None, True
+            seen.add(current_id)
+            scan_strings = True
             # Single loop to detect nested formats and i18next patterns
             for key, value in current.items():
+                if inspected_entries >= JSON_DETECT_MAX_ENTRIES:
+                    return None, True
+                inspected_entries += 1
+                if isinstance(value, dict):
+                    stack.append((value, current_level + 1))
                 # Check for nested formats at level 0
                 if (
                     current_level == 0
                     and isinstance(value, dict)
                     and (detected := self._detect_first_level_format(value))
                 ):
-                    return detected
+                    return detected, False
 
                 # Check for i18next patterns
                 if not isinstance(key, str):
                     if current is data:
                         all_strings = False
-                    break
+                    scan_strings = False
+                if not scan_strings:
+                    continue
                 if not isinstance(value, str):
                     if current is data:
                         all_strings = False
@@ -1286,20 +1295,23 @@ class JSONDiscovery(BaseDiscovery):
                 i18next |= detected == "i18next"
 
         if i18nextv4:
-            return "i18nextv4"
+            return "i18nextv4", False
         if i18next:
-            return "i18next"
+            return "i18next", False
         if all_strings:
-            return "json"
-        return None
+            return "json", False
+        return None, False
+
+    def _detect_dict_with_status(self, data: dict) -> tuple[str | None, bool]:
+        """Detect JSON variant and whether inspection stopped at a work limit."""
+        top_level_format = self._detect_top_level_format(data)
+        if top_level_format is not None:
+            return top_level_format, False
+        return self._detect_nested_format(data, 0)
 
     def detect_dict(self, data: dict) -> str | None:
         """Detect JSON variant based on JSON content."""
-        top_level_format = self._detect_top_level_format(data)
-        if top_level_format is not None:
-            return top_level_format
-
-        return self._detect_nested_format(data, 0)
+        return self._detect_dict_with_status(data)[0]
 
     def adjust_format(self, candidate: DiscoveryCandidate) -> None:
         """Override detected format, based on the file content."""

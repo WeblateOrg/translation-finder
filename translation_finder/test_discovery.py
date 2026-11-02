@@ -2355,6 +2355,78 @@ class JSONDiscoveryTest(DiscoveryTestCase):
 
         self.assertEqual(discovery.detect_dict(nested), "i18next")
 
+    def test_nested_detection_limits_depth(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        nested: dict[str, object] = {"count_plural": "{{ count }} messages"}
+        for _ in range(files_module.JSON_DETECT_MAX_DEPTH + 1):
+            nested = {"a": nested}
+
+        self.assertEqual(discovery._detect_dict_with_status(nested), (None, True))
+
+    def test_nested_detection_limits_dicts(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        data = {
+            f"k{index}": {"a": 1} for index in range(files_module.JSON_DETECT_MAX_DICTS)
+        }
+
+        self.assertEqual(discovery._detect_dict_with_status(data), (None, True))
+
+    def test_nested_detection_limits_wide_dict(self) -> None:
+        discovery = JSONDiscovery(self.get_finder([]))
+        data = {
+            f"k{index}": "value"
+            for index in range(files_module.JSON_DETECT_MAX_ENTRIES)
+        }
+
+        self.assertEqual(discovery._detect_dict_with_status(data), ("json", False))
+        data["extra"] = "value"
+
+        with patch.object(
+            discovery,
+            "_detect_i18next_format",
+            wraps=discovery._detect_i18next_format,
+        ) as inspect:
+            self.assertEqual(discovery._detect_dict_with_status(data), (None, True))
+
+        self.assertEqual(inspect.call_count, files_module.JSON_DETECT_MAX_ENTRIES)
+
+    def test_template_less_dense_json_keeps_incomplete_result(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            data = {
+                f"k{index}": {"a": 1}
+                for index in range(files_module.JSON_DETECT_MAX_DICTS)
+            }
+            (root / "dense-cs.json").write_text(json.dumps(data), encoding="utf-8")
+            discovery = JSONDiscovery(Finder(root))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [{"filemask": "dense-*.json", "file_format": "json-nested"}],
+            )
+
+    def test_template_dense_json_keeps_generic_format(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            data = {
+                f"k{index}": {"a": 1}
+                for index in range(files_module.JSON_DETECT_MAX_DICTS)
+            }
+            for name in ("en.json", "cs.json"):
+                (root / name).write_text(json.dumps(data), encoding="utf-8")
+            discovery = JSONDiscovery(Finder(root))
+
+            self.assert_discovery(
+                discovery.discover(),
+                [
+                    {
+                        "filemask": "*.json",
+                        "file_format": "json-nested",
+                        "template": "en.json",
+                    },
+                ],
+            )
+
     def test_nested_detection_cyclic_dict(self) -> None:
         discovery = JSONDiscovery(self.get_finder([]))
         nested: dict[str, object] = {}
