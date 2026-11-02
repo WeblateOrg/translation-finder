@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+3.9.1
+-----
+
+* Released on 2nd November 2026.
 * Bound aggregate content sniffing when discovery backends are used directly.
 * Bounded regular expression matching and mock path length to avoid excessive
   CPU use on crafted directory trees.
@@ -11,6 +15,7 @@ Unreleased
 * Bound Ruby YAML format detection work on files with many lines.
 * Bound CSV format detection work on files with many empty rows.
 * Bound JSON format detection work on files with many nested dictionaries.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.9.0
 -----
