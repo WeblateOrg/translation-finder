@@ -9,6 +9,7 @@ Unreleased
   CPU use on crafted directory trees.
 * Bounded go-i18n TOML detection work on files with many special-free lines.
 * Bound CSV format detection work on files with many empty rows.
+* Bound JSON format detection work on files with many nested dictionaries.
 
 3.9.0
 -----
