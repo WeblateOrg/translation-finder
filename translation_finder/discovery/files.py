@@ -11,7 +11,7 @@ import json
 import re
 import warnings
 from io import StringIO
-from itertools import product
+from itertools import islice, product
 from typing import TYPE_CHECKING, ClassVar
 from xml.parsers import expat
 
@@ -290,11 +290,14 @@ def _parse_csv_rows(text: str) -> list[list[str]] | None:
 
     rows: list[list[str]] = []
     try:
-        for row in csv.reader(
-            StringIO(text),
-            delimiter=delimiter,
-            quotechar=quotechar,
-            skipinitialspace=skipinitialspace,
+        for row in islice(
+            csv.reader(
+                StringIO(text),
+                delimiter=delimiter,
+                quotechar=quotechar,
+                skipinitialspace=skipinitialspace,
+            ),
+            10 * CSV_SAMPLE_ROWS,
         ):
             if not any(row):
                 continue
