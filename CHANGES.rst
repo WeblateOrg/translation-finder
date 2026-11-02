@@ -8,6 +8,7 @@ Unreleased
 * Bounded regular expression matching and mock path length to avoid excessive
   CPU use on crafted directory trees.
 * Bounded go-i18n TOML detection work on files with many special-free lines.
+* Bound Ruby YAML format detection work on files with many lines.
 * Bound CSV format detection work on files with many empty rows.
 * Bound JSON format detection work on files with many nested dictionaries.
 
