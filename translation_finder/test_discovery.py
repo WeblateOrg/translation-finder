@@ -3204,6 +3204,40 @@ class YAMLDiscoveryTest(DiscoveryTestCase):
             files_module._get_ruby_yaml_root_key("en:\n  hello: world\ncs:\n")
         )
 
+    def test_ruby_yaml_line_limit(self) -> None:
+        with patch.object(files_module, "YAML_SCAN_MAX_LINES", 3):
+            for separator in ("\n", "\r\n", "\r", "\u2028"):
+                with self.subTest(separator=separator):
+                    for lines in (
+                        ("en:", "  hello: world"),
+                        ("en:", "", "  hello: world"),
+                        ("en:", "# comment", "  hello: world"),
+                    ):
+                        content = separator.join(lines) + separator
+                        self.assertEqual(
+                            files_module._get_ruby_yaml_root_key(content), "en"
+                        )
+                        if len(lines) == files_module.YAML_SCAN_MAX_LINES:
+                            self.assertIsNone(
+                                files_module._get_ruby_yaml_root_key(
+                                    content + "  another: value"
+                                )
+                            )
+
+    def test_ruby_yaml_line_limit_keeps_plain_yaml(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            (tmppath / "en.yml").write_text("en:\n# comment\n  a: b\n  c: d\n")
+            (tmppath / "cs.yml").write_text("cs:\n  a: b\n")
+
+            with patch.object(files_module, "YAML_SCAN_MAX_LINES", 3):
+                results = api_module.discover(tmppath)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["file_format"], "yaml")
+        self.assertFalse(results.truncated)
+        self.assertFalse(results.limit_reasons)
+
     def test_multi_key_yaml_keeps_format(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)

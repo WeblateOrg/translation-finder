@@ -52,6 +52,8 @@ RUBY_YAML_ROOT_RE = re.compile(
     r'^(?:"(?P<double>[A-Za-z0-9_.@-]+)"|\'(?P<single>[A-Za-z0-9_.@-]+)\'|'
     r"(?P<plain>[A-Za-z0-9_.@-]+)):(?=[ \t]|$)"
 )
+YAML_LINE_BREAK_RE = re.compile(r"\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]")
+YAML_SCAN_MAX_LINES = 16_384
 TOML_MESSAGES_KEY = r'(?:messages|"messages"|\'messages\')'
 TOML_ID_KEY = r'(?:id|"id"|\'id\')'
 TOML_MESSAGES_RE = re.compile(rf"^\s*\[\[\s*{TOML_MESSAGES_KEY}\s*\]\]\s*$")
@@ -391,11 +393,23 @@ def _detect_csv_dialect(sample: str) -> tuple[str, str, bool]:
     return best_dialect
 
 
+def _iter_yaml_lines(content: str) -> Generator[str]:
+    """Yield lines without allocating a list for the whole sniffed sample."""
+    start = 0
+    for separator in YAML_LINE_BREAK_RE.finditer(content):
+        yield content[start : separator.start()]
+        start = separator.end()
+    if start < len(content):
+        yield content[start:]
+
+
 def _get_ruby_yaml_root_key(content: str) -> str | None:
     """Return a conventional single Ruby-YAML root key without parsing YAML."""
     root_key: str | None = None
     document_ended = False
-    for line in content.splitlines():
+    for line_number, line in enumerate(_iter_yaml_lines(content), 1):
+        if line_number > YAML_SCAN_MAX_LINES:
+            return None
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
