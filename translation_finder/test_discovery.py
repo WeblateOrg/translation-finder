@@ -3686,6 +3686,26 @@ class CSVHelperTest(DiscoveryTestCase):
         rows = cast("list[list[str]]", rows)
         self.assertEqual(len(rows), files_module.CSV_SAMPLE_ROWS)
 
+    def test_read_csv_rows_limits_consumed_empty_rows(self) -> None:
+        empty_row = ",,,,\n"
+        consumed_limit = 10 * files_module.CSV_SAMPLE_ROWS
+        self.assertEqual(
+            files_module._parse_csv_rows(
+                empty_row * consumed_limit + "source,target\n"
+            ),
+            [],
+        )
+        self.assertEqual(
+            files_module._parse_csv_rows(
+                empty_row * (consumed_limit - 1) + "source,target\n"
+            ),
+            [["source", "target"]],
+        )
+        self.assertEqual(
+            files_module._parse_csv_rows(empty_row * 200_000 + "source,target\n"),
+            [],
+        )
+
     def test_read_csv_rows_reader_error(self) -> None:
         with patch.object(files_module.csv, "reader", side_effect=csv.Error):
             self.assertIsNone(self._read_rows("source,target\nHello,Ahoj\n"))
