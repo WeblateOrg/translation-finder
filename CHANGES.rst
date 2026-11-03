@@ -4,11 +4,16 @@ Changelog
 Unreleased
 ----------
 
+3.9.2
+-----
+
+* Released on 3rd November 2026.
 * Bound language-code checks while generating discovery file masks and report
   ``wildcard-checks`` truncation when the budget is reached.
 * Bound aggregate collected path bytes before Finder builds its indexes,
   avoiding excessive memory use on repositories containing many long paths.
   Expose the budget as ``max_path_bytes`` and report ``path-bytes`` truncation.
+* Updated type-checking tooling.
 
 3.9.1
 -----
