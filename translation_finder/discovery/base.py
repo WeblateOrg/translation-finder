@@ -51,6 +51,7 @@ DISCOVERY_SNIFF_MAX_FILES = 512
 DISCOVERY_MAX_CANDIDATES = 4096
 DISCOVERY_MAX_RESULTS = 4096
 DISCOVERY_MAX_NEW_BASE_CHECKS = 65_536
+DISCOVERY_MAX_WILDCARD_CHECKS = 1_000_000
 MAX_MASKS_PER_PATH = 32
 DISCOVERY_TRUNCATED_MESSAGE = (
     "Translation discovery reached its resource limit; results may be incomplete"
@@ -64,6 +65,7 @@ class DiscoveryLimits:
     max_candidates: int | None = DISCOVERY_MAX_CANDIDATES
     max_results: int | None = DISCOVERY_MAX_RESULTS
     max_new_base_checks: int | None = DISCOVERY_MAX_NEW_BASE_CHECKS
+    max_wildcard_checks: int | None = DISCOVERY_MAX_WILDCARD_CHECKS
     max_masks_per_path: int | None = MAX_MASKS_PER_PATH
     sniff_max_bytes: int | None = DISCOVERY_SNIFF_MAX_BYTES
     sniff_max_files: int | None = DISCOVERY_SNIFF_MAX_FILES
@@ -97,10 +99,12 @@ class DiscoveryBudget:
         candidates: int | None = DISCOVERY_MAX_CANDIDATES,
         new_base_checks: int | None = DISCOVERY_MAX_NEW_BASE_CHECKS,
         masks_per_path: int | None = MAX_MASKS_PER_PATH,
+        wildcard_checks: int | None = DISCOVERY_MAX_WILDCARD_CHECKS,
     ) -> None:
         self.max_masks_per_path = masks_per_path
         self.remaining_candidates = candidates
         self.remaining_new_base_checks = new_base_checks
+        self.remaining_wildcard_checks = wildcard_checks
         self.limit_reasons: set[DiscoveryLimit] = set()
 
     @property
@@ -136,6 +140,15 @@ class DiscoveryBudget:
             return False
         if self.remaining_new_base_checks is not None:
             self.remaining_new_base_checks -= 1
+        return True
+
+    def consume_wildcard_check(self) -> bool:
+        """Consume one language-code probe during wildcard generation."""
+        if self.remaining_wildcard_checks is not None:
+            if self.remaining_wildcard_checks <= 0:
+                self.reach_limit(DiscoveryLimit.WILDCARD_CHECKS)
+                return False
+            self.remaining_wildcard_checks -= 1
         return True
 
 
@@ -390,32 +403,47 @@ class BaseDiscovery:
                 return result
         return ""
 
+    def _is_wildcard_language_code(self, code: str) -> bool:
+        """Check a language code while charging the wildcard budget."""
+        budget = self._run_discovery_budget
+        if budget is not None and not budget.consume_wildcard_check():
+            return False
+        return self.is_language_code(code)
+
+    def _wildcard_checks_limited(self) -> bool:
+        """Whether wildcard generation has exhausted its run budget."""
+        budget = self._run_discovery_budget
+        return (
+            budget is not None
+            and DiscoveryLimit.WILDCARD_CHECKS in budget.limit_reasons
+        )
+
     def get_wildcard(self, part: str) -> str | None:
         """
         Generate language wilcard for a path part.
 
         Retruns None if not possible.
         """
-        if self.is_language_code(part):
+        if self._is_wildcard_language_code(part):
             return "*"
         if "." in part:
             base, ext = part.rsplit(".", 1)
             # Handle <language>.extension
-            if self.is_language_code(base):
+            if self._is_wildcard_language_code(base):
                 return f"*.{ext}"
             # Handle prefix.<language>.extension
             if "." in base:
                 prefix, token = base.split(".", 1)
-                if self.is_language_code(token):
+                if self._is_wildcard_language_code(token):
                     return f"{prefix}.*.{ext}"
             # Handle prefix-<language>.extension or prefix_<language>.extension
             tokens = TOKEN_SPLIT.split(base)
             for pos, token in enumerate(tokens):
                 if token in {"-", "_", "."}:
                     continue
-                if self.is_language_code(token):
+                if self._is_wildcard_language_code(token):
                     end = pos + 1
-                    if pos + 3 <= len(tokens) and self.is_language_code(
+                    if pos + 3 <= len(tokens) and self._is_wildcard_language_code(
                         "".join(tokens[pos : pos + 3]),
                     ):
                         end = pos + 3
@@ -728,7 +756,7 @@ class BaseDiscovery:
         """Filter possible file matches."""
         return self.finder.filter_masks(self.masks_list)
 
-    def get_masks(  # ruff: ignore[too-many-branches]
+    def get_masks(  # ruff: ignore[complex-structure, too-many-branches]
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryCandidate]:
         """
@@ -760,6 +788,8 @@ class BaseDiscovery:
                 if pos in skip:
                     continue
                 wildcard = self.get_wildcard(part)
+                if self._wildcard_checks_limited():
+                    return
                 if wildcard:
                     mask_limit = (
                         self._run_discovery_budget.max_masks_per_path

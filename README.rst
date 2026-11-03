@@ -158,6 +158,8 @@ budget. Defaults are:
 * ``--max-candidates``: 4096 generated candidates across all backends.
 * ``--max-results``: 4096 returned matches.
 * ``--max-new-base-checks``: 65536 new-base lookups across all backends.
+* ``--max-wildcard-checks``: 1000000 language-code probes while generating
+  file masks across all backends.
 * ``--max-masks-per-path``: 32 generated masks per path.
 * ``--sniff-max-bytes``: 67108864 bytes (64 MiB) sampled across the run.
 * ``--sniff-max-files``: 512 content-sniffing file attempts across the run.
@@ -182,7 +184,8 @@ Internal parser safeguards and per-result format and encoding sampling limits
 remain active.
 
 The CLI prints collected matches to stdout, including partial results. If
-candidate, result, new-base, per-path mask, Finder, or wildcard matching limits
+candidate, result, new-base, per-path mask, wildcard language-code, Finder, or
+wildcard matching limits
 cause truncation, it prints
 one warning with the limit reasons to stderr and exits with status 3. Complete
 discovery exits with status 0; invalid arguments exit with status 2.
