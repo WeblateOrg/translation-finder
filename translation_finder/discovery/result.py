@@ -26,6 +26,7 @@ class DiscoveryLimit(StrEnum):
     CANDIDATES = "candidates"
     RESULTS = "results"
     NEW_BASE_CHECKS = "new-base-checks"
+    WILDCARD_CHECKS = "wildcard-checks"
     FILES = "files"
     DIRS = "dirs"
     DEPTH = "depth"

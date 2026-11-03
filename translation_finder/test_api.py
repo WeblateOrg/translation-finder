@@ -609,6 +609,7 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
                 4096,
                 4096,
                 65536,
+                1000000,
                 32,
                 67108864,
                 512,
@@ -851,6 +852,51 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
                 limits=DiscoveryLimits(max_match_checks=1),
             )
         self.assertIn(DiscoveryLimit.MATCH_CHECKS, results.limit_reasons)
+
+    def test_wildcard_checks_stop_discovery_without_candidates(self) -> None:
+        path = PurePath("zz." * 83 + "zz", "messages.po")
+        mock: PathMockType = ([(path, path, path.as_posix())], [])
+        later_backend = Mock(side_effect=AssertionError("later backend was called"))
+
+        with patch.object(api_module, "BACKENDS", [GettextDiscovery, later_backend]):
+            results = discover(
+                PurePath(), mock=mock, limits=DiscoveryLimits(max_wildcard_checks=8)
+            )
+
+        self.assertEqual(results, [])
+        self.assertEqual(results.limit_reasons, {DiscoveryLimit.WILDCARD_CHECKS})
+        self.assertTrue(results.truncated)
+        later_backend.assert_not_called()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / path.parts[0]).mkdir()
+            (root / path).touch()
+            stderr = StringIO()
+            with (
+                patch.object(api_module, "BACKENDS", [GettextDiscovery]),
+                patch("sys.stderr", stderr),
+            ):
+                status = cli(
+                    args=[tmpdir, "--max-wildcard-checks", "8"],
+                    stdout=StringIO(),
+                )
+        self.assertEqual(status, 3)
+        self.assertIn("limits: wildcard-checks", stderr.getvalue())
+
+    def test_unlimited_wildcard_checks_keep_long_names(self) -> None:
+        prefix = "zz." * 80 + "zz"
+        path = PurePath("locale", f"{prefix}-cs.po")
+        mock: PathMockType = ([(path, path, path.as_posix())], [])
+        with patch.object(api_module, "BACKENDS", [GettextDiscovery]):
+            results = discover(
+                PurePath(), mock=mock, limits=DiscoveryLimits(max_wildcard_checks=None)
+            )
+        self.assertFalse(results.truncated)
+        self.assertIn(
+            {"filemask": f"locale/{prefix}-*.po", "file_format": "po"},
+            [result.data for result in results],
+        )
 
     def test_unlimited_masks_and_new_base(self) -> None:
         codes = sorted(

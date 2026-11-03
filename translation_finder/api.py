@@ -83,12 +83,18 @@ def discover(  # ruff: ignore[too-many-arguments]
         max_path_bytes=limits.max_path_bytes,
     )
     discovery_budget = DiscoveryBudget(
-        limits.max_candidates, limits.max_new_base_checks, limits.max_masks_per_path
+        limits.max_candidates,
+        limits.max_new_base_checks,
+        limits.max_masks_per_path,
+        limits.max_wildcard_checks,
     )
     sniff_budget = SniffBudget(limits.sniff_max_bytes, limits.sniff_max_files)
     results: list[DiscoveryResult] = []
     for backend in BACKENDS:
-        if DiscoveryLimit.CANDIDATES in discovery_budget.limit_reasons:
+        if discovery_budget.limit_reasons & {
+            DiscoveryLimit.CANDIDATES,
+            DiscoveryLimit.WILDCARD_CHECKS,
+        }:
             break
         instance = backend(finder, source_language)
         instance._set_run_discovery_budget(  # ruff: ignore[private-member-access]
