@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+* Bound aggregate collected path bytes before Finder builds its indexes,
+  avoiding excessive memory use on repositories containing many long paths.
+  Expose the budget as ``max_path_bytes`` and report ``path-bytes`` truncation.
+
 3.9.1
 -----
 

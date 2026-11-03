@@ -473,6 +473,8 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             (([item, item], []), {"max_files": 1}, DiscoveryLimit.FILES),
             (([], [item]), {"max_path_length": 0}, DiscoveryLimit.PATH_LENGTH),
             (([item], []), {"max_path_length": 0}, DiscoveryLimit.PATH_LENGTH),
+            (([], [item]), {"max_path_bytes": 0}, DiscoveryLimit.PATH_BYTES),
+            (([item], []), {"max_path_bytes": 0}, DiscoveryLimit.PATH_BYTES),
         )
         for mock, limits, reason in cases:
             with self.subTest(limits=limits):
@@ -486,6 +488,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             "max_depth",
             "max_entries",
             "max_path_length",
+            "max_path_bytes",
             "max_match_checks",
         ):
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, name):
@@ -527,6 +530,62 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
         self.assertFalse(finder.files)
         self.assertFalse(finder.dirnames)
+        self.assertEqual(finder.limit_reasons, {DiscoveryLimit.PATH_LENGTH})
+
+    def test_path_bytes_mock(self) -> None:
+        directory = pathlib.PurePath("é")
+        paths = [directory / name for name in ("a.po", "b.po")]
+        files = [(path, path, path.as_posix()) for path in paths]
+        dirs = [(directory, directory, directory.as_posix())]
+        # Two bytes for the directory plus seven for each file path.
+        exact = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=16)
+        self.assertEqual(len(exact.files), 2)
+        self.assertFalse(exact.limit_reasons)
+        limited = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=15)
+        self.assertEqual(limited.files, [(paths[0].as_posix(), paths[0])])
+        self.assertEqual(limited.dirnames, {"é"})
+        self.assertNotIn(paths[1].as_posix(), limited.absolutes)
+        self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
+        unlimited = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=None)
+        self.assertEqual(unlimited.files, exact.files)
+        self.assertFalse(unlimited.limit_reasons)
+
+    def test_path_bytes_surrogate(self) -> None:
+        path = pathlib.PurePath("\udcff.po")
+        mock: PathMockType = ([(path, path, path.as_posix())], [])
+        exact = Finder(pathlib.PurePath(), mock=mock, max_path_bytes=6)
+        self.assertTrue(exact.has_file(path.as_posix()))
+        self.assertFalse(exact.limit_reasons)
+        limited = Finder(pathlib.PurePath(), mock=mock, max_path_bytes=5)
+        self.assertFalse(limited.files)
+        self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
+
+    def test_path_bytes_during_walk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "a").mkdir()
+            (root / "a" / "x.po").touch()
+            # One byte for the directory, six for its file.
+            exact = Finder(root, max_path_bytes=7)
+            self.assertTrue(exact.has_file("a/x.po"))
+            self.assertFalse(exact.limit_reasons)
+            limited = Finder(root, max_path_bytes=6)
+            self.assertEqual(limited.dirnames, {"a"})
+            self.assertFalse(limited.files)
+            self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
+            no_dirs = Finder(root, max_path_bytes=0)
+            self.assertFalse(no_dirs.dirnames)
+            self.assertFalse(no_dirs.files)
+            self.assertEqual(no_dirs.limit_reasons, {DiscoveryLimit.PATH_BYTES})
+
+    def test_path_bytes_counts_only_retained_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "excluded.swp").touch()
+            (root / "long").mkdir()
+            (root / "a").touch()
+            finder = Finder(root, max_path_length=1, max_path_bytes=1)
+        self.assertTrue(finder.has_file("a"))
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.PATH_LENGTH})
 
     def test_default_match_budget_reports_truncation(self) -> None:

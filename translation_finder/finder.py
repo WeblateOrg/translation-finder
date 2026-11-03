@@ -70,6 +70,7 @@ DEFAULT_MAX_DEPTH = 64
 DEFAULT_MAX_ENTRIES = 150_000
 DEFAULT_MAX_PATH_LENGTH = 4096
 DEFAULT_MAX_MATCH_CHECKS = 65_536
+DEFAULT_MAX_PATH_BYTES = 64 * 1024 * 1024
 
 
 class MatchBudget:
@@ -104,6 +105,7 @@ class Finder:
         max_entries: int | None = DEFAULT_MAX_ENTRIES,
         max_path_length: int | None = DEFAULT_MAX_PATH_LENGTH,
         max_match_checks: int | None = DEFAULT_MAX_MATCH_CHECKS,
+        max_path_bytes: int | None = DEFAULT_MAX_PATH_BYTES,
     ) -> None:
         for name, value in (
             ("max_files", max_files),
@@ -112,6 +114,7 @@ class Finder:
             ("max_entries", max_entries),
             ("max_path_length", max_path_length),
             ("max_match_checks", max_match_checks),
+            ("max_path_bytes", max_path_bytes),
         ):
             if value is not None and value < 0:
                 msg = f"{name} must be nonnegative or None"
@@ -124,6 +127,8 @@ class Finder:
         self.max_depth = max_depth
         self.max_entries = max_entries
         self.max_path_length = max_path_length
+        self.max_path_bytes = max_path_bytes
+        self._path_bytes = 0
         self._entries_seen = 0
         self._walk_limit_reasons: set[DiscoveryLimit] = set()
         self.match_budget = MatchBudget(max_match_checks)
@@ -133,6 +138,10 @@ class Finder:
             self.list_files(root, files, dirs)
         else:
             files, dirs = self._limit_mock(mock)
+        self._index_paths(files, dirs)
+
+    def _index_paths(self, files: PathListType, dirs: PathListType) -> None:
+        """Build lookup indexes from the bounded path collection."""
         # For the has_file/has_dir
         self.filenames = {relative_path for absolute, relative, relative_path in files}
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
@@ -241,6 +250,8 @@ class Finder:
             if self.max_dirs is not None and len(dirs) >= self.max_dirs:
                 self._walk_limit_reasons.add(DiscoveryLimit.DIRS)
                 return files, dirs
+            if not self._consume_path_bytes(path):
+                return files, dirs
             dirs.append((absolute, relative, path))
         for absolute, relative, path in mock[0]:
             if not self._consume_entry():
@@ -253,8 +264,22 @@ class Finder:
             if self.max_files is not None and len(files) >= self.max_files:
                 self._walk_limit_reasons.add(DiscoveryLimit.FILES)
                 break
+            if not self._consume_path_bytes(path):
+                break
             files.append((absolute, relative, path))
         return files, dirs
+
+    def _consume_path_bytes(self, path: str) -> bool:
+        """Bound retained relative path text before building lookup indexes."""
+        if self.max_path_bytes is None:
+            return True
+        # Surrogates can occur in filesystem names which could not be decoded.
+        size = len(path.encode("utf-8", errors="surrogatepass"))
+        if self._path_bytes + size > self.max_path_bytes:
+            self._walk_limit_reasons.add(DiscoveryLimit.PATH_BYTES)
+            return False
+        self._path_bytes += size
+        return True
 
     @staticmethod
     def get_suffix(filename: str) -> str | None:
@@ -330,7 +355,7 @@ class Finder:
                 break
             pending.extend(reversed(child_dirs))
 
-    def _list_directory(
+    def _list_directory(  # ruff: ignore[too-many-branches]
         self,
         root: PurePath,
         relative_root: Path,
@@ -363,6 +388,8 @@ class Finder:
                     if self.max_dirs is not None and len(dirs) >= self.max_dirs:
                         self._walk_limit_reasons.add(DiscoveryLimit.DIRS)
                         return False
+                    if not self._consume_path_bytes(relative_path):
+                        return False
                     dirs.append((path, relative, relative_path))
                     child_dirs.append((path, relative))
                 elif match.is_file(follow_symlinks=False):
@@ -373,6 +400,8 @@ class Finder:
                     relative_path = relative.as_posix()
                     if not self._path_length_allowed(relative_path):
                         continue
+                    if not self._consume_path_bytes(relative_path):
+                        return False
                     files.append((path, relative, relative_path))
         return True
 
