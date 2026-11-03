@@ -80,6 +80,7 @@ def discover(  # ruff: ignore[too-many-arguments]
         max_entries=limits.max_entries,
         max_path_length=limits.max_path_length,
         max_match_checks=limits.max_match_checks,
+        max_path_bytes=limits.max_path_bytes,
     )
     discovery_budget = DiscoveryBudget(
         limits.max_candidates, limits.max_new_base_checks, limits.max_masks_per_path
@@ -175,7 +176,9 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
 
     defaults = DiscoveryLimits()
     for field in fields(defaults):
-        unit = "bytes" if field.name == "sniff_max_bytes" else "count"
+        unit = (
+            "bytes" if field.name in {"sniff_max_bytes", "max_path_bytes"} else "count"
+        )
         parser.add_argument(
             "--" + field.name.replace("_", "-"),
             type=nonnegative_integer,

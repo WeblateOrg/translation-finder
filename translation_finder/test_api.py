@@ -618,6 +618,7 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
                 150000,
                 4096,
                 65536,
+                67108864,
             ],
         )
         for field in fields(defaults):
@@ -817,6 +818,27 @@ class DiscoveryLimitsTest(DiscoveryTestCase):
                 )
         self.assertEqual(status, 3)
         self.assertIn("limits: path-length", stderr.getvalue())
+
+    def test_path_bytes_limit_reaches_api_and_cli(self) -> None:
+        path = PurePath("messages_en.po")
+        mock: PathMockType = ([(path, path, path.as_posix())], [])
+        for eager in (False, True):
+            with self.subTest(eager=eager):
+                results = discover(
+                    PurePath(),
+                    mock=mock,
+                    eager=eager,
+                    limits=DiscoveryLimits(max_path_bytes=1),
+                )
+                self.assertEqual(results.limit_reasons, {DiscoveryLimit.PATH_BYTES})
+                self.assertTrue(results.truncated)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (pathlib.Path(tmpdir) / path).touch()
+            stderr = StringIO()
+            with patch("sys.stderr", stderr):
+                status = cli(args=[tmpdir, "--max-path-bytes", "1"], stdout=StringIO())
+        self.assertEqual(status, 3)
+        self.assertIn("limits: path-bytes", stderr.getvalue())
 
     def test_hint_matching_reports_limit(self) -> None:
         paths = [PurePath(f"messages_{language}.po") for language in ("en", "cs", "de")]

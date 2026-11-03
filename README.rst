@@ -167,6 +167,11 @@ budget. Defaults are:
 * ``--max-entries``: 150000 directory entries examined, including excluded
   entries and symlinks.
 * ``--max-path-length``: 4096 characters in an indexed relative path.
+* ``--max-path-bytes``: 67108864 bytes (64 MiB) of collected relative file and
+  directory paths, measured as UTF-8 with surrogatepass for undecodable names.
+  Collection stops before retaining a path that would exceed this budget and
+  reports ``path-bytes`` truncation. This bounds path text, not total process
+  memory; lookup indexes add overhead.
 * ``--max-match-checks``: 65536 regular expression and wildcard candidate
   evaluations.
 

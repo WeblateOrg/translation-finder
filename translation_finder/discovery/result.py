@@ -31,6 +31,7 @@ class DiscoveryLimit(StrEnum):
     DEPTH = "depth"
     ENTRIES = "entries"
     PATH_LENGTH = "path-length"
+    PATH_BYTES = "path-bytes"
     MATCH_CHECKS = "match-checks"
 
 
