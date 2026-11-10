@@ -47,6 +47,11 @@ EXCLUDES = {
 }
 
 
+def escape_mask(mask: str) -> str:
+    """Escape fnmatch syntax so only * acts as a wildcard."""
+    return mask.replace("[", "[[]").replace("?", "[?]")
+
+
 def lc_convert(relative_path: str, relative: PurePath) -> tuple[str, str, PurePath]:
     """Convert path to lower case and extract directory and filename from it."""
     lower = relative_path.lower()
@@ -279,12 +284,12 @@ class Finder:
         return filename[dot_position:]
 
     @staticmethod
-    def has_glob_magic(pattern: str, magic: str = "*?[") -> bool:
+    def has_glob_magic(pattern: str, magic: str = "*") -> bool:
         """Check whether pattern contains glob wildcards."""
         return any(char in pattern for char in magic)
 
     @classmethod
-    def glob_suffix_candidate(cls, pattern: str, magic: str = "*?[") -> str | None:
+    def glob_suffix_candidate(cls, pattern: str, magic: str = "*") -> str | None:
         """Return a safe suffix candidate for a glob pattern."""
         last_magic = max((pattern.rfind(char) for char in magic), default=-1)
         if last_magic == -1:
@@ -296,7 +301,7 @@ class Finder:
     def mask_candidates(
         cls, masks: tuple[str, ...]
     ) -> tuple[set[str], set[str]] | None:
-        """Return indexed filename candidates for fnmatch-style masks."""
+        """Return indexed filename candidates for masks with * wildcards."""
         names: set[str] = set()
         suffixes: set[str] = set()
         for mask in masks:
@@ -451,7 +456,7 @@ class Finder:
     def mask_matches(
         self, mask: str, *, budget: MatchBudget | None = None
     ) -> Generator[PurePath]:
-        """Return all mask matches."""
+        """Match relative paths with * wildcards and all other characters literal."""
         if budget is None:
             budget = self.match_budget
         if mask in self.mask_matches_cache:
@@ -464,8 +469,7 @@ class Finder:
             result = (match,) if match is not None else ()
         else:
             items, start, end = self._mask_candidates(mask)
-            # Avoid dealing [ as a special char
-            escaped_mask = mask.replace("[", "[[]").replace("?", "[?]")
+            escaped_mask = escape_mask(mask)
             matches = []
             complete = True
             for item in islice(items, start, end):
@@ -513,11 +517,11 @@ class Finder:
         dirglob: str | None = None,
     ) -> Generator[PurePath]:
         """
-        Filter lowercase basenames against fnmatch-style masks.
+        Filter lowercase basenames with only * acting as a wildcard.
 
         Masks containing ``/`` raise ValueError when the generator is iterated.
         Use dirglob for a separate directory regex, or mask_matches() for
-        relative-path masks with its distinct wildcard and case rules.
+        relative-path masks with its distinct case rules.
         """
         masks = (masks,) if isinstance(masks, str) else tuple(masks)
         for mask in masks:
@@ -534,7 +538,7 @@ class Finder:
             candidate_names, candidate_suffixes = candidates
 
         yield from self.filter_files(
-            "|".join(translate(mask) for mask in masks),
+            "|".join(translate(escape_mask(mask)) for mask in masks),
             dirglob,
             candidate_names=candidate_names,
             candidate_suffixes=candidate_suffixes,

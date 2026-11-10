@@ -91,7 +91,13 @@ Discovery result fields
 
 Each result describes a suggested configuration. Paths are relative to the
 discovery root, and ``filemask`` identifies the translation files belonging to
-that configuration. Two optional fields describe files with different roles:
+that configuration. File masks, including discovery hints, use ``*`` as their
+only wildcard. Question marks and brackets match literal characters, so paths
+such as ``src/[locale]/*.json`` preserve their bracketed directory names.
+Custom discovery selectors needing multiple alternatives should provide a tuple
+of masks, for example ``("resources.resx", "resources.resw")``.
+
+Two optional fields describe files with different roles:
 
 ``template``
    The source file containing string definitions for a monolingual

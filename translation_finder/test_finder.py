@@ -182,7 +182,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         )
         self.assertEqual(matching.limit_reasons, {DiscoveryLimit.MATCH_CHECKS})
 
-    def test_filter_masks_fallback_matches_filter_files(self) -> None:
+    def test_filter_masks_multiple_selectors(self) -> None:
         finder = self.get_finder(
             [
                 "locale/en/resources.resx",
@@ -192,9 +192,50 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         )
 
         self.assertEqual(
-            list(finder.filter_masks("resources.res[xw]")),
-            list(finder.filter_files(translate("resources.res[xw]"))),
+            list(finder.filter_masks(("resources.resx", "resources.resw"))),
+            [
+                pathlib.PurePath("locale/en/resources.resw"),
+                pathlib.PurePath("locale/en/resources.resx"),
+            ],
         )
+
+    def test_filter_masks_fallback_matches_filter_files(self) -> None:
+        finder = self.get_finder(["locale/messages", "locale/other"])
+
+        self.assertEqual(
+            list(finder.filter_masks("mess*")),
+            list(finder.filter_files(translate("mess*"))),
+        )
+
+    def test_masks_use_only_star_as_wildcard(self) -> None:
+        paths = [
+            "data?.po",
+            "data1.po",
+            "[ab].po",
+            "a.po",
+            "b.po",
+            "[ab.po",
+            "data?-cs.po",
+            "data1-cs.po",
+            "[ab]-cs.po",
+            "a-cs.po",
+            "[ab-cs.po",
+        ]
+        for mask, expected in (
+            ("data?.po", ["data?.po"]),
+            ("[ab].po", ["[ab].po"]),
+            ("[ab.po", ["[ab.po"]),
+            ("data?-*.po", ["data?-cs.po"]),
+            ("[ab]-*.po", ["[ab]-cs.po"]),
+            ("[ab-*.po", ["[ab-cs.po"]),
+            ("missing?.po", []),
+            ("[missing].po", []),
+        ):
+            with self.subTest(mask=mask):
+                finder = self.get_finder(paths)
+                matches = [pathlib.PurePath(path) for path in expected]
+                self.assertEqual(list(finder.mask_matches(mask)), matches)
+                self.assertEqual(list(finder.filter_masks(mask)), matches)
 
     def test_mask_matches_uses_literal_question_and_bracket(self) -> None:
         finder = self.get_finder(
