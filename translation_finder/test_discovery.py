@@ -2560,6 +2560,43 @@ class JSONDiscoveryTest(DiscoveryTestCase):
                 )
 
 
+class TransifexDirectoryTest(DiscoveryTestCase):
+    def test_config_directory_matching(self) -> None:
+        for directory in ("atx", "docs/atx", "ATX", ".tx", "docs/.tx"):
+            with (
+                self.subTest(directory=directory),
+                tempfile.TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                config_dir = root / directory
+                config_dir.mkdir(parents=True)
+                (config_dir / "config").write_text(
+                    "[translation]\n"
+                    "file_filter = po/<lang>.po\n"
+                    "source_file = po/messages.pot\n"
+                    "type = PO\n",
+                    encoding="utf-8",
+                )
+                (root / "po").mkdir()
+                for filename in ("cs.po", "messages.pot"):
+                    (root / "po" / filename).write_text(
+                        'msgid ""\nmsgstr ""\n\n', encoding="utf-8"
+                    )
+
+                discovery = TransifexDiscovery(Finder(root))
+                expected: list[ResultDict] = []
+                if config_dir.name == ".tx":
+                    expected.append(
+                        {
+                            "name": "translation",
+                            "filemask": "po/*.po",
+                            "file_format": "po",
+                            "new_base": "po/messages.pot",
+                        }
+                    )
+                self.assert_discovery(discovery.discover(), expected)
+
+
 class TransifexTest(DiscoveryTestCase):
     def test_basic(self) -> None:
         discovery = TransifexDiscovery(self.get_real_finder())
