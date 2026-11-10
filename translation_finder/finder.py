@@ -527,8 +527,18 @@ class Finder:
         masks: str | Iterable[str],
         dirglob: str | None = None,
     ) -> Generator[PurePath]:
-        """Filter lowercase file names against fnmatch-style masks."""
+        """
+        Filter lowercase basenames against fnmatch-style masks.
+
+        Masks containing ``/`` raise ValueError when the generator is iterated.
+        Use dirglob for a separate directory regex, or mask_matches() for
+        relative-path masks with its distinct wildcard and case rules.
+        """
         masks = (masks,) if isinstance(masks, str) else tuple(masks)
+        for mask in masks:
+            if "/" in mask:
+                msg = f"filter_masks() accepts basename patterns only: {mask!r} contains '/'"
+                raise ValueError(msg)
         if not masks:
             return
 

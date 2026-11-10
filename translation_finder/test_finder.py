@@ -89,6 +89,36 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
         self.assertEqual(list(finder.filter_masks(())), [])
 
+    def test_filter_masks_rejects_directory_masks(self) -> None:
+        finder = self.get_finder(["po/cs.po", "po/sub/fr.po", "potx.po"])
+
+        for mask in ("po/*.po", "*/*.po", "*/cs.po", "po/cs.po"):
+            with self.subTest(mask=mask):
+                matches = finder.filter_masks(mask)
+                with self.assertRaises(ValueError) as error:
+                    next(matches)
+                self.assertIn("basename patterns only", str(error.exception))
+                self.assertIn(repr(mask), str(error.exception))
+
+    def test_filter_masks_validates_all_masks_before_matching(self) -> None:
+        finder = self.get_finder(["po/cs.po"])
+        finder.match_budget = MatchBudget(1)
+        masks = iter(("*.po", "po/*.po"))
+
+        with self.assertRaises(ValueError):
+            next(finder.filter_masks(masks))
+
+        self.assertEqual(finder.match_budget.remaining, 1)
+        self.assertFalse(finder.limit_reasons)
+
+    def test_filter_masks_directory_regex(self) -> None:
+        finder = self.get_finder(["po/cs.po", "po/sub/fr.po", "potx.po"])
+
+        self.assertEqual(
+            list(finder.filter_masks("*.po", dirglob="po")),
+            [pathlib.PurePath("po/cs.po")],
+        )
+
     def test_glob_suffix_candidate_without_glob_magic(self) -> None:
         self.assertEqual(Finder.glob_suffix_candidate("messages.po"), ".po")
 
