@@ -9,7 +9,7 @@ import socket
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
 import tempfile
-from fnmatch import translate
+from fnmatch import fnmatch, translate
 from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
@@ -200,6 +200,40 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                 pathlib.PurePath("locale/messages.po"),
             ],
         )
+
+    def test_mask_matches_wildcards_span_directories(self) -> None:
+        paths = [
+            "cs/v1.2.a/b.json",
+            "en/v1.2.a/b.json",
+            "en/v1.2.a.json",
+            "en/app-x/y.json",
+            "en/app-x.json",
+            "cs/app-x/y.json",
+            "en/unrelated.json",
+            "en/v1.2.a/b.po",
+            "en/app-?/y.json",
+            "en/app-[x]/y.json",
+        ]
+        for mask in (
+            "*/v1.2.*.json",
+            "*/app-*",
+            "en/app-*",
+            "*/app-?*",
+            "*/app-[x]*",
+        ):
+            with self.subTest(mask=mask):
+                finder = self.get_finder(paths)
+                escaped_mask = mask.replace("[", "[[]").replace("?", "[?]")
+                expected = [
+                    pathlib.PurePath(path)
+                    for path in sorted(paths)
+                    if fnmatch(path, escaped_mask)
+                ]
+                self.assertTrue(expected)
+                self.assertEqual(list(finder.mask_matches(mask)), expected)
+                self.assertIn(mask, finder.mask_matches_cache)
+                self.assertEqual(list(finder.mask_matches(mask)), expected)
+                self.assertEqual(finder.limit_reasons, frozenset())
 
     def test_mask_matches_caches_complete_matches(self) -> None:
         finder = self.get_finder(

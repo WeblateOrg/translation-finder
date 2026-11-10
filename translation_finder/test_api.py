@@ -220,6 +220,21 @@ class APITest(DiscoveryTestCase):
                 with self.subTest(hint=hint):
                     self.assert_discovery(discover(tmpdir, hint=hint), [])
 
+    def test_discover_hint_wildcard_spans_directories(self) -> None:
+        hint = "*/v1.2.*.json"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            for language in ("en", "cs"):
+                path = root / language / "v1.2.a" / "b.json"
+                path.parent.mkdir(parents=True)
+                path.write_text('{"hello": "Hello!"}', encoding="utf-8")
+
+            results = discover(root, hint=hint)
+
+        self.assertTrue(any(result["filemask"] == hint for result in results))
+        self.assertFalse(results.truncated)
+        self.assertEqual(results.limit_reasons, frozenset())
+
     def test_discover(self) -> None:
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]
         results = discover(

@@ -188,17 +188,6 @@ class Finder:
         self.file_paths = [
             os.path.normcase(item[0]) for item in self.files_by_normalized_path
         ]
-        self.files_by_filename = sorted(
-            self.files,
-            key=lambda item: (
-                os.path.normcase(item[0].rsplit("/", 1)[-1]),
-                item[0],
-            ),
-        )
-        self.file_names = [
-            os.path.normcase(item[0].rsplit("/", 1)[-1])
-            for item in self.files_by_filename
-        ]
         self.files_by_reversed_filename = sorted(
             self.files,
             key=lambda item: (
@@ -443,12 +432,8 @@ class Finder:
             )
             add(self.files_by_normalized_path, start, end)
 
-        if filename_prefix := filename.split("*", 1)[0]:
-            start, end = self._prefix_range(
-                self.file_names, os.path.normcase(filename_prefix)
-            )
-            add(self.files_by_filename, start, end)
-
+        # A basename prefix cannot narrow candidates: * can span /, leaving
+        # the literal prefix in a directory rather than in the basename.
         if filename_suffix := filename.rsplit("*", 1)[-1]:
             start, end = self._prefix_range(
                 self.reversed_file_names, os.path.normcase(filename_suffix)[::-1]
