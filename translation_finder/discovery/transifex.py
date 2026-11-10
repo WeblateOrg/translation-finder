@@ -175,7 +175,7 @@ class TransifexDiscovery(BaseDiscovery):
         for config_count, path in enumerate(
             self.finder.filter_files(
                 "config",
-                "(?:.*/|^).tx",
+                r"(?:.*/|^)\.tx",
                 candidate_names=("config",),
             )
         ):
