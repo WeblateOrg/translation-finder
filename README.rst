@@ -203,6 +203,25 @@ truncation. Direct ``Finder`` use has the same scan and matching defaults and
 exposes ``limit_reasons``; pass ``None`` for a limit to disable it.
 Direct backend ``discover()`` calls also use the default run-wide sniff limits.
 
+Finder mask matching
+--------------------
+
+``Finder.filter_masks()`` accepts fnmatch-style basename patterns such as
+``*.po`` or ``resources.res[xw]`` and matches them against lowercased filenames
+in every directory. Patterns containing ``/`` raise ``ValueError`` when the
+generator is iterated, before any matches are yielded.
+
+To restrict directories, pass a separate directory regular expression as
+``dirglob``, for example ``finder.filter_masks("*.po", dirglob="po")``.
+``Finder.filter_files()`` accepts regular expressions for both the basename
+and the optional directory filter. Both expressions are fullmatched against
+lowercased names.
+
+``Finder.mask_matches()`` matches relative paths, for example ``po/*.po``.
+Its ``*`` wildcard can span directory separators; ``?`` and brackets are
+literal characters. It preserves case according to platform fnmatch rules,
+rather than lowercasing paths as the filtering methods do.
+
 Custom discovery backends
 -------------------------
 
