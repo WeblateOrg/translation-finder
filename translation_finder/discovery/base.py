@@ -27,6 +27,7 @@ from translation_finder.finder import (
     DEFAULT_MAX_MATCH_CHECKS,
     DEFAULT_MAX_PATH_BYTES,
     DEFAULT_MAX_PATH_LENGTH,
+    escape_mask,
 )
 
 from .result import DiscoveryCandidate, DiscoveryLimit, DiscoveryResult
@@ -766,7 +767,7 @@ class BaseDiscovery:
         """
         if hint:
             for mask in self.masks_list:
-                if fnmatch.fnmatch(hint, mask):
+                if fnmatch.fnmatch(hint, escape_mask(mask)):
                     paths = list(self.finder.mask_matches(hint))
                     if paths:
                         yield DiscoveryCandidate({"filemask": hint}, paths)

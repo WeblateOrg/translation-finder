@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 TEST_DATA = pathlib.Path(__file__).parent / "test_data"
 
 
-class APITest(DiscoveryTestCase):
+class APITest(DiscoveryTestCase):  # ruff: ignore[too-many-public-methods]
     maxDiff = None
 
     def test_discover_limits_results_without_warning(self) -> None:
@@ -234,6 +234,72 @@ class APITest(DiscoveryTestCase):
         self.assertTrue(any(result["filemask"] == hint for result in results))
         self.assertFalse(results.truncated)
         self.assertEqual(results.limit_reasons, frozenset())
+
+    def test_discover_literal_hint(self) -> None:
+        paths = [
+            "data?.po",
+            "data1.po",
+            "[ab].po",
+            "a.po",
+            "b.po",
+            "[ab.po",
+            "data?-cs.po",
+            "data1-cs.po",
+            "[ab]-cs.po",
+            "a-cs.po",
+        ]
+        for hint in ("data?.po", "[ab].po", "[ab.po", "data?-*.po", "[ab]-*.po"):
+            with self.subTest(hint=hint):
+                results = discover(
+                    PurePath(),
+                    mock=(
+                        [(PurePath(path), PurePath(path), path) for path in paths],
+                        [],
+                    ),
+                    hint=hint,
+                )
+                self.assertIn(hint, [result["filemask"] for result in results])
+
+        for hint in ("data?.po", "[ab].po"):
+            with self.subTest(missing_hint=hint):
+                decoys = ["data1.po", "a.po", "b.po"]
+                results = discover(
+                    PurePath(),
+                    mock=(
+                        [(PurePath(path), PurePath(path), path) for path in decoys],
+                        [],
+                    ),
+                    hint=hint,
+                )
+                self.assertNotIn(hint, [result["filemask"] for result in results])
+
+    def test_discover_literal_hint_selector(self) -> None:
+        class LiteralDiscovery(BaseDiscovery):
+            file_format = "po"
+            mask = ("data?.po", "[ab].po")
+
+        paths = ["data?.po", "data1.po", "[ab].po", "a.po"]
+        for hint, included in (
+            ("data?.po", True),
+            ("data1.po", False),
+            ("[ab].po", True),
+            ("a.po", False),
+        ):
+            with (
+                self.subTest(hint=hint),
+                patch.object(api_module, "BACKENDS", [LiteralDiscovery]),
+            ):
+                results = discover(
+                    PurePath(),
+                    mock=(
+                        [(PurePath(path), PurePath(path), path) for path in paths],
+                        [],
+                    ),
+                    hint=hint,
+                )
+                self.assertEqual(
+                    hint in [result["filemask"] for result in results], included
+                )
 
     def test_discover(self) -> None:
         paths = ["locales/cs/messages.po", "locales/de/messages.po"]

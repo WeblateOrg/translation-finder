@@ -1076,7 +1076,7 @@ class RESXDiscovery(BaseDiscovery):
     """RESX files discovery."""
 
     file_format = "resx"
-    mask = "resources.res[xw]"
+    mask = ("resources.resx", "resources.resw")
 
     def possible_templates(self, language: str, mask: str) -> Generator[str]:
         """Yield possible template filenames."""

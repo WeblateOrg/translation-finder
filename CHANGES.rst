@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* Standardize discovery masks and hints to use only ``*`` as a wildcard,
+  treating question marks and brackets literally in filename selectors too.
+
 3.9.2
 -----
 

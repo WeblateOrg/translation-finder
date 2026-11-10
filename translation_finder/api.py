@@ -62,6 +62,9 @@ def discover(  # ruff: ignore[too-many-arguments]
     Use this in case you want to list all files which can be handled by
     localization tools such as Weblate.
 
+    File masks and the optional hint use * as their only wildcard; question
+    marks and brackets are literal characters.
+
     Discovery is bounded to avoid excessive work on crafted repositories.
     Inspect truncated and limit_reasons on the returned results for limit status.
     """
