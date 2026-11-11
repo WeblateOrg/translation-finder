@@ -16,7 +16,7 @@ from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from .discovery.result import DiscoveryLimit
-from .finder import Finder, MatchBudget, PathMockType, _StarMatcher
+from .finder import EXCLUDES, Finder, MatchBudget, PathMockType, _StarMatcher
 
 
 class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
@@ -483,7 +483,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
     def test_unreadable_directories_are_skipped(self) -> None:
         class FakeEntry:
             def __init__(self, path: pathlib.Path) -> None:
-                self.path = path
+                self.name = path.name
 
             @staticmethod
             def is_symlink() -> bool:
@@ -526,7 +526,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
     def test_deep_directories_are_scanned_iteratively(self) -> None:
         class FakeEntry:
             def __init__(self, path: pathlib.Path, *, is_dir: bool) -> None:
-                self.path = path
+                self.name = path.name
                 self._is_dir = is_dir
 
             @staticmethod
@@ -602,6 +602,65 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             finder = Finder(root, max_entries=2)
         self.assertEqual(finder.files, [])
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.ENTRIES})
+
+    def test_exclusions_match_entry_names(self) -> None:
+        names = (
+            "messages.po",
+            ".hidden.po",
+            ".GIT",
+            "MODULE.EGG-INFO",
+            "draft.swp",
+            "build",
+            ".ruff_cache",
+        )
+        for path_class in (pathlib.PurePosixPath, pathlib.PureWindowsPath):
+            for name in names:
+                with self.subTest(path_class=path_class, name=name):
+                    full_path = path_class("build", "nested", name)
+                    entry_name = path_class(name)
+                    self.assertEqual(
+                        any(full_path.match(exclude) for exclude in EXCLUDES),
+                        any(entry_name.match(exclude) for exclude in EXCLUDES),
+                    )
+
+    def test_excluded_files_and_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # An excluded ancestor does not exclude the repository itself.
+            root = pathlib.Path(tmpdir) / "build"
+            (root / "nested").mkdir(parents=True)
+            for directory in (".git", "package.egg-info", ".ruff_cache"):
+                (root / directory).mkdir()
+                (root / directory / "ignored.po").touch()
+            for filename in (
+                "draft.swp",
+                ".DS_Store",
+                ".hidden.po",
+                "nested/catalog.po",
+            ):
+                (root / filename).touch()
+            finder = Finder(root)
+
+        self.assertEqual(finder.filenames, {".hidden.po", "nested/catalog.po"})
+        self.assertEqual(finder.dirnames, {"nested"})
+        self.assertFalse(finder.limit_reasons)
+
+    def test_scan_with_relative_root(self) -> None:
+        with tempfile.TemporaryDirectory(dir=pathlib.Path.cwd()) as tmpdir:
+            root = pathlib.Path(tmpdir).relative_to(pathlib.Path.cwd())
+            (root / "locale").mkdir()
+            (root / "locale" / "messages.po").write_text("catalog", encoding="utf-8")
+            for finder_root in (root, pathlib.PurePath(root), str(root)):
+                with self.subTest(root_type=type(finder_root)):
+                    finder = Finder(finder_root)
+                    self.assertEqual(finder.filenames, {"locale/messages.po"})
+                    self.assertEqual(finder.dirnames, {"locale"})
+                    self.assertEqual(
+                        finder.absolutes["locale/messages.po"],
+                        root / "locale" / "messages.po",
+                    )
+                    with finder.open(pathlib.PurePath("locale/messages.po")) as handle:
+                        self.assertEqual(handle.read(), "catalog")
+                    self.assertFalse(finder.limit_reasons)
 
     def test_entry_limit_counts_symlinks(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

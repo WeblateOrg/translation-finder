@@ -397,11 +397,13 @@ class Finder:
                 if match.is_symlink():
                     continue
                 is_dir = match.is_dir(follow_symlinks=False)
-                path = Path(match.path)
-                if any(path.match(exclude) for exclude in EXCLUDES):
+                # Excludes match single components; avoid parsing the full path.
+                name = PurePath(match.name)
+                if any(name.match(exclude) for exclude in EXCLUDES):
                     continue
+                path = Path(root, match.name)
                 if is_dir:
-                    relative = relative_root / path.name
+                    relative = relative_root / match.name
                     relative_path = relative.as_posix()
                     if not self._path_length_allowed(relative_path):
                         continue
@@ -422,7 +424,7 @@ class Finder:
                     if self.max_files is not None and len(files) >= self.max_files:
                         self._walk_limit_reasons.add(DiscoveryLimit.FILES)
                         return False
-                    relative = relative_root / path.name
+                    relative = relative_root / match.name
                     relative_path = relative.as_posix()
                     if not self._path_length_allowed(relative_path):
                         continue
