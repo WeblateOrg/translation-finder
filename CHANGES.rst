@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+* Reduce discovery memory by keeping compact file references throughout
+  indexing, candidate processing, and new-base resolution. Public Finder
+  methods still return paths; backend candidate paths now use read-only path
+  references, and undocumented lookup indexes are private.
 * Speed up directory traversal by combining entry exclusion patterns into a
   single compiled matcher.
 * Reduce discovery traversal memory by sharing absolute path components and

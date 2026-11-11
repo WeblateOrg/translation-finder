@@ -15,6 +15,7 @@ from itertools import islice, product
 from typing import TYPE_CHECKING, ClassVar
 from xml.parsers import expat
 
+from translation_finder._paths import is_real_path
 from translation_finder.api import register_discovery
 
 from .base import (
@@ -30,8 +31,8 @@ from .result import DiscoveryCandidate
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from pathlib import PurePath
 
+    from translation_finder._paths import DiscoveryPath
     from translation_finder.finder import Finder
 
     from .result import DiscoveryResult, FileFormatParams, ResultDict
@@ -179,13 +180,13 @@ def _decode_sample_content(content: bytes) -> str:
 
 def _read_binary_sample(
     finder: Finder,
-    path: PurePath,
+    path: DiscoveryPath,
     size: int | None = None,
 ) -> bytes | None:
     """Read a bounded binary sample from a real finder path."""
     if size is None:
         size = FORMAT_SNIFF_MAX_BYTES
-    if not hasattr(path, "open"):
+    if not is_real_path(path):
         return None
     try:
         with finder.open(path, "rb") as handle:
@@ -196,13 +197,13 @@ def _read_binary_sample(
 
 def _read_binary_sniff_sample(
     finder: Finder,
-    path: PurePath,
+    path: DiscoveryPath,
     size: int | None = None,
 ) -> tuple[bytes, bool] | None:
     """Read a bounded binary sample and report whether it is the complete file."""
     if size is None:
         size = FORMAT_SNIFF_MAX_BYTES
-    if not hasattr(path, "open"):
+    if not is_real_path(path):
         return None
     try:
         with finder.open(path, "rb") as handle:
@@ -214,7 +215,7 @@ def _read_binary_sniff_sample(
 
 def _read_binary_sniff_content(
     finder: Finder,
-    path: PurePath,
+    path: DiscoveryPath,
     size: int | None = None,
 ) -> bytes | None:
     """Read complete content only when it fits within the sniffing limit."""
@@ -229,7 +230,7 @@ def _read_binary_sniff_content(
 
 def _read_text_sample(
     finder: Finder,
-    path: PurePath,
+    path: DiscoveryPath,
     size: int | None = None,
 ) -> str | None:
     """Read a text sample from a real finder path."""
@@ -241,7 +242,7 @@ def _read_text_sample(
 
 def _read_text_sniff_content(
     finder: Finder,
-    path: PurePath,
+    path: DiscoveryPath,
     size: int | None = None,
 ) -> str | None:
     """Read complete text content only when it fits within the sniffing limit."""
@@ -264,7 +265,7 @@ class _FormatSniffBudget(SniffBudget):
     def read(
         self,
         finder: Finder,
-        path: PurePath,
+        path: DiscoveryPath,
         size: int | None = None,
     ) -> tuple[bytes, bool] | None:
         """Read one format sample and charge it to all budgets."""
@@ -314,7 +315,7 @@ def _parse_csv_rows(text: str) -> list[list[str]] | None:
     return rows
 
 
-def _read_csv_rows(finder: Finder, path: PurePath) -> list[list[str]] | None:
+def _read_csv_rows(finder: Finder, path: DiscoveryPath) -> list[list[str]] | None:
     """Read and parse a small CSV sample."""
     text = _read_text_sample(finder, path)
     if text is None:
@@ -777,7 +778,7 @@ class XliffDiscovery(BaseDiscovery):
         result = candidate.result
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -863,7 +864,7 @@ class AndroidDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r"(strings.*|.*strings)\.xml",
             ".*/values",
             candidate_suffixes=(".xml",),
@@ -887,7 +888,7 @@ class AndroidDiscovery(BaseDiscovery):
 
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -909,7 +910,7 @@ class MOKODiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r"(strings|plurals)\.xml",
             ".*/resources/mr/base",
             candidate_names=("strings.xml", "plurals.xml"),
@@ -949,8 +950,8 @@ class OSXDiscovery(EncodingDiscovery):
 
         It is expected to contain duplicates.
         """
-        groups: dict[tuple[tuple[str, ...], str], list[tuple[str, PurePath]]] = {}
-        for path in self.finder.filter_files(
+        groups: dict[tuple[tuple[str, ...], str], list[tuple[str, DiscoveryPath]]] = {}
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r".*\.strings",
             candidate_suffixes=(".strings",),
         ):
@@ -985,7 +986,7 @@ class OSXDiscovery(EncodingDiscovery):
             }
             yield DiscoveryCandidate(result, [path for _locale, path in matches])
 
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r"base\.strings",
             candidate_names=("base.strings",),
         ):
@@ -1011,7 +1012,7 @@ class StringsdictDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r".*\.stringsdict",
             r".*/(base|en)\.lproj",
             candidate_suffixes=(".stringsdict",),
@@ -1091,7 +1092,7 @@ class RESXDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r".*\..*\.res[xw]",
             candidate_suffixes=(".resx", ".resw"),
         ):
@@ -1120,9 +1121,9 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
     file_format = "appstore"
     mask = ""
 
-    def filter_files(self) -> Generator[PurePath]:
+    def filter_files(self) -> Generator[DiscoveryPath]:
         """Filter possible file matches."""
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             "short_description.txt|full_description.txt|title.txt|description.txt|name.txt",
             candidate_names=(
                 "short_description.txt",
@@ -1133,7 +1134,7 @@ class AppStoreDiscovery(EnglishVariantsDiscovery):
             ),
         ):
             yield path.parent
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r".*\.txt",
             ".*/changelogs",
             candidate_suffixes=(".txt",),
@@ -1171,7 +1172,7 @@ class JSONDiscovery(BaseDiscovery):
         except (OSError, RecursionError, ValueError):
             return None
 
-    def read_json_data(self, path: PurePath) -> object | None:
+    def read_json_data(self, path: DiscoveryPath) -> object | None:
         """Read and parse a complete JSON file."""
         sample = _new_format_sniff_budget(self).read(self.finder, path)
         if sample is None or not sample[1]:
@@ -1182,7 +1183,7 @@ class JSONDiscovery(BaseDiscovery):
         """Check whether a template-less JSON result looks translatable."""
         budget = _new_format_sniff_budget(self)
         for path in self._result_paths(candidate):
-            if not hasattr(path, "open"):
+            if not is_real_path(path):
                 return True
 
             if budget.exhausted:
@@ -1335,7 +1336,7 @@ class JSONDiscovery(BaseDiscovery):
 
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -1394,7 +1395,7 @@ class YAMLDiscovery(BaseDiscovery):
 
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -1458,7 +1459,7 @@ class PHPDiscovery(MonoTemplateDiscovery):
 
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -1573,7 +1574,7 @@ class TOMLDiscovery(BaseDiscovery):
 
         path = next(self._result_paths(candidate), None)
 
-        if path is None or not hasattr(path, "open"):
+        if path is None or not is_real_path(path):
             return
 
         sample = _new_format_sniff_budget(self).read(self.finder, path)
@@ -1686,7 +1687,7 @@ class FormatJSDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r"en.json",
             ".*/extracted",
             candidate_names=("en.json",),
@@ -1761,7 +1762,7 @@ class CMPDiscovery(BaseDiscovery):
 
         It is expected to contain duplicates.
         """
-        for path in self.finder.filter_files(
+        for path in self.finder._filter_file_records(  # ruff: ignore[private-member-access]
             r"(strings.*|.*strings)\.xml",
             ".*/values",
             candidate_suffixes=(".xml",),

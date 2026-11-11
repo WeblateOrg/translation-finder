@@ -69,6 +69,8 @@ from .finder import Finder, _StarMatcher
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
 
+    from translation_finder._paths import DiscoveryPath
+
     from .discovery.base import ResultDict
 
 TEST_DATA = Path(__file__).parent / "test_data"
@@ -665,7 +667,7 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
 
             def __init__(self, finder: Finder) -> None:
                 super().__init__(finder)
-                self.inspected: list[PurePath] = []
+                self.inspected: list[DiscoveryPath] = []
 
             def get_masks(  # ruff: ignore[no-self-use]
                 self, *, eager: bool = False, hint: str | None = None
@@ -1466,7 +1468,7 @@ class QtTest(DiscoveryTestCase):
         discovery = QtDiscovery(finder)
 
         with patch.object(
-            finder, "filter_masks", wraps=finder.filter_masks
+            finder, "_filter_mask_records", wraps=finder._filter_mask_records
         ) as filter_masks:
             results = list(discovery.discover())
 
@@ -4188,7 +4190,7 @@ class AggregateFormatSniffLimitTest(DiscoveryTestCase):
             result: ResultDict = {"filemask": "*/x2-*/messages.json"}
             candidate = DiscoveryCandidate(
                 result,
-                [discovery.finder.files_by_path["en/x2-en/messages.json"]],
+                [discovery.finder._files_by_path["en/x2-en/messages.json"]],
             )
 
             self.assertFalse(discovery.has_template_less_content(candidate))

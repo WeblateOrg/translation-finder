@@ -7,17 +7,18 @@
 from __future__ import annotations
 
 import fnmatch
+import operator
 import re
 import warnings
 from dataclasses import dataclass, fields
 from functools import partial
-from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from charset_normalizer import from_bytes
 from weblate_language_data.country_codes import COUNTRIES
 from weblate_language_data.language_codes import LANGUAGES
 
+from translation_finder._paths import FileRecord, is_real_path, path_sort_key
 from translation_finder.data import LANGUAGES_BLACKLIST
 from translation_finder.finder import (
     DEFAULT_MAX_DEPTH,
@@ -34,8 +35,8 @@ from .result import DiscoveryCandidate, DiscoveryLimit, DiscoveryResult
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from pathlib import PurePath
 
+    from translation_finder._paths import DiscoveryPath
     from translation_finder.finder import Finder
 
     from .result import FileFormatParams, ResultDict
@@ -179,7 +180,7 @@ class SniffBudget:
     def read(
         self,
         finder: Finder,
-        path: PurePath,
+        path: DiscoveryPath,
         size: int = FORMAT_SNIFF_MAX_BYTES,
     ) -> tuple[bytes, bool] | None:
         """Read one sample and charge it to this and all parent budgets."""
@@ -187,7 +188,7 @@ class SniffBudget:
         if allowance is None:
             return None
 
-        if not hasattr(path, "open"):
+        if not is_real_path(path):
             return None
         try:
             with finder.open(path, "rb") as handle:
@@ -336,15 +337,15 @@ class BaseDiscovery:
         self.source_language: str = source_language
         self._run_discovery_budget: DiscoveryBudget | None = None
         self._run_sniff_budget: SniffBudget | None = None
-        self._new_base_by_directory: dict[str, tuple[int, PurePath]] | None = None
-        self._new_base_by_name: dict[tuple[str, str], tuple[int, PurePath]] | None = (
-            None
-        )
+        self._new_base_by_directory: dict[str, tuple[int, DiscoveryPath]] | None = None
+        self._new_base_by_name: (
+            dict[tuple[str, str], tuple[int, DiscoveryPath]] | None
+        ) = None
         self._new_bases_by_name: (
-            dict[str, list[tuple[str, tuple[int, PurePath]]]] | None
+            dict[str, list[tuple[str, tuple[int, DiscoveryPath]]]] | None
         ) = None
         self._new_base_fallback_cache: dict[str, str | None] = {}
-        self._new_base_candidates: dict[str, list[PurePath]] = {}
+        self._new_base_candidates: dict[str, list[DiscoveryPath]] = {}
 
     def _set_run_discovery_budget(self, budget: DiscoveryBudget) -> None:
         """Use a shared candidate budget for this discovery run."""
@@ -364,7 +365,7 @@ class BaseDiscovery:
 
     def _read_run_sniff_sample(
         self,
-        path: PurePath,
+        path: DiscoveryPath,
         size: int = FORMAT_SNIFF_MAX_BYTES,
     ) -> tuple[bytes, bool] | None:
         """Read a sample charged directly to the current run."""
@@ -508,9 +509,11 @@ class BaseDiscovery:
                 for directory in directories
                 if directory in new_base_by_directory
             )
-            fallback_match = min(fallback_matches, default=None)
+            fallback_match = min(
+                fallback_matches, key=operator.itemgetter(0), default=None
+            )
             if fallback_match is not None:
-                best_result = "/".join(fallback_match[1].parts)
+                best_result = fallback_match[1].as_posix()
                 break
 
         self._new_base_fallback_cache[directory_signature] = best_result
@@ -530,7 +533,7 @@ class BaseDiscovery:
             if (directory, name.lower()) in by_name:
                 return True, template
 
-        best: tuple[int, PurePath] | None = None
+        best: tuple[int, DiscoveryPath] | None = None
         if self.new_base_mask in self.masks_list:
             for path in self._new_base_candidates.get(result["filemask"], ()):
                 if (
@@ -542,7 +545,14 @@ class BaseDiscovery:
                 candidate = by_name.get((directory, name.lower()))
                 if candidate is not None:
                     candidate = (candidate[0], path)
-                    if best is None or candidate < best:
+                    if (
+                        best is None
+                        or candidate[0] < best[0]
+                        or (
+                            candidate[0] == best[0]
+                            and path_sort_key(candidate[1]) < path_sort_key(best[1])
+                        )
+                    ):
                         best = candidate
         return True, best[1].as_posix() if best is not None else None
 
@@ -565,14 +575,14 @@ class BaseDiscovery:
                 path == directory or path.startswith(f"{directory}/")
                 for path in (directory_signature, path_wild)
             ):
-                return True, "/".join(candidate[1].parts)
+                return True, candidate[1].as_posix()
         return True, None
 
     def _index_new_bases(
         self,
     ) -> tuple[
-        dict[str, tuple[int, PurePath]],
-        dict[tuple[str, str], tuple[int, PurePath]],
+        dict[str, tuple[int, DiscoveryPath]],
+        dict[tuple[str, str], tuple[int, DiscoveryPath]],
     ]:
         """Index possible new-base files for repeated constant-time lookups."""
         if (
@@ -585,10 +595,14 @@ class BaseDiscovery:
             self._new_bases_by_name = {}
             if self.new_base_mask is not None:
                 for position, match in enumerate(
-                    self.finder.filter_masks(self.new_base_mask)
+                    self.finder._filter_mask_records(self.new_base_mask)  # ruff: ignore[private-member-access]
                 ):
                     # Separate case-distinct trees; only normalize filenames.
-                    directory = "/".join(match.parts[:-1])
+                    directory = (
+                        match.directory.text
+                        if isinstance(match, FileRecord)
+                        else "/".join(match.parts[:-1])
+                    )
                     candidate = (position, match)
                     self._new_base_by_directory.setdefault(directory, candidate)
                     name = match.parts[-1].lower()
@@ -662,12 +676,12 @@ class BaseDiscovery:
         candidate: DiscoveryCandidate,
         *,
         template_first: bool = True,
-    ) -> Generator[PurePath]:
+    ) -> Generator[DiscoveryPath]:
         """Yield unique confirmed paths referenced by a discovery candidate."""
         result = candidate.result
         seen: set[str] = set()
         template = result.get("template")
-        files_by_path = getattr(self.finder, "files_by_path", {})
+        files_by_path = getattr(self.finder, "_files_by_path", {})
         template_path = files_by_path.get(template) if template is not None else None
         paths = (
             ([template_path] if template_path is not None else []) + candidate.paths
@@ -753,9 +767,9 @@ class BaseDiscovery:
             return (self.mask,)
         return self.mask
 
-    def filter_files(self) -> Generator[PurePath]:
+    def filter_files(self) -> Generator[DiscoveryPath]:
         """Filter possible file matches."""
-        return self.finder.filter_masks(self.masks_list)
+        return self.finder._filter_mask_records(self.masks_list)  # ruff: ignore[private-member-access]
 
     def get_masks(  # ruff: ignore[complex-structure, too-many-branches]
         self, *, eager: bool = False, hint: str | None = None
@@ -768,7 +782,7 @@ class BaseDiscovery:
         if hint:
             for mask in self.masks_list:
                 if fnmatch.fnmatch(hint, escape_mask(mask)):
-                    paths = list(self.finder.mask_matches(hint))
+                    paths = list(self.finder._mask_records(hint))  # ruff: ignore[private-member-access]
                     if paths:
                         yield DiscoveryCandidate({"filemask": hint}, paths)
         for path in self.filter_files():
@@ -897,8 +911,8 @@ class EncodingDiscovery(BaseDiscovery):
         for path in self._result_paths(candidate, template_first=False):
             if budget.exhausted:
                 break
-            if not isinstance(path, Path):
-                # PurePath only
+            if not is_real_path(path):
+                # Pure mock listings have no file content.
                 continue
             sample = budget.read(self.finder, path)
             if sample is None:
