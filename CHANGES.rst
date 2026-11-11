@@ -4,22 +4,31 @@ Changelog
 Unreleased
 ----------
 
-* Reduce discovery memory by keeping compact file references throughout
-  indexing, candidate processing, and new-base resolution. Public Finder
-  methods still return paths; backend candidate paths now use read-only path
-  references, and undocumented lookup indexes are private.
-* Speed up directory traversal by combining entry exclusion patterns into a
-  single compiled matcher.
-* Reduce discovery traversal memory by sharing absolute path components and
-  checking excluded entry names without parsing full paths.
-* Reduce discovery index memory by sharing lowercase directory strings and
-  removing an unused suffix index.
-* Speed up discovery hint matching on long paths using literal substring
+3.10.0
+------
+
+* Released on 11th November 2026.
+* Reduced discovery memory by sharing path components and lowercase directory
+  strings, removing unused indexes, and retaining compact file references
+  throughout traversal, indexing, candidate processing, and new-base resolution.
+* Backend candidate paths now use read-only path references, and undocumented
+  lookup indexes are private. Public Finder methods continue to return paths.
+* Sped up directory traversal by combining entry exclusion patterns into a
+  single compiled matcher and checking excluded names without parsing full paths.
+* Sped up discovery hint matching on long paths using literal substring
   searches instead of regular expressions.
-* Reject discovery hints longer than 400 characters in the high-level API and
-  CLI before scanning files, bounding wildcard pattern compilation cost.
-* Standardize discovery masks and hints to use only ``*`` as a wildcard,
+* Rejected discovery hints longer than 400 characters in the high-level API and
+  CLI before scanning files, including with unlimited discovery budgets.
+* Standardized discovery masks and hints to use only ``*`` as a wildcard,
   treating question marks and brackets literally in filename selectors too.
+* Fixed wildcard matching across directory separators to avoid missing files
+  matched by discovery hints and file masks.
+* ``Finder.filter_masks()`` now raises ``ValueError`` for patterns containing
+  ``/`` instead of silently returning no matches. Use ``dirglob`` to filter
+  directories or ``Finder.mask_matches()`` for relative-path masks.
+* Fixed Transifex discovery incorrectly treating directories such as ``atx``
+  as ``.tx`` configuration directories.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.9.2
 -----

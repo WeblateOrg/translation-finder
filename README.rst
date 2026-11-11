@@ -217,10 +217,12 @@ Direct backend ``discover()`` calls also use the default run-wide sniff limits.
 Finder mask matching
 --------------------
 
-``Finder.filter_masks()`` accepts fnmatch-style basename patterns such as
-``*.po`` or ``resources.res[xw]`` and matches them against lowercased filenames
-in every directory. Patterns containing ``/`` raise ``ValueError`` when the
-generator is iterated, before any matches are yielded.
+``Finder.filter_masks()`` accepts basename patterns such as ``*.po``, using
+only ``*`` as a wildcard, and matches them against lowercased filenames in every
+directory. Question marks and brackets match literal characters. To select
+multiple alternatives, pass a tuple such as ``("resources.resx", "resources.resw")``.
+Patterns containing ``/`` raise ``ValueError`` when the generator is iterated,
+before any matches are yielded.
 
 To restrict directories, pass a separate directory regular expression as
 ``dirglob``, for example ``finder.filter_masks("*.po", dirglob="po")``.
