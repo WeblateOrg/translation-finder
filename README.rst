@@ -239,7 +239,20 @@ Custom discovery backends
 Custom ``BaseDiscovery`` implementations return ``DiscoveryCandidate`` objects
 from ``get_masks()``. Each candidate associates the result with the paths which
 actually generated it, allowing content detection to inspect the group without
-expanding its wildcard mask again:
+expanding its wildcard mask again.
+
+Backend ``filter_files()`` and candidate ``paths`` use read-only path references.
+These can be compact file records or ``PurePath`` objects supplied through mock
+listings. Use their ``name``, ``parent``, ``parts``, and ``as_posix()`` interfaces;
+do not require concrete ``Path`` instances or access filesystem methods on the
+references. Read file content through ``self.finder.open(path)``. If additional
+path operations are necessary, explicitly construct ``Path(path.as_posix())``.
+
+The public ``Finder.mask_matches()``, ``filter_masks()``, ``filter_files()``, and
+``get_lc_candidates()`` methods continue to return relative ``PurePath`` objects,
+including the original path objects for mock listings. Filesystem paths are
+materialized on demand, so callers should not depend on object identity across
+calls. Finder's lookup indexes are private implementation details.
 
 Candidate generation, new-base resolution, and returned results are bounded
 across each discovery run. The returned ``DiscoveryResults`` object behaves as

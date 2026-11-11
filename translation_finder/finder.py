@@ -19,10 +19,21 @@ from stat import S_ISREG
 from sys import maxunicode, version_info
 from typing import TYPE_CHECKING, overload
 
+from translation_finder._paths import (
+    DirectoryRecord,
+    DiscoveryPath,
+    FileRecord,
+    PathKey,
+    absolute_path,
+    path_key,
+)
+from translation_finder._paths import (
+    relative_path as materialize_relative_path,
+)
 from translation_finder.discovery.result import DiscoveryLimit
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable
+    from collections.abc import Callable, Generator, Iterable, Sequence
     from io import FileIO, TextIOWrapper
 
     from _typeshed import OpenBinaryMode, OpenTextMode
@@ -82,8 +93,10 @@ def lc_convert(relative_path: str, relative: PurePath) -> tuple[str, str, PurePa
 PathListItem = tuple[PurePath, PurePath, str]
 PathListType = list[PathListItem]
 PathMockType = tuple[PathListType, PathListType]
+CollectedFile = tuple[DiscoveryPath, DiscoveryPath, str]
+LowerRecordItem = tuple[str, str, DiscoveryPath]
 LowerPathListItem = tuple[str, str, PurePath]
-FileMatchItem = tuple[str, PurePath]
+FileMatchItem = tuple[str, DiscoveryPath]
 FileMatchRange = tuple[list[FileMatchItem], int, int]
 
 DEFAULT_MAX_FILES = 100_000
@@ -187,74 +200,92 @@ class Finder:
         self.match_budget = MatchBudget(max_match_checks)
         self._excluded_name = _compile_excludes(windows=os.name == "nt")
         if mock is None:
-            files: PathListType = []
+            files: list[CollectedFile] = []
             dirs: PathListType = []
             self.list_files(root, files, dirs)
         else:
-            files, dirs = self._limit_mock(mock)
+            mock_files, dirs = self._limit_mock(mock)
+            files = [
+                (absolute, relative, text) for absolute, relative, text in mock_files
+            ]
         self._index_paths(files, dirs)
 
-    def _index_paths(self, files: PathListType, dirs: PathListType) -> None:
+    def _index_paths(self, files: Sequence[CollectedFile], dirs: PathListType) -> None:
         """Build lookup indexes from the bounded path collection."""
         # For the has_file/has_dir
         self.filenames = {relative_path for absolute, relative, relative_path in files}
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
         # Needed for filter_files
-        self.lc_files: list[LowerPathListItem] = []
+        self._lc_files: list[LowerRecordItem] = []
         directories: dict[str, str] = {}
         for _absolute, relative, relative_path in files:
-            directory, filename, path = lc_convert(relative_path, relative)
+            if isinstance(relative, FileRecord):
+                directory = relative.directory.lower_text
+                filename = relative.name.lower()
+                if filename == relative.name:
+                    filename = relative.name
+            else:
+                directory, filename, _path = lc_convert(relative_path, relative)
             # Share repeated directory text without retaining a global cache.
             directory = directories.setdefault(directory, directory)
-            self.lc_files.append((directory, filename, path))
+            self._lc_files.append((directory, filename, relative))
         del directories
-        self.lc_files.sort(key=operator.itemgetter(slice(2)))
-        self.lc_files_by_name: dict[str, list[LowerPathListItem]] = {}
-        self.lc_files_by_suffix: dict[str, list[LowerPathListItem]] = {}
-        for lc_item in self.lc_files:
+        self._lc_files.sort(key=operator.itemgetter(slice(2)))
+        self._lc_files_by_name: dict[str, list[LowerRecordItem]] = {}
+        self._lc_files_by_suffix: dict[str, list[LowerRecordItem]] = {}
+        for lc_item in self._lc_files:
             filename = lc_item[1]
-            self.lc_files_by_name.setdefault(filename, []).append(lc_item)
+            self._lc_files_by_name.setdefault(filename, []).append(lc_item)
             if suffix := self.get_suffix(filename):
-                self.lc_files_by_suffix.setdefault(suffix, []).append(lc_item)
+                self._lc_files_by_suffix.setdefault(suffix, []).append(lc_item)
         # Needed for open
-        self.absolutes = {
+        self._absolutes = {
             relative_path: absolute for absolute, relative, relative_path in files
         }
         # Needed for mask_matches
-        self.files = [
+        self._files = [
             (relative_path, relative) for absolute, relative, relative_path in files
         ]
-        self.files.sort(key=operator.itemgetter(0))
-        self.files_by_path = dict(self.files)
-        self.files_by_name: dict[str, list[FileMatchItem]] = {}
-        self.files_by_component: dict[str, list[FileMatchItem]] = {}
-        for file_item in self.files:
+        self._files.sort(key=operator.itemgetter(0))
+        self._files_by_path = dict(self._files)
+        self._files_by_name: dict[str, list[FileMatchItem]] = {}
+        self._files_by_component: dict[str, list[FileMatchItem]] = {}
+        for file_item in self._files:
             relative_path = file_item[0]
-            filename = relative_path.rsplit("/", 1)[-1]
-            self.files_by_name.setdefault(filename, []).append(file_item)
-            for component in set(relative_path.split("/")):
-                self.files_by_component.setdefault(
+            reference = file_item[1]
+            filename = (
+                reference.name
+                if isinstance(reference, FileRecord)
+                else relative_path.rsplit("/", 1)[-1]
+            )
+            self._files_by_name.setdefault(filename, []).append(file_item)
+            for component in set(
+                reference.parts
+                if isinstance(reference, FileRecord)
+                else relative_path.split("/")
+            ):
+                self._files_by_component.setdefault(
                     os.path.normcase(component), []
                 ).append(file_item)
-        self.files_by_normalized_path = sorted(
-            self.files,
-            key=lambda item: (os.path.normcase(item[0]), item[0]),
+        self._files_by_normalized_path = sorted(
+            self._files,
+            key=lambda item: (self._normalized_path(item), item[0]),
         )
-        self.file_paths = [
-            os.path.normcase(item[0]) for item in self.files_by_normalized_path
+        self._file_paths = [
+            self._normalized_path(item) for item in self._files_by_normalized_path
         ]
-        self.files_by_reversed_filename = sorted(
-            self.files,
+        self._files_by_reversed_filename = sorted(
+            self._files,
             key=lambda item: (
                 os.path.normcase(item[0].rsplit("/", 1)[-1])[::-1],
                 item[0],
             ),
         )
-        self.reversed_file_names = [
+        self._reversed_file_names = [
             os.path.normcase(item[0].rsplit("/", 1)[-1])[::-1]
-            for item in self.files_by_reversed_filename
+            for item in self._files_by_reversed_filename
         ]
-        self.mask_matches_cache: dict[str, tuple[PurePath, ...]] = {}
+        self._mask_matches_cache: dict[str, tuple[DiscoveryPath, ...]] = {}
 
     @property
     def limit_reasons(self) -> frozenset[DiscoveryLimit]:
@@ -372,7 +403,7 @@ class Finder:
         return (path, relative, relative.as_posix())
 
     def list_files(
-        self, root: PurePath, files: PathListType, dirs: PathListType
+        self, root: PurePath, files: list[CollectedFile], dirs: PathListType
     ) -> None:
         """
         List files and dirs in a path.
@@ -403,11 +434,15 @@ class Finder:
         self,
         root: PurePath,
         relative_root: Path,
-        files: PathListType,
+        files: list[CollectedFile],
         dirs: PathListType,
         child_dirs: list[tuple[Path, Path]],
     ) -> bool:
         """List entries in a single directory."""
+        parent_text = relative_root.as_posix()
+        parent_text = "" if parent_text == "." else parent_text
+        directory = DirectoryRecord(root, relative_root, parent_text)
+        prefix = f"{parent_text}/" if parent_text else ""
         with scandir(root) as matches:
             for match in matches:
                 if not self._consume_entry():
@@ -417,8 +452,8 @@ class Finder:
                 is_dir = match.is_dir(follow_symlinks=False)
                 if self._excluded_name(match.name):
                     continue
-                path = Path(root, match.name)
                 if is_dir:
+                    path = Path(root, match.name)
                     relative = relative_root / match.name
                     relative_path = relative.as_posix()
                     if not self._path_length_allowed(relative_path):
@@ -440,13 +475,13 @@ class Finder:
                     if self.max_files is not None and len(files) >= self.max_files:
                         self._walk_limit_reasons.add(DiscoveryLimit.FILES)
                         return False
-                    relative = relative_root / match.name
-                    relative_path = relative.as_posix()
+                    relative_path = prefix + match.name
                     if not self._path_length_allowed(relative_path):
                         continue
                     if not self._consume_path_bytes(relative_path):
                         return False
-                    files.append((path, relative, relative_path))
+                    record = FileRecord(directory, match.name, relative_path)
+                    files.append((record, record, relative_path))
         return True
 
     def has_file(self, name: str) -> bool:
@@ -479,43 +514,97 @@ class Finder:
 
         filename = mask.rsplit("/", 1)[-1]
         if "*" not in filename:
-            add(self.files_by_name.get(filename, []))
+            add(self._files_by_name.get(filename, []))
 
         if path_prefix := mask.split("*", 1)[0]:
             start, end = self._prefix_range(
-                self.file_paths, os.path.normcase(path_prefix)
+                self._file_paths, os.path.normcase(path_prefix)
             )
-            add(self.files_by_normalized_path, start, end)
+            add(self._files_by_normalized_path, start, end)
 
         # A basename prefix cannot narrow candidates: * can span /, leaving
         # the literal prefix in a directory rather than in the basename.
         if filename_suffix := filename.rsplit("*", 1)[-1]:
             start, end = self._prefix_range(
-                self.reversed_file_names, os.path.normcase(filename_suffix)[::-1]
+                self._reversed_file_names, os.path.normcase(filename_suffix)[::-1]
             )
-            add(self.files_by_reversed_filename, start, end)
+            add(self._files_by_reversed_filename, start, end)
 
         for component in mask.split("/"):
             if "*" not in component:
-                add(self.files_by_component.get(os.path.normcase(component), []))
+                add(self._files_by_component.get(os.path.normcase(component), []))
 
         if not options:
-            return self.files, 0, len(self.files)
+            return self._files, 0, len(self._files)
         return min(options, key=lambda option: option[2] - option[1])
+
+    @staticmethod
+    def _normalized_path(item: FileMatchItem) -> str:
+        """Reuse the normalized record text in the prefix index."""
+        reference = item[1]
+        return (
+            reference.normalized_text
+            if isinstance(reference, FileRecord)
+            else os.path.normcase(item[0])
+        )
 
     def mask_matches(
         self, mask: str, *, budget: MatchBudget | None = None
     ) -> Generator[PurePath]:
+        """Match relative paths, materializing only paths requested by callers."""
+        for reference in self._mask_records(mask, budget=budget):
+            yield materialize_relative_path(reference)
+
+    def get_lc_candidates(
+        self,
+        candidate_names: Iterable[str] | None,
+        candidate_suffixes: Iterable[str] | None,
+    ) -> list[LowerPathListItem]:
+        """Return lowercase candidates with their original relative paths."""
+        return [
+            (directory, filename, materialize_relative_path(reference))
+            for directory, filename, reference in self._get_lc_records(
+                candidate_names, candidate_suffixes
+            )
+        ]
+
+    def filter_masks(
+        self, masks: str | Iterable[str], dirglob: str | None = None
+    ) -> Generator[PurePath]:
+        """Filter basenames with * wildcards and an optional directory regex."""
+        for reference in self._filter_mask_records(masks, dirglob):
+            yield materialize_relative_path(reference)
+
+    def filter_files(
+        self,
+        fileglob: str,
+        dirglob: str | None = None,
+        *,
+        candidate_names: Iterable[str] | None = None,
+        candidate_suffixes: Iterable[str] | None = None,
+    ) -> Generator[PurePath]:
+        """Filter lowercase names by regex and return relative paths."""
+        for reference in self._filter_file_records(
+            fileglob,
+            dirglob,
+            candidate_names=candidate_names,
+            candidate_suffixes=candidate_suffixes,
+        ):
+            yield materialize_relative_path(reference)
+
+    def _mask_records(
+        self, mask: str, *, budget: MatchBudget | None = None
+    ) -> Generator[DiscoveryPath]:
         """Match relative paths with * wildcards and all other characters literal."""
         if budget is None:
             budget = self.match_budget
-        if mask in self.mask_matches_cache:
-            yield from self.mask_matches_cache[mask]
+        if mask in self._mask_matches_cache:
+            yield from self._mask_matches_cache[mask]
             return
 
-        result: tuple[PurePath, ...]
+        result: tuple[DiscoveryPath, ...]
         if "*" not in mask:
-            match = self.files_by_path.get(mask)
+            match = self._files_by_path.get(mask)
             result = (match,) if match is not None else ()
         else:
             items, start, end = self._mask_candidates(mask)
@@ -535,37 +624,37 @@ class Finder:
                 yield from result
                 return
 
-        self.mask_matches_cache[mask] = result
+        self._mask_matches_cache[mask] = result
         yield from result
 
-    def get_lc_candidates(
+    def _get_lc_records(
         self,
         candidate_names: Iterable[str] | None,
         candidate_suffixes: Iterable[str] | None,
-    ) -> list[LowerPathListItem]:
+    ) -> list[LowerRecordItem]:
         """Return lowercase file candidates narrowed by filename hints."""
         if candidate_names is None and candidate_suffixes is None:
-            return self.lc_files
+            return self._lc_files
 
-        candidates: dict[PurePath, LowerPathListItem] = {}
+        candidates: dict[PathKey, LowerRecordItem] = {}
         if candidate_names is not None:
             for name in candidate_names:
-                for item in self.lc_files_by_name.get(name.lower(), ()):
-                    candidates[item[2]] = item
+                for item in self._lc_files_by_name.get(name.lower(), ()):
+                    candidates[path_key(item[2])] = item
         if candidate_suffixes is not None:
             for suffix in candidate_suffixes:
-                for item in self.lc_files_by_suffix.get(suffix.lower(), ()):
-                    candidates[item[2]] = item
+                for item in self._lc_files_by_suffix.get(suffix.lower(), ()):
+                    candidates[path_key(item[2])] = item
 
         result = list(candidates.values())
         result.sort(key=operator.itemgetter(slice(2)))
         return result
 
-    def filter_masks(
+    def _filter_mask_records(
         self,
         masks: str | Iterable[str],
         dirglob: str | None = None,
-    ) -> Generator[PurePath]:
+    ) -> Generator[DiscoveryPath]:
         """
         Filter lowercase basenames with only * acting as a wildcard.
 
@@ -587,25 +676,25 @@ class Finder:
         else:
             candidate_names, candidate_suffixes = candidates
 
-        yield from self.filter_files(
+        yield from self._filter_file_records(
             "|".join(translate(escape_mask(mask)) for mask in masks),
             dirglob,
             candidate_names=candidate_names,
             candidate_suffixes=candidate_suffixes,
         )
 
-    def filter_files(
+    def _filter_file_records(
         self,
         fileglob: str,
         dirglob: str | None = None,
         *,
         candidate_names: Iterable[str] | None = None,
         candidate_suffixes: Iterable[str] | None = None,
-    ) -> Generator[PurePath]:
+    ) -> Generator[DiscoveryPath]:
         """Filter lowercase file names against glob."""
         fileglob_re = re.compile(fileglob)
         dirglob_re = re.compile(dirglob) if dirglob else None
-        for directory, filename, path in self.get_lc_candidates(
+        for directory, filename, path in self._get_lc_records(
             candidate_names,
             candidate_suffixes,
         ):
@@ -621,12 +710,12 @@ class Finder:
                 yield path
 
     @overload
-    def open(self, path: PurePath, mode: OpenTextMode = "r") -> TextIOWrapper: ...
+    def open(self, path: DiscoveryPath, mode: OpenTextMode = "r") -> TextIOWrapper: ...
     @overload
-    def open(self, path: PurePath, mode: OpenBinaryMode) -> FileIO: ...
+    def open(self, path: DiscoveryPath, mode: OpenBinaryMode) -> FileIO: ...
     def open(self, path, mode="r"):
         """Open file from the finder."""
-        path_obj = self.absolutes[path.as_posix()]
+        path_obj = absolute_path(self._absolutes[path.as_posix()])
         if not isinstance(path_obj, Path):
             msg = "Not a real file"
             raise TypeError(msg)

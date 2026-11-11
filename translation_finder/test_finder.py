@@ -1,6 +1,7 @@
 # Copyright © Michal Čihař <michal@weblate.org>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+# ruff: file-ignore[private-member-access]
 """File finder tests."""
 
 import ntpath
@@ -92,7 +93,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
     def test_init(self) -> None:
         finder = Finder(pathlib.Path(__file__).parent)
-        self.assertNotEqual(finder.files, {})
+        self.assertNotEqual(finder._files, {})
 
     def test_lowercase_directory_sharing(self) -> None:
         finder = self.get_finder(
@@ -111,9 +112,9 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             ("locale/resources", "z.po", pathlib.PurePath("Locale/Resources/Z.po")),
             ("other", "b.po", pathlib.PurePath("other/b.po")),
         ]
-        self.assertEqual(finder.lc_files, expected)
-        self.assertIs(finder.lc_files[0][0], finder.lc_files[1][0])
-        self.assertIs(finder.lc_files[2][0], finder.lc_files[3][0])
+        self.assertEqual(finder._lc_files, expected)
+        self.assertIs(finder._lc_files[0][0], finder._lc_files[1][0])
+        self.assertIs(finder._lc_files[2][0], finder._lc_files[3][0])
         self.assertEqual(finder.get_lc_candidates(None, [".po"]), expected)
         self.assertEqual(finder.get_lc_candidates(["A.PO"], None), [expected[2]])
         self.assertEqual(
@@ -387,7 +388,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                 ]
                 self.assertTrue(expected)
                 self.assertEqual(list(finder.mask_matches(mask)), expected)
-                self.assertIn(mask, finder.mask_matches_cache)
+                self.assertIn(mask, finder._mask_matches_cache)
                 self.assertEqual(list(finder.mask_matches(mask)), expected)
                 self.assertEqual(finder.limit_reasons, frozenset())
 
@@ -435,7 +436,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
         self.assertEqual(matches.call_count, 2)
         self.assertTrue(budget.truncated)
-        self.assertNotIn("*/messages.json", finder.mask_matches_cache)
+        self.assertNotIn("*/messages.json", finder._mask_matches_cache)
         self.assertEqual(
             list(finder.mask_matches("*/messages.json")),
             [
@@ -459,7 +460,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         )
 
         self.assertFalse(budget.truncated)
-        self.assertIn("*/messages.json", finder.mask_matches_cache)
+        self.assertIn("*/messages.json", finder._mask_matches_cache)
 
         finder = self.get_finder(["locale/en/messages.json"])
         budget = MatchBudget(0)
@@ -527,7 +528,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             with patch("translation_finder.finder.scandir", side_effect=fake_scandir):
                 finder = Finder(root)
 
-        self.assertEqual(finder.files, [])
+        self.assertEqual(finder._files, [])
         self.assertEqual(finder.dirnames, {"blocked"})
 
     def test_deep_directories_are_scanned_iteratively(self) -> None:
@@ -590,15 +591,15 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             for name in ("a.po", "b.po", "c.po"):
                 (root / name).touch()
             exact = Finder(root, max_files=3, max_entries=3)
-            self.assertEqual(len(exact.files), 3)
+            self.assertEqual(len(exact._files), 3)
             self.assertFalse(exact.limit_reasons)
 
             files = Finder(root, max_files=2)
-            self.assertEqual(len(files.files), 2)
+            self.assertEqual(len(files._files), 2)
             self.assertEqual(files.limit_reasons, {DiscoveryLimit.FILES})
 
             entries = Finder(root, max_entries=2)
-            self.assertEqual(len(entries.files), 2)
+            self.assertEqual(len(entries._files), 2)
             self.assertEqual(entries.limit_reasons, {DiscoveryLimit.ENTRIES})
 
     def test_entry_limit_counts_excluded_files(self) -> None:
@@ -607,7 +608,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             for index in range(3):
                 (root / f"excluded_{index}.swp").touch()
             finder = Finder(root, max_entries=2)
-        self.assertEqual(finder.files, [])
+        self.assertEqual(finder._files, [])
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.ENTRIES})
 
     def test_exclusions_match_entry_names(self) -> None:
@@ -725,8 +726,8 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                     self.assertEqual(finder.filenames, {"locale/messages.po"})
                     self.assertEqual(finder.dirnames, {"locale"})
                     self.assertEqual(
-                        finder.absolutes["locale/messages.po"],
-                        root / "locale" / "messages.po",
+                        list(finder.mask_matches("locale/messages.po")),
+                        [pathlib.Path("locale/messages.po")],
                     )
                     with finder.open(pathlib.PurePath("locale/messages.po")) as handle:
                         self.assertEqual(handle.read(), "catalog")
@@ -765,10 +766,10 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         paths = [pathlib.PurePath("/".join([f"d{i}" for i in range(70)]), "x.po")]
         files = [(path, path, path.as_posix()) for path in paths]
         finder = Finder(pathlib.PurePath(), mock=(files, []))
-        self.assertFalse(finder.files)
+        self.assertFalse(finder._files)
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.DEPTH})
         unlimited = Finder(pathlib.PurePath(), mock=(files, []), max_depth=None)
-        self.assertEqual(len(unlimited.files_by_component), 71)
+        self.assertEqual(len(unlimited._files_by_component), 71)
 
     def test_mock_count_limits(self) -> None:
         path = pathlib.PurePath("a")
@@ -840,7 +841,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             (root / "wide.po").touch()
             finder = Finder(root, max_path_length=3)
 
-        self.assertFalse(finder.files)
+        self.assertFalse(finder._files)
         self.assertFalse(finder.dirnames)
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.PATH_LENGTH})
 
@@ -851,15 +852,15 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         dirs = [(directory, directory, directory.as_posix())]
         # Two bytes for the directory plus seven for each file path.
         exact = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=16)
-        self.assertEqual(len(exact.files), 2)
+        self.assertEqual(len(exact._files), 2)
         self.assertFalse(exact.limit_reasons)
         limited = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=15)
-        self.assertEqual(limited.files, [(paths[0].as_posix(), paths[0])])
+        self.assertEqual(limited._files, [(paths[0].as_posix(), paths[0])])
         self.assertEqual(limited.dirnames, {"é"})
-        self.assertNotIn(paths[1].as_posix(), limited.absolutes)
+        self.assertNotIn(paths[1].as_posix(), limited._absolutes)
         self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
         unlimited = Finder(pathlib.PurePath(), mock=(files, dirs), max_path_bytes=None)
-        self.assertEqual(unlimited.files, exact.files)
+        self.assertEqual(unlimited._files, exact._files)
         self.assertFalse(unlimited.limit_reasons)
 
     def test_path_bytes_surrogate(self) -> None:
@@ -869,7 +870,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         self.assertTrue(exact.has_file(path.as_posix()))
         self.assertFalse(exact.limit_reasons)
         limited = Finder(pathlib.PurePath(), mock=mock, max_path_bytes=5)
-        self.assertFalse(limited.files)
+        self.assertFalse(limited._files)
         self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
 
     def test_path_bytes_during_walk(self) -> None:
@@ -883,11 +884,11 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             self.assertFalse(exact.limit_reasons)
             limited = Finder(root, max_path_bytes=6)
             self.assertEqual(limited.dirnames, {"a"})
-            self.assertFalse(limited.files)
+            self.assertFalse(limited._files)
             self.assertEqual(limited.limit_reasons, {DiscoveryLimit.PATH_BYTES})
             no_dirs = Finder(root, max_path_bytes=0)
             self.assertFalse(no_dirs.dirnames)
-            self.assertFalse(no_dirs.files)
+            self.assertFalse(no_dirs._files)
             self.assertEqual(no_dirs.limit_reasons, {DiscoveryLimit.PATH_BYTES})
 
     def test_path_bytes_counts_only_retained_paths(self) -> None:
@@ -908,7 +909,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         finder = Finder(pathlib.PurePath(), mock=(files, []), max_match_checks=2)
         self.assertEqual(len(list(finder.mask_matches("*.po"))), 2)
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.MATCH_CHECKS})
-        self.assertNotIn("*.po", finder.mask_matches_cache)
+        self.assertNotIn("*.po", finder._mask_matches_cache)
 
     def test_unreadable_root_is_reported(self) -> None:
         root = pathlib.Path("root")
@@ -952,7 +953,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
             finder = Finder(root)
 
-        self.assertEqual(finder.files, [])
+        self.assertEqual(finder._files, [])
         self.assertEqual(finder.dirnames, set())
 
 

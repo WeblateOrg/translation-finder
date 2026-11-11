@@ -12,9 +12,12 @@ from enum import StrEnum
 from functools import total_ordering
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
+from translation_finder._paths import path_key
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from pathlib import PurePath
+
+    from translation_finder._paths import DiscoveryPath, PathKey
 
 FileFormatParams = dict[str, str | int | bool]
 
@@ -58,27 +61,27 @@ class ResultDict(TypedDict, total=False):
     new_base: str
 
 
-@dataclass
+@dataclass(init=False)
 class DiscoveryCandidate:
     """Discovery result under construction with confirmed matching paths."""
 
     result: ResultDict
-    paths: list[PurePath] = field(default_factory=list)
-    _known_paths: set[PurePath] = field(init=False, repr=False)
+    paths: list[DiscoveryPath] = field(default_factory=list)
+    _known_paths: set[PathKey] = field(init=False, repr=False)
 
-    def __post_init__(self) -> None:
-        """Normalize the initial path list."""
-        paths = self.paths
+    def __init__(self, result: ResultDict, paths: Iterable[DiscoveryPath] = ()) -> None:
+        self.result = result
         self.paths = []
         self._known_paths = set()
         self.merge_paths(paths)
 
-    def merge_paths(self, paths: list[PurePath]) -> None:
-        """Append paths while preserving their order and uniqueness."""
+    def merge_paths(self, paths: Iterable[DiscoveryPath]) -> None:
+        """Append references while preserving path equality and insertion order."""
         for path in paths:
-            if path not in self._known_paths:
+            key = path_key(path)
+            if key not in self._known_paths:
                 self.paths.append(path)
-                self._known_paths.add(path)
+                self._known_paths.add(key)
 
 
 @total_ordering
