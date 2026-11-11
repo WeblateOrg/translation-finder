@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """File finder tests."""
 
+import ntpath
 import os
 import pathlib
+import posixpath
 import socket
 import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import sys
@@ -13,9 +15,8 @@ from fnmatch import fnmatch, translate
 from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
-from . import finder as finder_module
 from .discovery.result import DiscoveryLimit
-from .finder import Finder, MatchBudget, PathMockType
+from .finder import Finder, MatchBudget, PathMockType, _StarMatcher
 
 
 class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
@@ -35,6 +36,52 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                 [],
             ),
         )
+
+    def test_star_matcher(self) -> None:
+        for mask, path, expected in (
+            ("*", "", True),
+            ("***", "a/b\nc", True),
+            ("a*b", "ab", True),
+            ("a*b", "a/b", True),
+            ("a*b", "a\nb", True),
+            ("a*b", "a", False),
+            ("a*b", "xab", False),
+            ("a*b", "abx", False),
+            ("ab*bc", "abc", False),
+            ("ab*bc", "abbc", True),
+            ("*ab*bc", "abcx", False),
+            ("*ab*bc", "abc", False),
+            ("*ab*bc", "abxbc", True),
+            ("*ab*bc*", "abcx", False),
+            ("*ab*bc*", "abxbcy", True),
+            ("a**b***c*", "axbyc", True),
+            ("a**b***c*", "axcyb", False),
+            ("*?.[ab]", "x?.[ab]", True),
+            ("*?.[ab]", "x1.a", False),
+            ("*é*漢*", "dé/漢字", True),
+            ("*é*漢*", "漢é字", False),
+        ):
+            with self.subTest(mask=mask, path=path):
+                self.assertEqual(_StarMatcher(mask).matches(path), expected)
+
+    def test_star_matcher_normalization(self) -> None:
+        for normcase, expected in (
+            (posixpath.normcase, False),
+            (ntpath.normcase, True),
+        ):
+            with (
+                self.subTest(normcase=normcase),
+                patch("translation_finder.finder.os.path.normcase", normcase),
+            ):
+                self.assertEqual(
+                    _StarMatcher("LOCALE/*/é.po").matches("locale\\cs\\é.po"),
+                    expected,
+                )
+
+    def test_star_matcher_long_literals(self) -> None:
+        matcher = _StarMatcher(f"*{'ab' * 128}c*.po")
+        self.assertFalse(matcher.matches(f"{'ab' * 512}.po"))
+        self.assertTrue(matcher.matches(f"{'ab' * 512}c.po"))
 
     def test_init(self) -> None:
         finder = Finder(pathlib.Path(__file__).parent)
@@ -316,8 +363,8 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         )
 
         with patch.object(
-            finder_module, "fnmatch", wraps=finder_module.fnmatch
-        ) as fnmatch:
+            _StarMatcher, "matches", autospec=True, side_effect=_StarMatcher.matches
+        ) as matches:
             expected = [
                 pathlib.PurePath("messages_cs.json"),
                 pathlib.PurePath("messages_custom.json"),
@@ -325,7 +372,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
             self.assertEqual(list(finder.mask_matches("messages_*.json")), expected)
             self.assertEqual(list(finder.mask_matches("messages_*.json")), expected)
 
-        self.assertEqual(fnmatch.call_count, 2)
+        self.assertEqual(matches.call_count, 2)
 
     def test_mask_matches_budget(self) -> None:
         finder = self.get_finder(
@@ -338,8 +385,8 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         budget = MatchBudget(2)
 
         with patch.object(
-            finder_module, "fnmatch", wraps=finder_module.fnmatch
-        ) as fnmatch:
+            _StarMatcher, "matches", autospec=True, side_effect=_StarMatcher.matches
+        ) as matches:
             self.assertEqual(
                 list(finder.mask_matches("*/messages.json", budget=budget)),
                 [
@@ -348,7 +395,7 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                 ],
             )
 
-        self.assertEqual(fnmatch.call_count, 2)
+        self.assertEqual(matches.call_count, 2)
         self.assertTrue(budget.truncated)
         self.assertNotIn("*/messages.json", finder.mask_matches_cache)
         self.assertEqual(
@@ -827,7 +874,9 @@ class FinderOpenTest(TestCase):
     def test_fifo_discovery_and_replacement_do_not_block(self) -> None:
         # Keep potentially blocking operations in a child that can be killed.
         script = """
+import ntpath
 import os
+import posixpath
 import sys
 from pathlib import Path
 from unittest import TestCase

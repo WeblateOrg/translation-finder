@@ -11,7 +11,7 @@ import operator
 import os
 import re
 from bisect import bisect_left
-from fnmatch import fnmatch, translate
+from fnmatch import translate
 from itertools import islice
 from os import scandir
 from pathlib import Path, PurePath
@@ -76,6 +76,37 @@ DEFAULT_MAX_ENTRIES = 150_000
 DEFAULT_MAX_PATH_LENGTH = 4096
 DEFAULT_MAX_MATCH_CHECKS = 65_536
 DEFAULT_MAX_PATH_BYTES = 64 * 1024 * 1024
+
+
+class _StarMatcher:
+    """Match masks containing * with literal substring searches."""
+
+    def __init__(self, mask: str) -> None:
+        parts = os.path.normcase(mask).split("*")
+        self.prefix = parts[0]
+        self.suffix = parts[-1]
+        self.segments = tuple(part for part in parts[1:-1] if part)
+        self.min_length = sum(map(len, parts))
+
+    def matches(self, path: str) -> bool:
+        """Match a whole path, allowing stars to span directory separators."""
+        path = os.path.normcase(path)
+        if (
+            len(path) < self.min_length
+            or not path.startswith(self.prefix)
+            or not path.endswith(self.suffix)
+        ):
+            return False
+
+        position = len(self.prefix)
+        end = len(path) - len(self.suffix)
+        for segment in self.segments:
+            # Reserve the suffix and consume each segment without overlap.
+            found = path.find(segment, position, end)
+            if found == -1:
+                return False
+            position = found + len(segment)
+        return True
 
 
 class MatchBudget:
@@ -469,14 +500,14 @@ class Finder:
             result = (match,) if match is not None else ()
         else:
             items, start, end = self._mask_candidates(mask)
-            escaped_mask = escape_mask(mask)
+            matcher = _StarMatcher(mask)
             matches = []
             complete = True
             for item in islice(items, start, end):
                 if not budget.consume():
                     complete = False
                     break
-                if fnmatch(item[0], escaped_mask):
+                if matcher.matches(item[0]):
                     matches.append(item)
             matches.sort(key=operator.itemgetter(0))
             result = tuple(item[1] for item in matches)

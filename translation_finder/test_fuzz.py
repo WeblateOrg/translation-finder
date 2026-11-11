@@ -6,11 +6,15 @@
 from __future__ import annotations
 
 import json
+import ntpath
+import posixpath
 import tempfile
 import warnings
+from fnmatch import fnmatchcase
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING
 from unittest import TestCase
+from unittest.mock import patch
 
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
@@ -18,7 +22,7 @@ from hypothesis import strategies as st
 from .api import discover
 from .discovery.base import BaseDiscovery
 from .discovery.result import DiscoveryResult
-from .finder import Finder
+from .finder import Finder, _StarMatcher, escape_mask
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -400,6 +404,23 @@ def discover_real_files(files: FileSet) -> list[DiscoveryResult]:
 
 
 class FuzzTest(TestCase):
+    @FUZZ_SETTINGS
+    @given(
+        parts=st.lists(
+            st.text(alphabet="abcABC/\\\n?.[]é漢", max_size=12),
+            min_size=2,
+            max_size=6,
+        ),
+        path=st.text(alphabet="abcABC/\\\n?.[]é漢", max_size=64),
+    )
+    def test_star_matcher_equivalence(self, parts: list[str], path: str) -> None:
+        mask = "*".join(parts)
+        for normcase in (posixpath.normcase, ntpath.normcase):
+            for candidate in (path, "".join(parts), "x/".join(parts)):
+                expected = fnmatchcase(normcase(candidate), normcase(escape_mask(mask)))
+                with patch("translation_finder.finder.os.path.normcase", normcase):
+                    self.assertEqual(_StarMatcher(mask).matches(candidate), expected)
+
     @FUZZ_SETTINGS
     @given(paths=PATH_NAMES)
     def test_finder_accepts_generated_mock_paths(self, paths: list[str]) -> None:
