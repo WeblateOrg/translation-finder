@@ -182,10 +182,14 @@ class Finder:
         self.filenames = {relative_path for absolute, relative, relative_path in files}
         self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
         # Needed for filter_files
-        self.lc_files = [
-            lc_convert(relative_path, relative)
-            for absolute, relative, relative_path in files
-        ]
+        self.lc_files: list[LowerPathListItem] = []
+        directories: dict[str, str] = {}
+        for _absolute, relative, relative_path in files:
+            directory, filename, path = lc_convert(relative_path, relative)
+            # Share repeated directory text without retaining a global cache.
+            directory = directories.setdefault(directory, directory)
+            self.lc_files.append((directory, filename, path))
+        del directories
         self.lc_files.sort(key=operator.itemgetter(slice(2)))
         self.lc_files_by_name: dict[str, list[LowerPathListItem]] = {}
         self.lc_files_by_suffix: dict[str, list[LowerPathListItem]] = {}
@@ -205,14 +209,11 @@ class Finder:
         self.files.sort(key=operator.itemgetter(0))
         self.files_by_path = dict(self.files)
         self.files_by_name: dict[str, list[FileMatchItem]] = {}
-        self.files_by_suffix: dict[str, list[FileMatchItem]] = {}
         self.files_by_component: dict[str, list[FileMatchItem]] = {}
         for file_item in self.files:
             relative_path = file_item[0]
             filename = relative_path.rsplit("/", 1)[-1]
             self.files_by_name.setdefault(filename, []).append(file_item)
-            if suffix := self.get_suffix(filename.lower()):
-                self.files_by_suffix.setdefault(suffix, []).append(file_item)
             for component in set(relative_path.split("/")):
                 self.files_by_component.setdefault(
                     os.path.normcase(component), []
