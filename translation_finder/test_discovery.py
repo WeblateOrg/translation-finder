@@ -20,7 +20,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from . import api as api_module
-from . import finder as finder_module
 from .discovery import base as base_module
 from .discovery import files as files_module
 from .discovery import transifex as transifex_module
@@ -65,7 +64,7 @@ from .discovery.files import (
 )
 from .discovery.result import DiscoveryCandidate, DiscoveryLimit
 from .discovery.transifex import TransifexDiscovery
-from .finder import Finder
+from .finder import Finder, _StarMatcher
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -704,12 +703,12 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         discovery = JavaDiscovery(finder)
 
         with patch.object(
-            finder_module, "fnmatch", wraps=finder_module.fnmatch
-        ) as fnmatch:
+            _StarMatcher, "matches", autospec=True, side_effect=_StarMatcher.matches
+        ) as matches:
             results = list(discovery.discover())
 
         self.assertEqual(len(results), count)
-        self.assertEqual(fnmatch.call_count, 0)
+        self.assertEqual(matches.call_count, 0)
 
     def test_api_candidate_evaluation_is_linear(self) -> None:
         count = 30
@@ -717,12 +716,12 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
         files = [(PurePath(path), PurePath(path), path) for path in paths]
 
         with patch.object(
-            finder_module, "fnmatch", wraps=finder_module.fnmatch
-        ) as fnmatch:
+            _StarMatcher, "matches", autospec=True, side_effect=_StarMatcher.matches
+        ) as matches:
             results = api_module.discover(PurePath(), mock=(files, []))
 
         self.assertEqual(len(results), count)
-        self.assertEqual(fnmatch.call_count, 0)
+        self.assertEqual(matches.call_count, 0)
 
     def test_generated_paths_avoid_wildcard_rescans(self) -> None:
         checks = (
@@ -742,12 +741,15 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
                 discovery = discovery_class(finder)
 
                 with patch.object(
-                    finder_module, "fnmatch", wraps=finder_module.fnmatch
-                ) as fnmatch:
+                    _StarMatcher,
+                    "matches",
+                    autospec=True,
+                    side_effect=_StarMatcher.matches,
+                ) as matches:
                     results = list(discovery.discover())
 
                 self.assertEqual(len(results), result_count)
-                self.assertEqual(fnmatch.call_count, 0)
+                self.assertEqual(matches.call_count, 0)
 
     def test_custom_generated_paths_avoid_wildcard_rescans(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -760,12 +762,12 @@ class DiscoveryPathIndexTest(DiscoveryTestCase):
             discovery = OSXDiscovery(finder)
 
             with patch.object(
-                finder_module, "fnmatch", wraps=finder_module.fnmatch
-            ) as fnmatch:
+                _StarMatcher, "matches", autospec=True, side_effect=_StarMatcher.matches
+            ) as matches:
                 results = list(discovery.discover())
 
             self.assertEqual(len(results), 20)
-            self.assertEqual(fnmatch.call_count, 0)
+            self.assertEqual(matches.call_count, 0)
 
     def test_incidental_glob_matches_are_not_inspected(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
