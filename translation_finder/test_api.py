@@ -220,6 +220,57 @@ class APITest(DiscoveryTestCase):  # ruff: ignore[too-many-public-methods]
                 with self.subTest(hint=hint):
                     self.assert_discovery(discover(tmpdir, hint=hint), [])
 
+    def test_discover_hint_length_boundary(self) -> None:
+        for character in ("a", "ž", "["):
+            hint = character * 395 + "-*.po"
+            path = hint.replace("*", "en")
+            with self.subTest(character=character):
+                results = discover(
+                    PurePath(),
+                    mock=([(PurePath(path), PurePath(path), path)], []),
+                    hint=hint,
+                )
+                self.assertIn(hint, [result["filemask"] for result in results])
+
+    def test_discover_rejects_long_hint_before_scanning(self) -> None:
+        for limits in (
+            DiscoveryLimits(),
+            DiscoveryLimits(max_results=0),
+            DiscoveryLimits.unlimited(),
+        ):
+            with (
+                self.subTest(limits=limits),
+                patch.object(api_module, "Finder") as finder,
+                patch.object(api_module, "scandir") as scan,
+                self.assertRaisesRegex(ValueError, "at most 400 characters"),
+            ):
+                discover(".", hint="a" * 401, limits=limits)
+            finder.assert_not_called()
+            scan.assert_not_called()
+
+    def test_cli_hint_length_boundary(self) -> None:
+        hint = "a" * 395 + "-*.po"
+        with (
+            patch.object(
+                api_module, "discover", return_value=DiscoveryResults()
+            ) as discovery,
+        ):
+            self.assertEqual(cli(args=[".", "--hint", hint], stdout=StringIO()), 0)
+        self.assertEqual(discovery.call_args.kwargs["hint"], hint)
+
+    def test_cli_rejects_long_hint(self) -> None:
+        for options in ([], ["--unlimited"]):
+            with (
+                self.subTest(options=options),
+                patch.object(api_module, "discover") as discovery,
+                patch("sys.stderr", StringIO()) as stderr,
+                self.assertRaises(SystemExit) as error,
+            ):
+                cli(args=[".", "--hint", "a" * 401, *options])
+            self.assertEqual(error.exception.code, 2)
+            self.assertIn("at most 400 characters", stderr.getvalue())
+            discovery.assert_not_called()
+
     def test_discover_hint_wildcard_spans_directories(self) -> None:
         hint = "*/v1.2.*.json"
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Reject discovery hints longer than 400 characters in the high-level API and
+  CLI before scanning files, bounding wildcard pattern compilation cost.
 * Standardize discovery masks and hints to use only ``*`` as a wildcard,
   treating question marks and brackets literally in filename selectors too.
 

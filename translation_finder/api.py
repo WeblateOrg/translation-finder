@@ -32,9 +32,17 @@ if TYPE_CHECKING:
     from .finder import PathMockType
 
 BACKENDS: list[type[BaseDiscovery]] = []
+MAX_HINT_LENGTH = 400
 
 
 DiscoveryT = TypeVar("DiscoveryT", bound=type[BaseDiscovery])
+
+
+def _validate_hint(hint: str | None) -> None:
+    """Bound pattern compilation before scanning or matching files."""
+    if hint is not None and len(hint) > MAX_HINT_LENGTH:
+        msg = f"Discovery hint must be at most {MAX_HINT_LENGTH} characters long."
+        raise ValueError(msg)
 
 
 def register_discovery(cls: DiscoveryT) -> DiscoveryT:
@@ -64,10 +72,12 @@ def discover(  # ruff: ignore[too-many-arguments]
 
     File masks and the optional hint use * as their only wildcard; question
     marks and brackets are literal characters.
+    Hints longer than 400 characters raise ValueError, even with unlimited budgets.
 
     Discovery is bounded to avoid excessive work on crafted repositories.
     Inspect truncated and limit_reasons on the returned results for limit status.
     """
+    _validate_hint(hint)
     limits = limits if limits is not None else DiscoveryLimits()
     if limits.max_results == 0:
         if mock is None:
@@ -176,7 +186,11 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
         default=False,
         action="store_true",
     )
-    parser.add_argument("--hint", help="File mask hint for the discovery", default=None)
+    parser.add_argument(
+        "--hint",
+        help="File mask hint for the discovery (at most 400 characters)",
+        default=None,
+    )
     parser.add_argument(
         "directory",
         help="Directory where to perform discovery",
@@ -202,6 +216,10 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
     )
 
     params = parser.parse_args(args)
+    try:
+        _validate_hint(params.hint)
+    except ValueError as error:
+        parser.error(str(error))
 
     overrides = {
         field.name: getattr(params, field.name)
