@@ -16,13 +16,13 @@ from itertools import islice
 from os import scandir
 from pathlib import Path, PurePath
 from stat import S_ISREG
-from sys import maxunicode
+from sys import maxunicode, version_info
 from typing import TYPE_CHECKING, overload
 
 from translation_finder.discovery.result import DiscoveryLimit
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable
+    from collections.abc import Callable, Generator, Iterable
     from io import FileIO, TextIOWrapper
 
     from _typeshed import OpenBinaryMode, OpenTextMode
@@ -45,6 +45,23 @@ EXCLUDES = {
     "node_modules",
     ".*_cache",
 }
+
+
+def _compile_excludes(*, windows: bool) -> Callable[[str], re.Match[str] | None]:
+    """Compile basename exclusions with the native pathlib case rules."""
+    # Windows pathlib used lowercasing before Python 3.12, which differs from
+    # re.IGNORECASE for names containing characters such as the dotless i.
+    lowercase = windows and version_info < (3, 12)
+    flags = re.IGNORECASE if windows and not lowercase else 0
+    patterns = (
+        pattern.lower() if lowercase else pattern for pattern in sorted(EXCLUDES)
+    )
+    match = re.compile(
+        "|".join(translate(pattern) for pattern in patterns), flags
+    ).match
+    if lowercase:
+        return lambda name: match(name.lower())
+    return match
 
 
 def escape_mask(mask: str) -> str:
@@ -168,6 +185,7 @@ class Finder:
         self._entries_seen = 0
         self._walk_limit_reasons: set[DiscoveryLimit] = set()
         self.match_budget = MatchBudget(max_match_checks)
+        self._excluded_name = _compile_excludes(windows=os.name == "nt")
         if mock is None:
             files: PathListType = []
             dirs: PathListType = []
@@ -397,9 +415,7 @@ class Finder:
                 if match.is_symlink():
                     continue
                 is_dir = match.is_dir(follow_symlinks=False)
-                # Excludes match single components; avoid parsing the full path.
-                name = PurePath(match.name)
-                if any(name.match(exclude) for exclude in EXCLUDES):
+                if self._excluded_name(match.name):
                     continue
                 path = Path(root, match.name)
                 if is_dir:
