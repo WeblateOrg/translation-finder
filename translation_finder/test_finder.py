@@ -16,7 +16,14 @@ from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
 from .discovery.result import DiscoveryLimit
-from .finder import EXCLUDES, Finder, MatchBudget, PathMockType, _StarMatcher
+from .finder import (
+    EXCLUDES,
+    Finder,
+    MatchBudget,
+    PathMockType,
+    _compile_excludes,
+    _StarMatcher,
+)
 
 
 class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
@@ -622,6 +629,69 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
                         any(full_path.match(exclude) for exclude in EXCLUDES),
                         any(entry_name.match(exclude) for exclude in EXCLUDES),
                     )
+
+    def test_compiled_exclusions(self) -> None:
+        names = (
+            ".git",
+            ".hg",
+            ".eggs",
+            "module.egg-info",
+            "draft.swp",
+            "__pycache__",
+            "__MACOSX",
+            ".DS_Store",
+            ".deps",
+            ".venv",
+            ".env",
+            ".github",
+            "build",
+            "dist",
+            "node_modules",
+            ".ruff_cache",
+            ".GIT",
+            ".g\N{LATIN SMALL LETTER DOTLESS I}t",
+            ".g\N{LATIN CAPITAL LETTER I WITH DOT ABOVE}t",
+            ".dep\N{LATIN SMALL LETTER LONG S}",
+            "bu\N{LATIN SMALL LETTER DOTLESS I}ld",
+            "MODULE.EGG-INFO",
+            "module\n.egg-info",
+            ".hidden\n_cache",
+            ".git\n",
+            "catalog.po",
+            ".hidden.po",
+            "prefix.git",
+            "draft.swpx",
+            "build-suffix",
+            "汉字.po",
+        )
+        for path_class, windows in (
+            (pathlib.PurePosixPath, False),
+            (pathlib.PureWindowsPath, True),
+        ):
+            match = _compile_excludes(windows=windows)
+            for name in names:
+                with self.subTest(path_class=path_class, name=name):
+                    self.assertEqual(
+                        bool(match(name)),
+                        any(path_class(name).match(exclude) for exclude in EXCLUDES),
+                    )
+
+    def test_compiled_exclusions_legacy_windows(self) -> None:
+        with patch("translation_finder.finder.version_info", (3, 11)):
+            match = _compile_excludes(windows=True)
+        for name in (
+            ".GIT",
+            ".g\N{LATIN SMALL LETTER DOTLESS I}t",
+            ".g\N{LATIN CAPITAL LETTER I WITH DOT ABOVE}t",
+            ".dep\N{LATIN SMALL LETTER LONG S}",
+            "bu\N{LATIN SMALL LETTER DOTLESS I}ld",
+            "MODULE.EGG-INFO",
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    bool(match(name)),
+                    any(fnmatch(name.lower(), exclude.lower()) for exclude in EXCLUDES),
+                )
 
     def test_excluded_files_and_directories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

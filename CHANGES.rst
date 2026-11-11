@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Speed up directory traversal by combining entry exclusion patterns into a
+  single compiled matcher.
 * Reduce discovery traversal memory by sharing absolute path components and
   checking excluded entry names without parsing full paths.
 * Reduce discovery index memory by sharing lowercase directory strings and
