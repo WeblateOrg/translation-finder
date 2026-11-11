@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Reduce discovery index memory by sharing lowercase directory strings and
+  removing an unused suffix index.
 * Speed up discovery hint matching on long paths using literal substring
   searches instead of regular expressions.
 * Reject discovery hints longer than 400 characters in the high-level API and

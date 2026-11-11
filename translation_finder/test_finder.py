@@ -87,6 +87,37 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         finder = Finder(pathlib.Path(__file__).parent)
         self.assertNotEqual(finder.files, {})
 
+    def test_lowercase_directory_sharing(self) -> None:
+        finder = self.get_finder(
+            [
+                "Locale/Resources/Z.po",
+                "locale/resources/a.PO",
+                "other/b.po",
+                "root.po",
+                "second.po",
+            ]
+        )
+        expected = [
+            ("", "root.po", pathlib.PurePath("root.po")),
+            ("", "second.po", pathlib.PurePath("second.po")),
+            ("locale/resources", "a.po", pathlib.PurePath("locale/resources/a.PO")),
+            ("locale/resources", "z.po", pathlib.PurePath("Locale/Resources/Z.po")),
+            ("other", "b.po", pathlib.PurePath("other/b.po")),
+        ]
+        self.assertEqual(finder.lc_files, expected)
+        self.assertIs(finder.lc_files[0][0], finder.lc_files[1][0])
+        self.assertIs(finder.lc_files[2][0], finder.lc_files[3][0])
+        self.assertEqual(finder.get_lc_candidates(None, [".po"]), expected)
+        self.assertEqual(finder.get_lc_candidates(["A.PO"], None), [expected[2]])
+        self.assertEqual(
+            list(finder.filter_masks("*.po")), [item[2] for item in expected]
+        )
+        self.assertEqual(
+            list(finder.filter_masks("*.po", dirglob="locale/resources")),
+            [item[2] for item in expected[2:4]],
+        )
+        self.assertFalse(finder.limit_reasons)
+
     def test_find(self) -> None:
         finder = Finder(pathlib.Path(__file__).parent)
         result = list(finder.filter_files("test_finder.py"))
