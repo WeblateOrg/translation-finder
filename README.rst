@@ -158,6 +158,11 @@ unrelated catalogs or several possible templates.
 Discovery limits
 ----------------
 
+The high-level ``discover()`` API and CLI ``--hint`` option accept hints of at
+most 400 characters, bounding wildcard pattern compilation cost. Longer hints
+raise ``ValueError`` in the API or exit with status 2 in the CLI, before scanning
+the repository. This limit remains active with unlimited discovery budgets.
+
 The CLI accepts nonnegative integer limits. Zero permits no work for that
 budget. Defaults are:
 
