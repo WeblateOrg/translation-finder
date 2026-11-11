@@ -101,5 +101,3 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-
-/uv.lock
