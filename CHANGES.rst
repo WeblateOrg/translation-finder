@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Reduce discovery traversal memory by sharing absolute path components and
+  checking excluded entry names without parsing full paths.
 * Reduce discovery index memory by sharing lowercase directory strings and
   removing an unused suffix index.
 * Speed up discovery hint matching on long paths using literal substring
