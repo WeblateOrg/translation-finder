@@ -304,6 +304,9 @@ def transifex_files(draw: st.DrawFn) -> FileSet:
             (
                 f"[o:{key}:p]\nfile_filter = locale/<lang>.json\nsource_file = locale/en.json\ntype = KEYVALUEJSON\n",
                 "[main\nbroken\n",
+                f"[o:{key}:p] # comment\nfile_filter = `locale/<lang>.json`\ntype = KEYVALUEJSON\n",
+                f"[o:{key}:p]\nfile_filter=locale/\\\n <lang>.json\n[o:{key}:p]\ntype=KEYVALUEJSON\n",
+                f'[o:{key}:p]\nfile_filter=%(directory)s/<lang>.json\ndirectory=locale\nsource_file="""locale/en.json"""\n',
                 "",
             ),
         ),

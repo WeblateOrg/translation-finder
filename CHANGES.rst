@@ -4,6 +4,14 @@ Changelog
 Unreleased
 ----------
 
+* Reduced Transifex configuration parsing memory by using compact dictionaries
+  instead of section proxies. Resource-section processing follows the candidate
+  budget, including sections that do not produce discovery results, and reports
+  ``candidates`` truncation when the allowance is exceeded.
+* Matched Transifex client configuration syntax, including quoted values,
+  continuations, repeated-section merging, and value references. Malformed
+  sections no longer prevent discovery from unrelated valid sections.
+
 3.10.0
 ------
 
