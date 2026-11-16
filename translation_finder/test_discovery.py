@@ -2809,7 +2809,7 @@ type = UNICODEPROPERTIES
         )
         discovery = TransifexDiscovery(self.get_finder([]))
         self.assertEqual(
-            discovery.extract_section(config, "unicode"),
+            discovery.extract_section("unicode", config["unicode"]),
             {
                 "name": "unicode",
                 "filemask": "java/*.properties",
@@ -2830,7 +2830,7 @@ source_file = docs/en.mdx
         )
         discovery = TransifexDiscovery(self.get_finder([]))
         self.assertEqual(
-            discovery.extract_section(config, "mdx"),
+            discovery.extract_section("mdx", config["mdx"]),
             {
                 "name": "mdx",
                 "filemask": "docs/*.mdx",
@@ -2850,7 +2850,7 @@ type = PO
         )
         discovery = TransifexDiscovery(self.get_finder([]))
         self.assertEqual(
-            discovery.extract_section(config, "nosource"),
+            discovery.extract_section("nosource", config["nosource"]),
             {
                 "name": "nosource",
                 "filemask": "locales/*.po",
@@ -2878,7 +2878,7 @@ file_filter = {file_filter}
 type = PO
 """
                 )
-                self.assertIsNone(discovery.extract_section(config, "unsafe"))
+                self.assertIsNone(discovery.extract_section("unsafe", config["unsafe"]))
 
     def test_reject_unsafe_source_file(self) -> None:
         discovery = TransifexDiscovery(self.get_finder([]))
@@ -2901,7 +2901,7 @@ source_file = {source_file}
 type = PO
 """
                 )
-                self.assertIsNone(discovery.extract_section(config, "unsafe"))
+                self.assertIsNone(discovery.extract_section("unsafe", config["unsafe"]))
 
     def test_po_source_file(self) -> None:
         config = RawConfigParser()
@@ -2916,7 +2916,7 @@ type = PO
         )
         discovery = TransifexDiscovery(self.get_finder([]))
         self.assertEqual(
-            discovery.extract_section(config, "django"),
+            discovery.extract_section("django", config["django"]),
             {
                 "name": "django",
                 "filemask": "django/conf/locale/*/LC_MESSAGES/django.po",
@@ -3004,7 +3004,9 @@ file_filter = {file_filter}
 type = PO
 """
                 )
-                self.assertIsNone(discovery.extract_section(config, "invalid"))
+                self.assertIsNone(
+                    discovery.extract_section("invalid", config["invalid"])
+                )
 
 
 class AppStoreDiscoveryTest(DiscoveryTestCase):

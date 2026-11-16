@@ -167,6 +167,12 @@ The CLI accepts nonnegative integer limits. Zero permits no work for that
 budget. Defaults are:
 
 * ``--max-candidates``: 4096 generated candidates across all backends.
+  Transifex discovery also processes at most this many resource-section
+  occurrences across its configuration files, including empty, repeated, and
+  non-discoverable sections. ``[main]`` and ``[DEFAULT]`` do not count as
+  resources. Section processing has separate accounting, so useful resources
+  are not charged twice. Exceeding either allowance reports ``candidates``
+  truncation.
 * ``--max-results``: 4096 returned matches.
 * ``--max-new-base-checks``: 65536 new-base lookups across all backends.
 * ``--max-wildcard-checks``: 1000000 language-code probes while generating
@@ -193,6 +199,20 @@ only the result limit. ``weblate-discover --unlimited translations/`` disables
 all discovery budgets; it cannot be combined with individual limit options.
 Internal parser safeguards and per-result format and encoding sampling limits
 remain active.
+
+Transifex configuration discovery follows the `Transifex client's INI syntax
+<https://github.com/transifex/cli/blob/devel/internal/txlib/config/local.go>`_,
+including comments, quoted values, backslash continuations, repeated-section
+merging, dotted parent sections, and ``%(name)s`` value references. It does not
+inherit Python ``ConfigParser`` behavior such as indentation-only continuations
+or implicit ``[DEFAULT]`` option inheritance. Malformed headers and their
+following options are skipped until the next valid header, preserving preceding
+resource sections. Malformed assignments invalidate only their own section.
+Resolved discovery values must fit the 4096-byte limit; an overlong resolved
+value skips its section. An overlong physical line skips the entire configuration
+file, including otherwise valid resources. Unlimited discovery disables the
+resource-section allowance while retaining file-count, byte, line-length, and
+resolved-value safeguards.
 
 The CLI prints collected matches to stdout, including partial results. If
 candidate, result, new-base, per-path mask, wildcard language-code, Finder, or

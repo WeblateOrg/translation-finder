@@ -7,18 +7,18 @@
 from __future__ import annotations
 
 import re
-from configparser import Error as ConfigParserError
-from configparser import RawConfigParser
+from io import StringIO
 from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING, ClassVar
 
 from translation_finder.api import register_discovery
 
-from .base import BaseDiscovery
-from .result import DiscoveryCandidate
+from ._transifex import TransifexConfig
+from .base import DISCOVERY_MAX_CANDIDATES, BaseDiscovery, DiscoveryBudget
+from .result import DiscoveryCandidate, DiscoveryLimit
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Mapping
 
     from .result import DiscoveryResult, FileFormatParams, ResultDict
 
@@ -84,13 +84,13 @@ class TransifexDiscovery(BaseDiscovery):
         )
 
     def extract_section(
-        self, config: RawConfigParser, section: str
+        self, section: str, values: Mapping[str, str]
     ) -> ResultDict | None:
         """Extract single section from Transifex configuration."""
-        if section == "main" or not config.has_option(section, "file_filter"):
+        if section in {"main", "DEFAULT"} or "file_filter" not in values:
             return None
         filemask = self.normalize_config_path(
-            config.get(section, "file_filter").replace("<lang>", "*")
+            values["file_filter"].replace("<lang>", "*")
         )
         if filemask.count("*") != 1 or not self.is_safe_config_path(filemask):
             return None
@@ -100,10 +100,8 @@ class TransifexDiscovery(BaseDiscovery):
             "file_format": "",
         }
 
-        if config.has_option(section, "type"):
-            file_format, file_format_params = self.extract_format(
-                config.get(section, "type")
-            )
+        if "type" in values:
+            file_format, file_format_params = self.extract_format(values["type"])
             result["file_format"] = file_format
             if file_format_params is not None:
                 result["file_format_params"] = file_format_params
@@ -113,8 +111,8 @@ class TransifexDiscovery(BaseDiscovery):
         if not result["file_format"]:
             return None
 
-        if config.has_option(section, "source_file"):
-            template = self.normalize_config_path(config.get(section, "source_file"))
+        if "source_file" in values:
+            template = self.normalize_config_path(values["source_file"])
             if not self.is_safe_config_path(template):
                 return None
             if template.lower().endswith(".pot"):
@@ -170,8 +168,13 @@ class TransifexDiscovery(BaseDiscovery):
     def get_masks(
         self, *, eager: bool = False, hint: str | None = None
     ) -> Generator[DiscoveryCandidate]:
-        """Retuns matches from transifex files."""
+        """Return matches from Transifex files under a shared section allowance."""
         remaining_bytes = TRANSIFEX_CONFIG_TOTAL_MAX_BYTES
+        section_budget = DiscoveryBudget(
+            self._run_discovery_budget.remaining_candidates
+            if self._run_discovery_budget is not None
+            else DISCOVERY_MAX_CANDIDATES
+        )
         for config_count, path in enumerate(
             self.finder.filter_files(
                 "config",
@@ -190,23 +193,23 @@ class TransifexDiscovery(BaseDiscovery):
             if len(content) > remaining_bytes:
                 continue
             remaining_bytes -= len(content)
-            if any(
-                len(line) > TRANSIFEX_CONFIG_MAX_LINE_BYTES
-                for line in content.splitlines()
-            ):
-                continue
             try:
                 config_content = content.decode("utf-8-sig")
             except UnicodeDecodeError:
                 continue
-
-            config = RawConfigParser()
-            try:
-                config.read_string(config_content, source=path.as_posix())
-            except ConfigParserError:
-                # Skip invalid files
+            if any(
+                len(line.rstrip("\r\n").encode("utf-8"))
+                > TRANSIFEX_CONFIG_MAX_LINE_BYTES
+                for line in StringIO(config_content, newline=None)
+            ):
                 continue
-            for section in config.sections():
-                result = self.extract_section(config, section)
+
+            config = TransifexConfig(config_content, section_budget)
+            if section_budget.truncated and self._run_discovery_budget is not None:
+                self._run_discovery_budget.reach_limit(DiscoveryLimit.CANDIDATES)
+            for section, values in config.resources(TRANSIFEX_CONFIG_MAX_LINE_BYTES):
+                result = self.extract_section(section, values)
                 if result:
                     yield DiscoveryCandidate(result)
+            if section_budget.truncated:
+                break

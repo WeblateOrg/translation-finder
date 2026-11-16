@@ -690,28 +690,31 @@ class APITest(DiscoveryTestCase):  # ruff: ignore[too-many-public-methods]
         )
 
     def test_cli_escape_transifex(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = pathlib.Path(tmpdir)
-            (root / ".tx").mkdir()
-            (root / ".tx" / "config").write_text(
-                "[překlady\x1b]0;title\x07]\n"
-                "file_filter = locales/<lang>.po\n"
-                "source_file = source\n"
-                "  injected\x1b[31m.pot\n"
-                "type = PO\n",
-                encoding="utf-8",
-            )
-            output = StringIO()
-            cli(args=[tmpdir], stdout=output)
+        for newline, escaped in (("\n", "\\n"), ("\r\n", "\\r\\n")):
+            with self.subTest(newline=newline), tempfile.TemporaryDirectory() as tmpdir:
+                root = pathlib.Path(tmpdir)
+                (root / ".tx").mkdir()
+                content = (
+                    "[překlady\x1b]0;title\x07]\n"
+                    "file_filter = locales/<lang>.po\n"
+                    "source_file = `source\n"
+                    "injected\x1b[31m.pot`\n"
+                    "type = PO\n"
+                )
+                (root / ".tx" / "config").write_bytes(
+                    content.replace("\n", newline).encode("utf-8")
+                )
+                output = StringIO()
+                cli(args=[tmpdir], stdout=output)
 
-        self.assertEqual(
-            output.getvalue(),
-            "== Match 1 (Transifex) ==\n"
-            "file_format    : po\n"
-            "filemask       : locales/*.po\n"
-            "name           : překlady\\x1b]0;title\\x07\n"
-            "new_base       : source\\ninjected\\x1b[31m.pot\n\n",
-        )
+                self.assertEqual(
+                    output.getvalue(),
+                    "== Match 1 (Transifex) ==\n"
+                    "file_format    : po\n"
+                    "filemask       : locales/*.po\n"
+                    "name           : překlady\\x1b]0;title\\x07\n"
+                    f"new_base       : source{escaped}injected\\x1b[31m.pot\n\n",
+                )
 
     def test_no_match(self) -> None:
         paths = ["files/document.odt"]
