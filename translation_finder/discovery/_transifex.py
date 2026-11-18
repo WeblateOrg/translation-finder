@@ -21,9 +21,21 @@ if TYPE_CHECKING:
 
     from .base import DiscoveryBudget
 
-REFERENCE = re.compile(r"%\(([^)]+)\)s")
 MAX_SUBSTITUTIONS = 99
 RESOURCE_KEYS = ("file_filter", "source_file", "type")
+
+
+def _find_reference(value: str) -> str | None:
+    """Return the first reference, scanning each span between closing delimiters once."""
+    start = 0
+    while (start := value.find("%(", start)) >= 0:
+        end = value.find(")", start + 2)
+        if end < 0:
+            break
+        if end > start + 2 and value.startswith("s", end + 1):
+            return value[start : end + 2]
+        start = end + 1
+    return None
 
 
 def _read_assignment(line: str) -> tuple[str, str]:
@@ -129,20 +141,38 @@ class TransifexConfig:
                 automatic_key += 1
                 key = f"#{automatic_key}"
             self.sections[section][key] = value
+        self.parents = self._find_parents()
+
+    def _find_parents(self) -> dict[str, str]:
+        """Index the nearest existing dotted parent of each section."""
+        # All names under a dotted prefix are contiguous in sorted order. A
+        # prefix must enter the stack before a section with that exact name.
+        entries = [(section, True, section) for section in self.sections]
+        entries.extend((f"{section}.", False, section) for section in self.sections)
+        entries.sort()
+        parents: dict[str, str] = {}
+        prefixes: list[tuple[str, str]] = []
+        for name, is_section, section in entries:
+            while prefixes and not name.startswith(prefixes[-1][0]):
+                prefixes.pop()
+            if is_section:
+                if prefixes:
+                    parents[section] = prefixes[-1][1]
+            else:
+                prefixes.append((name, section))
+        return parents
 
     def _lookup(self, section: str, key: str) -> tuple[str, str] | None:
         """Look up a key, including dotted parent sections."""
-        while True:
-            if section in self.sections:
-                if section in self.invalid:
-                    return None
-                values = self.sections[section]
-                if key in values:
-                    return section, values[key]
-            parent, separator, _ = section.rpartition(".")
-            if not separator:
+        current: str | None = section
+        while current is not None:
+            if current in self.invalid:
                 return None
-            section = parent
+            values = self.sections[current]
+            if key in values:
+                return current, values[key]
+            current = self.parents.get(current)
+        return None
 
     def _resolve(self, section: str, key: str, max_bytes: int) -> str | None:
         """Resolve references without allowing expanded values to grow unbounded."""
@@ -151,21 +181,21 @@ class TransifexConfig:
             return None
         owner, value = found
         for _ in range(MAX_SUBSTITUTIONS):
-            if len(value.encode("utf-8")) > max_bytes:
+            value_bytes = len(value.encode("utf-8"))
+            if value_bytes > max_bytes:
                 raise ValueError
-            match = REFERENCE.search(value)
-            if match is None:
+            marker = _find_reference(value)
+            if marker is None:
                 return value
-            reference = match[1]
+            reference = marker[2:-2]
             replacement = self._lookup(owner, reference)
             if replacement is None or (replacement[0], reference) == (owner, key):
                 replacement = self._lookup("DEFAULT", reference)
-            if replacement is None:
+            if replacement is None or replacement[1] == marker:
                 return value
-            marker = match[0]
             count = value.count(marker)
             replacement_bytes = len(replacement[1].encode("utf-8"))
-            expanded_bytes = len(value.encode("utf-8")) + count * (
+            expanded_bytes = value_bytes + count * (
                 replacement_bytes - len(marker.encode("utf-8"))
             )
             if expanded_bytes > max_bytes:
