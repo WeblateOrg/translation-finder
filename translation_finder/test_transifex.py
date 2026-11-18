@@ -186,14 +186,58 @@ unknown = ignored
             self.parse("[a]\nbroken\n[a.b]\ntype=PO"), {"a.b": {"type": "PO"}}
         )
 
+    def test_deep_dotted_parents(self) -> None:
+        child = "root." + ".child" * 600
+        result = self.parse(
+            f"[{child}]\ndirectory=ignored\n"
+            "[root!]\ntype=JSON\n"
+            "[root.]\nfile_filter=%(directory)s/<lang>.po\ndirectory=locale\n"
+            "[root]\ntype=PO\n"
+            "[root.other]\nbroken\n[root.other.child]\n"
+        )
+        self.assertEqual(
+            list(result), [child, "root!", "root.", "root", "root.other.child"]
+        )
+        self.assertEqual(
+            result[child], {"file_filter": "locale/<lang>.po", "type": "PO"}
+        )
+        self.assertEqual(result["root.other.child"], {})
+
     def test_automatic_keys(self) -> None:
         self.assertEqual(self.parse("[a]\n-=PO\ntype=`%(#1)s`"), {"a": {"type": "PO"}})
+
+    def test_reference_scan(self) -> None:
+        for raw, expected in (
+            ("%(%(value)s", "nested"),
+            ("%()s%(broken)x%(value)s%(value)s", "%()s%(broken)xPOPO"),
+            ("%(value)s%(not closed", "PO%(not closed"),
+            ("%(" * 2000, "%(" * 2000),
+        ):
+            with self.subTest(raw=raw[:80]):
+                self.assertEqual(
+                    self.parse(f"[a]\ntype={raw}\nvalue=PO\n%(value=nested"),
+                    {"a": {"type": expected}},
+                )
 
     def test_reference_cycles(self) -> None:
         self.assertEqual(
             self.parse("[a]\ntype=%(other)s\nother=%(type)s"),
             {"a": {"type": "%(type)s"}},
         )
+        lookups: list[tuple[str, str]] = []
+
+        class RecordingConfig(TransifexConfig):
+            def _lookup(self, section: str, key: str) -> tuple[str, str] | None:
+                lookups.append((section, key))
+                return super()._lookup(section, key)
+
+        config = RecordingConfig(
+            "[DEFAULT]\nvalue=%(value)s\n[a]\ntype=prefix%(value)s", DiscoveryBudget()
+        )
+        self.assertEqual(
+            dict(config.resources(4096)), {"a": {"type": "prefix%(value)s"}}
+        )
+        self.assertEqual(lookups.count(("DEFAULT", "value")), 1)
 
     def test_resolved_value_limit(self) -> None:
         checks = (
