@@ -4,6 +4,8 @@ Changelog
 Unreleased
 ----------
 
+* Reduced Finder memory use in deep directory trees by sharing file ranges
+  when indexing directory components for wildcard matching.
 * Reduced Transifex configuration parsing memory by using compact dictionaries
   instead of section proxies. Resource-section processing follows the candidate
   budget, including sections that do not produce discovery results, and reports
