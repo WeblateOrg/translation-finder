@@ -769,7 +769,29 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
         self.assertFalse(finder._files)
         self.assertEqual(finder.limit_reasons, {DiscoveryLimit.DEPTH})
         unlimited = Finder(pathlib.PurePath(), mock=(files, []), max_depth=None)
-        self.assertEqual(len(unlimited._files_by_component), 71)
+        self.assertEqual(len(unlimited._component_ranges), 70)
+
+    def test_shared_component_ranges(self) -> None:
+        finder = self.get_finder(
+            [
+                "a/shared/shared/en.po",
+                "a/shared/shared/fr.po",
+                "b/other/en.po",
+                "c/shared/en.po",
+                "c/shared/fr.po",
+            ]
+        )
+        self.assertEqual(finder._component_ranges["shared"], [range(2), range(3, 5)])
+        budget = MatchBudget(4)
+        self.assertEqual(
+            list(finder.mask_matches("*/shared/*", budget=budget)),
+            [
+                pathlib.PurePath(name)
+                for name in sorted(finder.filenames)
+                if "shared" in name
+            ],
+        )
+        self.assertFalse(budget.truncated)
 
     def test_mock_count_limits(self) -> None:
         path = pathlib.PurePath("a")

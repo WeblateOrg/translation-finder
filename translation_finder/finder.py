@@ -12,7 +12,7 @@ import os
 import re
 from bisect import bisect_left
 from fnmatch import translate
-from itertools import islice
+from itertools import groupby
 from os import scandir
 from pathlib import Path, PurePath
 from stat import S_ISREG
@@ -33,7 +33,7 @@ from translation_finder._paths import (
 from translation_finder.discovery.result import DiscoveryLimit
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable, Sequence
+    from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
     from io import FileIO, TextIOWrapper
 
     from _typeshed import OpenBinaryMode, OpenTextMode
@@ -97,7 +97,6 @@ CollectedFile = tuple[DiscoveryPath, DiscoveryPath, str]
 LowerRecordItem = tuple[str, str, DiscoveryPath]
 LowerPathListItem = tuple[str, str, PurePath]
 FileMatchItem = tuple[str, DiscoveryPath]
-FileMatchRange = tuple[list[FileMatchItem], int, int]
 
 DEFAULT_MAX_FILES = 100_000
 DEFAULT_MAX_DIRS = 20_000
@@ -249,7 +248,6 @@ class Finder:
         self._files.sort(key=operator.itemgetter(0))
         self._files_by_path = dict(self._files)
         self._files_by_name: dict[str, list[FileMatchItem]] = {}
-        self._files_by_component: dict[str, list[FileMatchItem]] = {}
         for file_item in self._files:
             relative_path = file_item[0]
             reference = file_item[1]
@@ -259,14 +257,11 @@ class Finder:
                 else relative_path.rsplit("/", 1)[-1]
             )
             self._files_by_name.setdefault(filename, []).append(file_item)
-            for component in set(
-                reference.parts
-                if isinstance(reference, FileRecord)
-                else relative_path.split("/")
-            ):
-                self._files_by_component.setdefault(
-                    os.path.normcase(component), []
-                ).append(file_item)
+        self._component_ranges = self._index_directory_components()
+        self._component_counts = {
+            component: sum(map(len, ranges))
+            for component, ranges in self._component_ranges.items()
+        }
         self._files_by_normalized_path = sorted(
             self._files,
             key=lambda item: (self._normalized_path(item), item[0]),
@@ -286,6 +281,24 @@ class Finder:
             for item in self._files_by_reversed_filename
         ]
         self._mask_matches_cache: dict[str, tuple[DiscoveryPath, ...]] = {}
+
+    def _index_directory_components(self) -> dict[str, list[range]]:
+        """Store sorted file ranges for literal directory components."""
+        ranges: dict[str, list[range]] = {}
+        starts: dict[str, int] = {}
+        position = 0
+        for directory, group in groupby(
+            self._files, key=lambda item: item[0].rpartition("/")[0]
+        ):
+            components = {os.path.normcase(part) for part in directory.split("/")}
+            for part in starts.keys() - components:
+                ranges.setdefault(part, []).append(range(starts.pop(part), position))
+            for part in components - starts.keys():
+                starts[part] = position
+            position += sum(1 for _ in group)
+        for part, start in starts.items():
+            ranges.setdefault(part, []).append(range(start, position))
+        return ranges
 
     @property
     def limit_reasons(self) -> frozenset[DiscoveryLimit]:
@@ -503,24 +516,23 @@ class Finder:
                 return start, bisect_left(keys, successor)
         return start, len(keys)
 
-    def _mask_candidates(self, mask: str) -> FileMatchRange:
-        """Return the narrowest indexed candidate range for a wildcard mask."""
-        options: list[FileMatchRange] = []
+    def _mask_candidates(self, mask: str) -> Iterator[FileMatchItem]:
+        """Return the narrowest indexed candidates for a wildcard mask."""
+        options: list[tuple[int, Iterator[FileMatchItem]]] = []
 
-        def add(
-            items: list[FileMatchItem], start: int = 0, end: int | None = None
-        ) -> None:
-            options.append((items, start, len(items) if end is None else end))
+        def add(items: list[FileMatchItem], positions: range) -> None:
+            options.append((len(positions), map(items.__getitem__, positions)))
 
         filename = mask.rsplit("/", 1)[-1]
         if "*" not in filename:
-            add(self._files_by_name.get(filename, []))
+            items = self._files_by_name.get(filename, [])
+            options.append((len(items), iter(items)))
 
         if path_prefix := mask.split("*", 1)[0]:
             start, end = self._prefix_range(
                 self._file_paths, os.path.normcase(path_prefix)
             )
-            add(self._files_by_normalized_path, start, end)
+            add(self._files_by_normalized_path, range(start, end))
 
         # A basename prefix cannot narrow candidates: * can span /, leaving
         # the literal prefix in a directory rather than in the basename.
@@ -528,15 +540,22 @@ class Finder:
             start, end = self._prefix_range(
                 self._reversed_file_names, os.path.normcase(filename_suffix)[::-1]
             )
-            add(self._files_by_reversed_filename, start, end)
+            add(self._files_by_reversed_filename, range(start, end))
 
-        for component in mask.split("/"):
+        for component in mask.split("/")[:-1]:
             if "*" not in component:
-                add(self._files_by_component.get(os.path.normcase(component), []))
+                key = os.path.normcase(component)
+                ranges = self._component_ranges.get(key, ())
+                options.append(
+                    (
+                        self._component_counts.get(key, 0),
+                        (self._files[index] for span in ranges for index in span),
+                    )
+                )
 
         if not options:
-            return self._files, 0, len(self._files)
-        return min(options, key=lambda option: option[2] - option[1])
+            return iter(self._files)
+        return min(options, key=operator.itemgetter(0))[1]
 
     @staticmethod
     def _normalized_path(item: FileMatchItem) -> str:
@@ -607,11 +626,11 @@ class Finder:
             match = self._files_by_path.get(mask)
             result = (match,) if match is not None else ()
         else:
-            items, start, end = self._mask_candidates(mask)
+            candidates = self._mask_candidates(mask)
             matcher = _StarMatcher(mask)
             matches = []
             complete = True
-            for item in islice(items, start, end):
+            for item in candidates:
                 if not budget.consume():
                     complete = False
                     break
