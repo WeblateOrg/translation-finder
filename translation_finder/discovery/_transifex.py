@@ -13,7 +13,9 @@ discovery options. Comments and serialization metadata are not retained.
 from __future__ import annotations
 
 import re
+from bisect import bisect_right
 from io import StringIO
+from operator import itemgetter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -141,37 +143,56 @@ class TransifexConfig:
                 automatic_key += 1
                 key = f"#{automatic_key}"
             self.sections[section][key] = value
-        self.parents = self._find_parents()
+        self._position: dict[str, int] = {}
+        self._inherited: dict[tuple[str | None, str], list[tuple[int, str | None]]] = {}
+        self._scope: dict[str, str | None] = {}
+        self._index_inheritance()
 
-    def _find_parents(self) -> dict[str, str]:
-        """Index the nearest existing dotted parent of each section."""
-        # All names under a dotted prefix are contiguous in sorted order. A
-        # prefix must enter the stack before a section with that exact name.
+    def _index_inheritance(self) -> None:
+        """Record changes in inherited options while visiting dotted subtrees."""
+        # Only sections with descendants contribute inherited options. Sorting
+        # the dotted prefixes separately handles names such as "a", "a!", "a.b".
         entries = [(section, True, section) for section in self.sections]
         entries.extend((f"{section}.", False, section) for section in self.sections)
         entries.sort()
-        parents: dict[str, str] = {}
-        prefixes: list[tuple[str, str]] = []
-        for name, is_section, section in entries:
+        prefixes: list[tuple[str, str, dict[str, str | None]]] = []
+        for position, (name, is_section, section) in enumerate(entries):
             while prefixes and not name.startswith(prefixes[-1][0]):
-                prefixes.pop()
+                _, parent, previous = prefixes.pop()
+                for key, owner in previous.items():
+                    binding = (self._scope[parent], key)
+                    self._inherited[binding].append((position, owner))
             if is_section:
-                if prefixes:
-                    parents[section] = prefixes[-1][1]
-            else:
-                prefixes.append((name, section))
-        return parents
+                self._position[section] = position
+                self._scope[section] = (
+                    self._scope[prefixes[-1][1]] if prefixes else None
+                )
+                if section in self.invalid:
+                    self._scope[section] = section
+            elif position + 1 < len(entries) and entries[position + 1][0].startswith(
+                name
+            ):
+                previous = {}
+                prefixes.append((name, section, previous))
+                if section in self.invalid:
+                    continue
+                for key in self.sections[section]:
+                    binding = (self._scope[section], key)
+                    history = self._inherited.setdefault(binding, [])
+                    previous[key] = history[-1][1] if history else None
+                    history.append((position, section))
 
     def _lookup(self, section: str, key: str) -> tuple[str, str] | None:
-        """Look up a key, including dotted parent sections."""
-        current: str | None = section
-        while current is not None:
-            if current in self.invalid:
-                return None
-            values = self.sections[current]
-            if key in values:
-                return current, values[key]
-            current = self.parents.get(current)
+        """Find the applicable definition without walking the parent chain."""
+        if section in self.invalid:
+            return None
+        if key in self.sections[section]:
+            return section, self.sections[section][key]
+        history = self._inherited.get((self._scope[section], key))
+        if history:
+            index = bisect_right(history, self._position[section], key=itemgetter(0))
+            if index and (owner := history[index - 1][1]) is not None:
+                return owner, self.sections[owner][key]
         return None
 
     def _resolve(self, section: str, key: str, max_bytes: int) -> str | None:

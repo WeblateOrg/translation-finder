@@ -260,6 +260,43 @@ unknown = ignored
         )
 
 
+class TransifexInheritanceTest(TestCase):
+    def test_invalid_interpolation_default(self) -> None:
+        self.assertEqual(
+            TransifexConfigTest.parse(
+                "[DEFAULT]\nvalue=PO\nbroken\n[a]\ntype=%(value)s"
+            ),
+            {"a": {"type": "%(value)s"}},
+        )
+
+    def test_inherited_binding_scopes(self) -> None:
+        config = TransifexConfigTest.parse(
+            "[a.b.child]\n[a.b]\ntype=JSON\n[a.c]\n"
+            "[a.bad]\ntype=XML\nbroken\n[a.bad.child]\n[a.bad.child.leaf]\n"
+            "[a]\ntype=PO\n[z]\n"
+        )
+        self.assertEqual(config["a.b.child"], {"type": "JSON"})
+        self.assertEqual(config["a.c"], {"type": "PO"})
+        self.assertEqual(config["a.bad.child.leaf"], {})
+        self.assertEqual(config["z"], {})
+
+    def test_lookup_skips_intermediate_sections(self) -> None:
+        config = TransifexConfig(
+            "[base]\ntype=PO\n[base.app]\n[base.app.ui]\n[base.app.ui.menu]",
+            DiscoveryBudget(),
+        )
+        definitions = config.sections
+        with patch.object(config, "sections") as sections:
+            sections.__iter__.side_effect = lambda: iter(definitions)
+            sections.__getitem__.side_effect = definitions.__getitem__
+            self.assertEqual(
+                dict(config.resources(4096)),
+                {name: {"type": "PO"} for name in definitions if name != "DEFAULT"},
+            )
+            # Three local option probes and at most one definition read per section.
+            self.assertLessEqual(sections.__getitem__.call_count, 4 * 4)
+
+
 class TransifexSectionBudgetTest(TestCase):
     def test_useful_resources_are_not_charged_twice(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
