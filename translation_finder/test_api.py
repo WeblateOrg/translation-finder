@@ -248,6 +248,54 @@ class APITest(DiscoveryTestCase):  # ruff: ignore[too-many-public-methods]
             finder.assert_not_called()
             scan.assert_not_called()
 
+    def test_discover_source_language_length_boundary(self) -> None:
+        backend = Mock(wraps=GettextDiscovery)
+        language = "ž" * 400
+        with patch.object(api_module, "BACKENDS", [backend]):
+            discover(".", source_language=language, mock=([], []))
+        self.assertEqual(backend.call_args.args[1], language)
+
+    def test_discover_rejects_long_source_language_before_scanning(self) -> None:
+        for limits in (
+            DiscoveryLimits(),
+            DiscoveryLimits(max_results=0),
+            DiscoveryLimits.unlimited(),
+        ):
+            with (
+                self.subTest(limits=limits),
+                patch.object(api_module, "Finder") as finder,
+                patch.object(api_module, "scandir") as scan,
+                self.assertRaisesRegex(
+                    ValueError, "Source language must be at most 400"
+                ),
+            ):
+                discover(".", source_language="ž" * 401, limits=limits)
+            finder.assert_not_called()
+            scan.assert_not_called()
+
+    def test_cli_source_language_length_boundary(self) -> None:
+        language = "ž" * 400
+        with patch.object(
+            api_module, "discover", return_value=DiscoveryResults()
+        ) as discovery:
+            self.assertEqual(cli(args=[".", "--source-language", language]), 0)
+        self.assertEqual(discovery.call_args.kwargs["source_language"], language)
+
+    def test_cli_rejects_long_source_language(self) -> None:
+        for options in ([], ["--unlimited"]):
+            with (
+                self.subTest(options=options),
+                patch.object(api_module, "discover") as discovery,
+                patch("sys.stderr", StringIO()) as stderr,
+                self.assertRaises(SystemExit) as error,
+            ):
+                cli(args=[".", "--source-language", "ž" * 401, *options])
+            self.assertEqual(error.exception.code, 2)
+            self.assertIn(
+                "Source language must be at most 400 characters.", stderr.getvalue()
+            )
+            discovery.assert_not_called()
+
     def test_cli_hint_length_boundary(self) -> None:
         hint = "a" * 395 + "-*.po"
         with (

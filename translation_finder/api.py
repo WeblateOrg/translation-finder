@@ -33,15 +33,21 @@ if TYPE_CHECKING:
 
 BACKENDS: list[type[BaseDiscovery]] = []
 MAX_HINT_LENGTH = 400
+MAX_SOURCE_LANGUAGE_LENGTH = 400
 
 
 DiscoveryT = TypeVar("DiscoveryT", bound=type[BaseDiscovery])
 
 
-def _validate_hint(hint: str | None) -> None:
-    """Bound pattern compilation before scanning or matching files."""
+def _validate_discovery_inputs(hint: str | None, source_language: str) -> None:
+    """Bound hint compilation and template path construction before scanning."""
     if hint is not None and len(hint) > MAX_HINT_LENGTH:
         msg = f"Discovery hint must be at most {MAX_HINT_LENGTH} characters long."
+        raise ValueError(msg)
+    if len(source_language) > MAX_SOURCE_LANGUAGE_LENGTH:
+        msg = (
+            f"Source language must be at most {MAX_SOURCE_LANGUAGE_LENGTH} characters."
+        )
         raise ValueError(msg)
 
 
@@ -72,12 +78,13 @@ def discover(  # ruff: ignore[too-many-arguments]
 
     File masks and the optional hint use * as their only wildcard; question
     marks and brackets are literal characters.
-    Hints longer than 400 characters raise ValueError, even with unlimited budgets.
+    A hint or source language longer than 400 characters raises ValueError,
+    even with unlimited budgets.
 
     Discovery is bounded to avoid excessive work on crafted repositories.
     Inspect truncated and limit_reasons on the returned results for limit status.
     """
-    _validate_hint(hint)
+    _validate_discovery_inputs(hint, source_language)
     limits = limits if limits is not None else DiscoveryLimits()
     if limits.max_results == 0:
         if mock is None:
@@ -179,7 +186,11 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
             "https://github.com/WeblateOrg/translation-finder",
         ),
     )
-    parser.add_argument("--source-language", help="Source language code", default="en")
+    parser.add_argument(
+        "--source-language",
+        help=f"Source language code (at most {MAX_SOURCE_LANGUAGE_LENGTH} characters)",
+        default="en",
+    )
     parser.add_argument(
         "--eager",
         help="Enable eager discovery mode",
@@ -217,7 +228,7 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
 
     params = parser.parse_args(args)
     try:
-        _validate_hint(params.hint)
+        _validate_discovery_inputs(params.hint, params.source_language)
     except ValueError as error:
         parser.error(str(error))
 

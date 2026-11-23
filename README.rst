@@ -162,10 +162,12 @@ The `threat model <https://github.com/WeblateOrg/translation-finder/blob/main/TH
 describes which inputs discovery treats as untrusted and which resource limits
 are the caller's responsibility.
 
-The high-level ``discover()`` API and CLI ``--hint`` option accept hints of at
-most 400 characters, bounding wildcard pattern compilation cost. Longer hints
-raise ``ValueError`` in the API or exit with status 2 in the CLI, before scanning
-the repository. This limit remains active with unlimited discovery budgets.
+The high-level ``discover()`` API accepts a hint and a source language of at most
+400 characters each. These limits bound the cost of compiling wildcard patterns
+and constructing candidate template paths. Longer values raise ``ValueError``
+before discovery scans the repository. The CLI applies the same limits to
+``--hint`` and ``--source-language`` and exits with status 2 for an overlong
+value. Both limits apply even with unlimited discovery budgets.
 
 The CLI accepts nonnegative integer limits. Zero permits no work for that
 budget. Defaults are:

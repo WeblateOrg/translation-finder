@@ -4,6 +4,9 @@ Changelog
 Unreleased
 ----------
 
+* The high-level discovery API and CLI reject source-language strings longer
+  than 400 characters before scanning the repository, including with unlimited
+  discovery budgets.
 * Reduced Finder memory use in deep directory trees by sharing file ranges
   when indexing directory components for wildcard matching.
 * Reduced Transifex configuration parsing memory by using compact dictionaries
