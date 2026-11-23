@@ -27,6 +27,22 @@ MAX_SUBSTITUTIONS = 99
 RESOURCE_KEYS = ("file_filter", "source_file", "type")
 
 
+class InterpolationLimitError(Exception):
+    """The run has insufficient work left to resolve another resource."""
+
+
+class InterpolationBudget:
+    """Share option resolution work across Transifex configuration files."""
+
+    def __init__(self, remaining: int = 8 * 1024 * 1024) -> None:
+        self.remaining = remaining
+
+    def charge(self, work: int) -> None:
+        if work > self.remaining:
+            raise InterpolationLimitError
+        self.remaining -= work
+
+
 def _find_reference(value: str) -> str | None:
     """Return the first reference, scanning each span between closing delimiters once."""
     start = 0
@@ -195,13 +211,17 @@ class TransifexConfig:
                 return owner, self.sections[owner][key]
         return None
 
-    def _resolve(self, section: str, key: str, max_bytes: int) -> str | None:
+    def _resolve(
+        self, section: str, key: str, max_bytes: int, budget: InterpolationBudget
+    ) -> str | None:
         """Resolve references without allowing expanded values to grow unbounded."""
         found = self._lookup(section, key)
         if found is None:
             return None
         owner, value = found
         for _ in range(MAX_SUBSTITUTIONS):
+            # Account for lookup overhead even when scanning short values.
+            budget.charge(64 + len(value))
             value_bytes = len(value.encode("utf-8"))
             if value_bytes > max_bytes:
                 raise ValueError
@@ -212,7 +232,10 @@ class TransifexConfig:
             replacement = self._lookup(owner, reference)
             if replacement is None or (replacement[0], reference) == (owner, key):
                 replacement = self._lookup("DEFAULT", reference)
-            if replacement is None or replacement[1] == marker:
+            if replacement is None:
+                return value
+            budget.charge(len(replacement[1]))
+            if replacement[1] == marker:
                 return value
             count = value.count(marker)
             replacement_bytes = len(replacement[1].encode("utf-8"))
@@ -221,10 +244,13 @@ class TransifexConfig:
             )
             if expanded_bytes > max_bytes:
                 raise ValueError
+            budget.charge(len(value) + count * (len(replacement[1]) - len(marker)))
             value = value.replace(marker, replacement[1])
         return value
 
-    def resources(self, max_bytes: int) -> Iterator[tuple[str, dict[str, str]]]:
+    def resources(
+        self, max_bytes: int, budget: InterpolationBudget
+    ) -> Iterator[tuple[str, dict[str, str]]]:
         """Yield resolved options used by discovery for each valid resource."""
         for section in self.sections:
             if section in {"main", "DEFAULT"} or section in self.invalid:
@@ -232,7 +258,7 @@ class TransifexConfig:
             values: dict[str, str] = {}
             try:
                 for key in RESOURCE_KEYS:
-                    value = self._resolve(section, key, max_bytes)
+                    value = self._resolve(section, key, max_bytes, budget)
                     if value is not None:
                         values[key] = value
             except ValueError:

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from translation_finder.api import register_discovery
 
-from ._transifex import TransifexConfig
+from ._transifex import InterpolationBudget, InterpolationLimitError, TransifexConfig
 from .base import DISCOVERY_MAX_CANDIDATES, BaseDiscovery, DiscoveryBudget
 from .result import DiscoveryCandidate, DiscoveryLimit
 
@@ -170,11 +170,11 @@ class TransifexDiscovery(BaseDiscovery):
     ) -> Generator[DiscoveryCandidate]:
         """Return matches from Transifex files under a shared section allowance."""
         remaining_bytes = TRANSIFEX_CONFIG_TOTAL_MAX_BYTES
-        section_budget = DiscoveryBudget(
-            self._run_discovery_budget.remaining_candidates
-            if self._run_discovery_budget is not None
-            else DISCOVERY_MAX_CANDIDATES
+        interpolation_budget = InterpolationBudget()
+        run_budget = self._run_discovery_budget or DiscoveryBudget(
+            DISCOVERY_MAX_CANDIDATES
         )
+        section_budget = DiscoveryBudget(run_budget.remaining_candidates)
         for config_count, path in enumerate(
             self.finder.filter_files(
                 "config",
@@ -205,11 +205,17 @@ class TransifexDiscovery(BaseDiscovery):
                 continue
 
             config = TransifexConfig(config_content, section_budget)
-            if section_budget.truncated and self._run_discovery_budget is not None:
-                self._run_discovery_budget.reach_limit(DiscoveryLimit.CANDIDATES)
-            for section, values in config.resources(TRANSIFEX_CONFIG_MAX_LINE_BYTES):
-                result = self.extract_section(section, values)
-                if result:
-                    yield DiscoveryCandidate(result)
+            if section_budget.truncated:
+                run_budget.reach_limit(DiscoveryLimit.CANDIDATES)
+            try:
+                for section, values in config.resources(
+                    TRANSIFEX_CONFIG_MAX_LINE_BYTES, interpolation_budget
+                ):
+                    result = self.extract_section(section, values)
+                    if result:
+                        yield DiscoveryCandidate(result)
+            except InterpolationLimitError:
+                run_budget.reach_limit(DiscoveryLimit.TRANSIFEX_INTERPOLATION)
+                return
             if section_budget.truncated:
                 break

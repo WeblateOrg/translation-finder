@@ -25,6 +25,7 @@ FileFormatParams = dict[str, str | int | bool]
 class DiscoveryLimit(StrEnum):
     """Resource limits which can make discovery results incomplete."""
 
+    TRANSIFEX_INTERPOLATION = "transifex-interpolation"
     MASKS_PER_PATH = "masks-per-path"
     CANDIDATES = "candidates"
     RESULTS = "results"

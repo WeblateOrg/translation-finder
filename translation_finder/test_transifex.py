@@ -7,13 +7,19 @@
 from __future__ import annotations
 
 import tempfile
+from functools import partial
+from io import StringIO
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
 from .api import DiscoveryLimits, cli, discover
 from .discovery import transifex as transifex_module
-from .discovery._transifex import TransifexConfig
+from .discovery._transifex import (
+    InterpolationBudget,
+    InterpolationLimitError,
+    TransifexConfig,
+)
 from .discovery.base import DiscoveryBudget
 from .discovery.result import DiscoveryLimit
 from .discovery.transifex import TransifexDiscovery
@@ -24,7 +30,7 @@ class TransifexConfigTest(TestCase):
     @staticmethod
     def parse(content: str, max_bytes: int = 4096) -> dict[str, dict[str, str]]:
         config = TransifexConfig(content, DiscoveryBudget())
-        return dict(config.resources(max_bytes))
+        return dict(config.resources(max_bytes, InterpolationBudget()))
 
     def test_client_syntax(self) -> None:
         content = """
@@ -235,7 +241,8 @@ unknown = ignored
             "[DEFAULT]\nvalue=%(value)s\n[a]\ntype=prefix%(value)s", DiscoveryBudget()
         )
         self.assertEqual(
-            dict(config.resources(4096)), {"a": {"type": "prefix%(value)s"}}
+            dict(config.resources(4096, InterpolationBudget())),
+            {"a": {"type": "prefix%(value)s"}},
         )
         self.assertEqual(lookups.count(("DEFAULT", "value")), 1)
 
@@ -290,7 +297,7 @@ class TransifexInheritanceTest(TestCase):
             sections.__iter__.side_effect = lambda: iter(definitions)
             sections.__getitem__.side_effect = definitions.__getitem__
             self.assertEqual(
-                dict(config.resources(4096)),
+                dict(config.resources(4096, InterpolationBudget())),
                 {name: {"type": "PO"} for name in definitions if name != "DEFAULT"},
             )
             # Three local option probes and at most one definition read per section.
@@ -333,14 +340,17 @@ class TransifexSectionBudgetTest(TestCase):
                     "[main]\n[DEFAULT]\n[first]\n[second]\n" + trailing, budget
                 )
                 self.assertEqual(
-                    dict(config.resources(4096)), {"first": {}, "second": {}}
+                    dict(config.resources(4096, InterpolationBudget())),
+                    {"first": {}, "second": {}},
                 )
                 self.assertEqual(budget.truncated, truncated)
 
     def test_repeated_sections_consume_allowance(self) -> None:
         budget = DiscoveryBudget(1)
         config = TransifexConfig("[a]\ntype=PO\n[a]\ntype=JSON", budget)
-        self.assertEqual(dict(config.resources(4096)), {"a": {"type": "PO"}})
+        self.assertEqual(
+            dict(config.resources(4096, InterpolationBudget())), {"a": {"type": "PO"}}
+        )
         self.assertEqual(budget.limit_reasons, {DiscoveryLimit.CANDIDATES})
 
     def test_zero_and_unlimited(self) -> None:
@@ -348,7 +358,12 @@ class TransifexSectionBudgetTest(TestCase):
             with self.subTest(limit=limit):
                 budget = DiscoveryBudget(limit)
                 self.assertEqual(
-                    dict(TransifexConfig("[a]", budget).resources(4096)), expected
+                    dict(
+                        TransifexConfig("[a]", budget).resources(
+                            4096, InterpolationBudget()
+                        )
+                    ),
+                    expected,
                 )
 
     def test_discovery_budget_across_files(self) -> None:
@@ -396,3 +411,58 @@ class TransifexSectionBudgetTest(TestCase):
                 )
             with patch.object(transifex_module, "DISCOVERY_MAX_CANDIDATES", 1):
                 self.assertEqual(list(TransifexDiscovery(Finder(root)).get_masks()), [])
+
+
+class TransifexInterpolationBudgetTest(TestCase):
+    def test_interpolation_work_boundary(self) -> None:
+        config = TransifexConfig("[a]\ntype=%(v)s%(v)s\nv=é", DiscoveryBudget())
+        # Scan the original value, inspect the replacement, write two
+        # characters, then scan the result for further references.
+        work = (64 + 10) + 1 + 2 + (64 + 2)
+        budget = InterpolationBudget(work)
+        self.assertEqual(dict(config.resources(4096, budget)), {"a": {"type": "éé"}})
+        self.assertEqual(budget.remaining, 0)
+        with self.assertRaises(InterpolationLimitError):
+            dict(config.resources(4096, InterpolationBudget(work - 1)))
+
+    def test_interpolation_budget_across_files(self) -> None:
+        mask = "a/<lang>.txt"
+        # Permit one complete section and the first key of the next one.
+        work = 2 * (64 + len(mask)) + 64 + len("PO")
+        with (
+            tempfile.TemporaryDirectory() as temp,
+            patch.object(
+                transifex_module,
+                "InterpolationBudget",
+                partial(InterpolationBudget, work),
+            ),
+        ):
+            root = Path(temp)
+            for name in ("a", "b"):
+                path = root / name / ".tx" / "config"
+                path.parent.mkdir(parents=True)
+                path.write_text(f"[{name}]\nfile_filter={name}/<lang>.txt\ntype=PO")
+                (root / name / "cs.txt").touch()
+            (root / "cs.po").touch()
+            for eager in (False, True):
+                results = discover(root, eager=eager)
+                self.assertEqual(
+                    results.limit_reasons, {DiscoveryLimit.TRANSIFEX_INTERPOLATION}
+                )
+                self.assertEqual(
+                    [r["name"] for r in results if r.meta["origin"] == "Transifex"],
+                    ["a"],
+                )
+                self.assertTrue(
+                    any(r.meta["discovery"] == "GettextDiscovery" for r in results)
+                )
+            backend = TransifexDiscovery(Finder(root))
+            with self.assertWarns(RuntimeWarning):
+                self.assertEqual(len(list(backend.discover())), 1)
+            self.assertEqual(len(list(backend.get_masks())), 1)
+            for options in ([], ["--unlimited"]):
+                stdout = StringIO()
+                with patch("sys.stderr", new_callable=StringIO) as stderr:
+                    self.assertEqual(cli(stdout, [*options, str(root)]), 3)
+                self.assertIn("(Transifex)", stdout.getvalue())
+                self.assertIn("transifex-interpolation", stderr.getvalue())
