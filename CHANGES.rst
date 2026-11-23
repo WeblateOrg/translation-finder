@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ----------
 
+3.11.0
+------
+
+* Released on 23rd November 2026.
 * The high-level discovery API and CLI reject source-language strings longer
   than 400 characters before scanning the repository, including with unlimited
   discovery budgets.
@@ -17,6 +21,12 @@ Unreleased
 * Matched Transifex client configuration syntax, including quoted values,
   continuations, repeated-section merging, and value references. Malformed
   sections no longer prevent discovery from unrelated valid sections.
+* Bounded Transifex value interpolation across all configuration files in a
+  discovery run. Discovery preserves completed resources and reports
+  ``transifex-interpolation`` when the allowance runs out.
+* Documented the discovery threat model, what each budget counts, and how to
+  interpret partial discovery results and CLI exit status.
+* Updated test tooling, CI actions, and pre-commit hooks.
 
 3.10.0
 ------
