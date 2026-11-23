@@ -216,7 +216,8 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
         ),
         "max_wildcard_checks": (
             "Language-code probes in the generic wildcard generator. Apple "
-            ".strings and RESX locale checks can still run at zero"
+            ".strings and RESX locale checks are not charged here, but are skipped "
+            "once an earlier backend exhausts this budget"
         ),
         "max_masks_per_path": (
             "Alternative language masks per path in one generic generation pass. "
