@@ -158,6 +158,10 @@ unrelated catalogs or several possible templates.
 Discovery limits
 ----------------
 
+The `threat model <https://github.com/WeblateOrg/translation-finder/blob/main/THREAT_MODEL.md>`_
+describes which inputs discovery treats as untrusted and which resource limits
+are the caller's responsibility.
+
 The high-level ``discover()`` API and CLI ``--hint`` option accept hints of at
 most 400 characters, bounding wildcard pattern compilation cost. Longer hints
 raise ``ValueError`` in the API or exit with status 2 in the CLI, before scanning
@@ -248,7 +252,10 @@ To restrict directories, pass a separate directory regular expression as
 ``dirglob``, for example ``finder.filter_masks("*.po", dirglob="po")``.
 ``Finder.filter_files()`` accepts regular expressions for both the basename
 and the optional directory filter. Both expressions are fullmatched against
-lowercased names.
+lowercased names. Supply application-controlled regular expressions that are
+safe to evaluate on repository-controlled names. The match budget counts
+evaluations and cannot interrupt a single expensive expression. For a
+user-supplied discovery hint, use the high-level ``discover(..., hint=...)`` API.
 
 ``Finder.mask_matches()`` matches relative paths, for example ``po/*.po``.
 Its ``*`` wildcard can span directory separators; ``?`` and brackets are
