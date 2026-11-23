@@ -169,8 +169,8 @@ before discovery scans the repository. The CLI applies the same limits to
 ``--hint`` and ``--source-language`` and exits with status 2 for an overlong
 value. Both limits apply even with unlimited discovery budgets.
 
-The CLI accepts nonnegative integer limits. Zero permits no work for that
-budget. Defaults are:
+The CLI accepts nonnegative integer limits. Each value applies to the
+operation described below, including when you set it to zero.
 
 * ``--max-candidates``: 4096 generated candidates across all backends.
   Transifex discovery also processes at most this many resource-section
@@ -180,10 +180,17 @@ budget. Defaults are:
   are not charged twice. Exceeding either allowance reports ``candidates``
   truncation.
 * ``--max-results``: 4096 returned matches.
-* ``--max-new-base-checks``: 65536 new-base lookups across all backends.
-* ``--max-wildcard-checks``: 1000000 language-code probes while generating
-  file masks across all backends.
-* ``--max-masks-per-path``: 32 generated masks per path.
+* ``--max-new-base-checks``: 65536 probes in the shared new-base resolver.
+  Gettext can also check up to five fallback filenames per candidate, even
+  when this budget is zero.
+* ``--max-wildcard-checks``: 1000000 language-code probes in the generic
+  wildcard generator across the run. The Apple ``.strings`` and RESX backends
+  also check locales in files selected under Finder's match budget.
+  Those locale checks use a separate code path and can still run at zero.
+* ``--max-masks-per-path``: 32 alternative masks during one pass of the
+  generic generator over the language-like components of a path. Masks derived
+  from a hint, an eager filename, or a format-specific rule can still be
+  returned at zero.
 * ``--sniff-max-bytes``: 67108864 bytes (64 MiB) sampled across the run.
 * ``--sniff-max-files``: 512 content-sniffing file attempts across the run.
 * ``--max-files``: 100000 indexed files.
@@ -216,35 +223,40 @@ inherit Python ``ConfigParser`` behavior such as indentation-only continuations
 or implicit ``[DEFAULT]`` option inheritance. Malformed headers and their
 following options are skipped until the next valid header, preserving preceding
 resource sections. Malformed assignments invalidate only their own section.
-Resolved discovery values must fit the 4096-byte limit; an overlong resolved
-value skips its section. An overlong physical line skips the entire configuration
-file, including otherwise valid resources. Unlimited discovery disables the
-resource-section allowance while retaining file-count, byte, line-length, and
-resolved-value safeguards. Across all Transifex configuration files, each run
-also has 8,388,608 work units for resolving options. Each scan costs 64 units
+
+Discovery attempts up to 16 Transifex configuration files per run, samples up
+to 1 MiB per file, and admits up to 1 MiB in total for parsing. It skips a
+file if its sample is incomplete or its contents exceed the remaining parsing
+allowance. A later, smaller file can still fit. A physical line longer than
+4096 UTF-8 bytes (excluding the line ending) skips the entire file. A resolved
+discovery value longer than 4096 UTF-8 bytes skips its section. These fixed
+safeguards apply even with ``--unlimited`` and can omit resources without
+setting a truncation flag.
+
+Across all Transifex configuration files, each run also has 8,388,608 work
+units for resolving options. Each scan costs 64 units
 plus the character count of the current value. Substitution also charges for
 the replacement text and the expanded output. If the next operation exceeds
 the allowance, discovery keeps completed resources, stops processing Transifex
 configuration, and reports ``transifex-interpolation``. This safeguard applies
 even with ``--unlimited``.
 
-The CLI prints collected matches to stdout, including partial results. If
-candidate, result, new-base, per-path mask, wildcard language-code, Transifex interpolation,
-Finder, or wildcard matching limits
-cause truncation, it prints
-one warning with the limit reasons to stderr and exits with status 3. Complete
-discovery exits with status 0; invalid arguments exit with status 2.
-Sniff-budget exhaustion uses best-effort detection and does not itself report
-truncation.
+The CLI prints collected matches to stdout, including partial results. Exit
+status 0 means discovery finished with no reported limit reason. Content
+sampling is best effort, so exhausting a sniff budget can affect detection
+without setting a truncation flag. When discovery reports truncation, the CLI
+prints one warning listing the reasons to stderr and exits with status 3.
+Invalid arguments produce exit status 2.
 
 Python callers can import ``DiscoveryLimits`` from ``translation_finder.api``
 and pass it as the keyword-only ``limits`` argument to ``discover()``. Defaults
 match the CLI. Setting a field to ``None`` disables that limit.
 ``DiscoveryLimits.unlimited()`` disables all configurable discovery limits.
 Fixed safeguards such as the Transifex interpolation allowance still apply.
-Negative values raise ``ValueError``. Inspect ``results.truncated`` and
-``results.limit_reasons`` for
-truncation; high-level discovery does not emit Python warnings.
+Negative values raise ``ValueError``. High-level discovery reports truncation
+through ``results.truncated`` and ``results.limit_reasons`` without emitting a
+Python warning for truncation. Format detection can issue its own warnings,
+for example when a JSON template cannot be parsed.
 ``max_results=0`` returns before scanning the tree and conservatively reports
 truncation. Direct ``Finder`` use has the same scan and matching defaults and
 exposes ``limit_reasons``; pass ``None`` for a limit to disable it.
@@ -295,14 +307,11 @@ including the original path objects for mock listings. Filesystem paths are
 materialized on demand, so callers should not depend on object identity across
 calls. Finder's lookup indexes are private implementation details.
 
-Candidate generation, new-base resolution, and returned results are bounded
-across each discovery run. The returned ``DiscoveryResults`` object behaves as
-a list and exposes ``truncated`` and ``limit_reasons`` attributes. These report whether a safety limit made results potentially
-incomplete, without emitting a Python warning.
-
-Calling ``get_masks()`` directly is a low-level interface with only the
-per-path mask limit. Use ``discover()`` for run-wide resource bounds and
-structured limit status.
+Direct calls to a backend's ``get_masks()`` use Finder's configured limits and
+any safeguards specific to that backend. The generic language-mask generator
+also applies its per-path allowance. Use the high-level ``discover()`` to share
+budgets across backends and receive a list-compatible ``DiscoveryResults``
+with run-wide ``truncated`` and ``limit_reasons`` attributes.
 
 .. code-block:: python
 
