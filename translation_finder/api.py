@@ -209,21 +209,33 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
     )
 
     defaults = DiscoveryLimits()
+    descriptions = {
+        "max_new_base_checks": (
+            "Probes in the shared new-base resolver. Gettext can also try up to "
+            "five fallback names per candidate, even at zero"
+        ),
+        "max_wildcard_checks": (
+            "Language-code probes in the generic wildcard generator. Apple "
+            ".strings and RESX locale checks can still run at zero"
+        ),
+        "max_masks_per_path": (
+            "Alternative language masks per path in one generic generation pass. "
+            "Hint, eager filename, and format-specific masks can still be returned at zero"
+        ),
+        "max_path_bytes": "Total UTF-8 size of collected relative file and directory paths",
+    }
     for field in fields(defaults):
         unit = (
             "bytes" if field.name in {"sniff_max_bytes", "max_path_bytes"} else "count"
         )
-        description = f"Discovery {field.name.replace('_', ' ')}"
-        if field.name == "max_path_bytes":
-            description = (
-                "Total UTF-8 size of collected relative file and directory paths"
-            )
+        description = descriptions.get(
+            field.name, f"Discovery {field.name.replace('_', ' ')}"
+        )
         parser.add_argument(
             "--" + field.name.replace("_", "-"),
             type=nonnegative_integer,
             default=None,
-            help=f"{description} ({unit}; default: "
-            f"{getattr(defaults, field.name)}; zero permits no work)",
+            help=f"{description} ({unit}, default {getattr(defaults, field.name)})",
         )
     parser.add_argument(
         "--unlimited",

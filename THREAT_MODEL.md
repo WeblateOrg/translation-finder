@@ -21,7 +21,8 @@ in Weblate, including low-level interfaces and exported data.
   such as `.tx/config` are untrusted.
 - Discovery treats the file-mask hint and source-language string as potentially
   hostile, including when Weblate supplies them from component settings.
-- Weblate uses ordinary discovery and may retry in eager mode. It stores
+- Weblate uses ordinary discovery and may retry in eager mode with a fresh
+  set of per-call budgets. It stores
   results and truncation status in the component-creation session, displays
   choices, and applies the selected settings. It also derives discovery
   presets from results. Paths, masks, format parameters, and generated
@@ -52,6 +53,8 @@ text used in a generated language expression must retain its literal meaning.
 Discovery can return partial results. Callers can inspect `truncated` and
 `limit_reasons` for reported limits. Content sampling is best effort, so even
 a result set without a truncation flag can omit files or misidentify formats.
+Fixed Transifex parser safeguards can also skip configuration files or
+individual resource sections without setting the flag.
 The [README](README.rst#discovery-limits) documents limit and CLI behavior.
 
 ## Limitations and caller responsibilities
