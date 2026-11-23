@@ -204,7 +204,7 @@ budget. Defaults are:
 
 For example, ``weblate-discover --max-results 10000 translations/`` raises
 only the result limit. ``weblate-discover --unlimited translations/`` disables
-all discovery budgets; it cannot be combined with individual limit options.
+all configurable discovery limits. Use it without individual limit options.
 Internal parser safeguards and per-result format and encoding sampling limits
 remain active.
 
@@ -220,11 +220,17 @@ Resolved discovery values must fit the 4096-byte limit; an overlong resolved
 value skips its section. An overlong physical line skips the entire configuration
 file, including otherwise valid resources. Unlimited discovery disables the
 resource-section allowance while retaining file-count, byte, line-length, and
-resolved-value safeguards.
+resolved-value safeguards. Across all Transifex configuration files, each run
+also has 8,388,608 work units for resolving options. Each scan costs 64 units
+plus the character count of the current value. Substitution also charges for
+the replacement text and the expanded output. If the next operation exceeds
+the allowance, discovery keeps completed resources, stops processing Transifex
+configuration, and reports ``transifex-interpolation``. This safeguard applies
+even with ``--unlimited``.
 
 The CLI prints collected matches to stdout, including partial results. If
-candidate, result, new-base, per-path mask, wildcard language-code, Finder, or
-wildcard matching limits
+candidate, result, new-base, per-path mask, wildcard language-code, Transifex interpolation,
+Finder, or wildcard matching limits
 cause truncation, it prints
 one warning with the limit reasons to stderr and exits with status 3. Complete
 discovery exits with status 0; invalid arguments exit with status 2.
@@ -233,9 +239,11 @@ truncation.
 
 Python callers can import ``DiscoveryLimits`` from ``translation_finder.api``
 and pass it as the keyword-only ``limits`` argument to ``discover()``. Defaults
-match the CLI; a field set to ``None`` disables that limit, and
-``DiscoveryLimits.unlimited()`` disables all limits. Negative values raise
-``ValueError``. Inspect ``results.truncated`` and ``results.limit_reasons`` for
+match the CLI. Setting a field to ``None`` disables that limit.
+``DiscoveryLimits.unlimited()`` disables all configurable discovery limits.
+Fixed safeguards such as the Transifex interpolation allowance still apply.
+Negative values raise ``ValueError``. Inspect ``results.truncated`` and
+``results.limit_reasons`` for
 truncation; high-level discovery does not emit Python warnings.
 ``max_results=0`` returns before scanning the tree and conservatively reports
 truncation. Direct ``Finder`` use has the same scan and matching defaults and
