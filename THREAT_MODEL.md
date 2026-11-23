@@ -33,17 +33,16 @@ in Weblate, including low-level interfaces and exported data.
 ## Security guarantees
 
 With the built-in backends and default budgets, a single `discover()` call
-must bound the work a hostile checkout or hint can induce, in ordinary and
-eager mode. This covers traversal, indexing, matching, candidate generation,
-content inspection, and collecting results. A small input that makes a
+must bound the work a hostile checkout, hint, or source-language string can
+induce in ordinary and eager mode. This covers traversal, indexing, matching,
+candidate generation, content inspection, and collecting results. A small input that makes a
 built-in matcher or parser consume prohibitive CPU or memory is grounds for a
 security report, even if the operation eventually finishes or the expensive
 step occurs inside `Finder`.
 
-The same bounded-work objective applies to `source_language`. There is a
-known gap: discovery uses it to construct candidate template paths without
-first limiting its length. Integrators accepting arbitrary source-language
-strings currently need to bound their length before calling discovery.
+Discovery bounds the length of the hint and source language before scanning.
+This limits the input to wildcard matching and template path construction
+even when the caller disables discovery budgets.
 
 Built-in filesystem discovery skips symlink entries during traversal and
 reads regular files to identify formats. Repository configuration is data.
