@@ -213,11 +213,16 @@ def cli(stdout: TextIO | None = None, args: list[str] | None = None) -> int:
         unit = (
             "bytes" if field.name in {"sniff_max_bytes", "max_path_bytes"} else "count"
         )
+        description = f"Discovery {field.name.replace('_', ' ')}"
+        if field.name == "max_path_bytes":
+            description = (
+                "Total UTF-8 size of collected relative file and directory paths"
+            )
         parser.add_argument(
             "--" + field.name.replace("_", "-"),
             type=nonnegative_integer,
             default=None,
-            help=f"Discovery {field.name.replace('_', ' ')} ({unit}; default: "
+            help=f"{description} ({unit}; default: "
             f"{getattr(defaults, field.name)}; zero permits no work)",
         )
     parser.add_argument(

@@ -200,20 +200,20 @@ class Finder:
         self._excluded_name = _compile_excludes(windows=os.name == "nt")
         if mock is None:
             files: list[CollectedFile] = []
-            dirs: PathListType = []
-            self.list_files(root, files, dirs)
+            self.dirnames: set[str] = set()
+            self._walk(root, files, self.dirnames)
         else:
             mock_files, dirs = self._limit_mock(mock)
+            self.dirnames = {text for _, _, text in dirs}
             files = [
                 (absolute, relative, text) for absolute, relative, text in mock_files
             ]
-        self._index_paths(files, dirs)
+        self._index_paths(files)
 
-    def _index_paths(self, files: Sequence[CollectedFile], dirs: PathListType) -> None:
+    def _index_paths(self, files: Sequence[CollectedFile]) -> None:
         """Build lookup indexes from the bounded path collection."""
         # For the has_file/has_dir
         self.filenames = {relative_path for absolute, relative, relative_path in files}
-        self.dirnames = {relative_path for absolute, relative, relative_path in dirs}
         # Needed for filter_files
         self._lc_files: list[LowerRecordItem] = []
         directories: dict[str, str] = {}
@@ -423,38 +423,45 @@ class Finder:
 
         It skips excluded files.
         """
-        pending = [(root, Path())]
+        self._walk(root, files, dirs)
+
+    def _walk(
+        self, root: PurePath, files: list[CollectedFile], dirs: set[str] | PathListType
+    ) -> None:
+        pending = [("", 0)]
         while pending:
-            current, current_relative = pending.pop()
-            child_dirs: list[tuple[Path, Path]] = []
+            parent_text, depth = pending.pop()
+            current = Path(root, parent_text)
+            child_dirs: list[tuple[str, int]] = []
             try:
                 complete = self._list_directory(
                     current,
-                    current_relative,
+                    parent_text,
                     files,
                     dirs,
                     child_dirs,
+                    depth=depth,
                 )
             except OSError:
-                if current == root:
+                if depth == 0:
                     raise
                 continue
             if not complete:
                 break
             pending.extend(reversed(child_dirs))
 
-    def _list_directory(  # ruff: ignore[too-many-branches]
+    def _list_directory(  # ruff: ignore[too-many-arguments,too-many-branches]
         self,
         root: PurePath,
-        relative_root: Path,
+        parent_text: str,
         files: list[CollectedFile],
-        dirs: PathListType,
-        child_dirs: list[tuple[Path, Path]],
+        dirs: set[str] | PathListType,
+        child_dirs: list[tuple[str, int]],
+        *,
+        depth: int,
     ) -> bool:
         """List entries in a single directory."""
-        parent_text = relative_root.as_posix()
-        parent_text = "" if parent_text == "." else parent_text
-        directory = DirectoryRecord(root, relative_root, parent_text)
+        directory = None
         prefix = f"{parent_text}/" if parent_text else ""
         with scandir(root) as matches:
             for match in matches:
@@ -466,15 +473,10 @@ class Finder:
                 if self._excluded_name(match.name):
                     continue
                 if is_dir:
-                    path = Path(root, match.name)
-                    relative = relative_root / match.name
-                    relative_path = relative.as_posix()
+                    relative_path = prefix + match.name
                     if not self._path_length_allowed(relative_path):
                         continue
-                    if (
-                        self.max_depth is not None
-                        and len(relative.parts) > self.max_depth
-                    ):
+                    if self.max_depth is not None and depth >= self.max_depth:
                         self._walk_limit_reasons.add(DiscoveryLimit.DEPTH)
                         continue
                     if self.max_dirs is not None and len(dirs) >= self.max_dirs:
@@ -482,8 +484,13 @@ class Finder:
                         return False
                     if not self._consume_path_bytes(relative_path):
                         return False
-                    dirs.append((path, relative, relative_path))
-                    child_dirs.append((path, relative))
+                    if isinstance(dirs, set):
+                        dirs.add(relative_path)
+                    else:
+                        dirs.append(
+                            (Path(root, match.name), Path(relative_path), relative_path)
+                        )
+                    child_dirs.append((relative_path, depth + 1))
                 elif match.is_file(follow_symlinks=False):
                     if self.max_files is not None and len(files) >= self.max_files:
                         self._walk_limit_reasons.add(DiscoveryLimit.FILES)
@@ -493,6 +500,10 @@ class Finder:
                         continue
                     if not self._consume_path_bytes(relative_path):
                         return False
+                    if directory is None:
+                        directory = DirectoryRecord(
+                            root, Path(parent_text), parent_text
+                        )
                     record = FileRecord(directory, match.name, relative_path)
                     files.append((record, record, relative_path))
         return True
