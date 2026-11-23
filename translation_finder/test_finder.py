@@ -16,11 +16,14 @@ from fnmatch import fnmatch, translate
 from unittest import TestCase, skipUnless
 from unittest.mock import patch
 
+from ._paths import DirectoryRecord
 from .discovery.result import DiscoveryLimit
 from .finder import (
     EXCLUDES,
+    CollectedFile,
     Finder,
     MatchBudget,
+    PathListType,
     PathMockType,
     _compile_excludes,
     _StarMatcher,
@@ -530,6 +533,37 @@ class FinderTest(TestCase):  # ruff: ignore[too-many-public-methods]
 
         self.assertEqual(finder._files, [])
         self.assertEqual(finder.dirnames, {"blocked"})
+
+    def test_directory_records_only_for_parents_of_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = pathlib.Path(tmpdir)
+            parent = root / "locale"
+            empty = parent / "empty"
+            empty.mkdir(parents=True)
+            (parent / "en.po").write_bytes(b"hello")
+            (parent / "fr.po").touch()
+            with patch(
+                "translation_finder.finder.DirectoryRecord", wraps=DirectoryRecord
+            ) as record:
+                finder = Finder(root)
+            record.assert_called_once_with(parent, pathlib.Path("locale"), "locale")
+            self.assertTrue(finder.has_dir("locale/empty"))
+            with finder.open(pathlib.Path("locale/en.po"), "rb") as handle:
+                self.assertEqual(handle.read(), b"hello")
+
+            files: list[CollectedFile] = []
+            dirs: PathListType = []
+            finder.list_files(root, files, dirs)
+            self.assertEqual(
+                dirs,
+                [
+                    (parent, pathlib.Path("locale"), "locale"),
+                    (empty, pathlib.Path("locale/empty"), "locale/empty"),
+                ],
+            )
+            self.assertCountEqual(
+                [text for _, _, text in files], ["locale/en.po", "locale/fr.po"]
+            )
 
     def test_deep_directories_are_scanned_iteratively(self) -> None:
         class FakeEntry:
